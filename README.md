@@ -8,6 +8,8 @@ One small program runs on your PC or Mac. It receives the game's telemetry from 
 PlayStation in the home network and serves the dashboard as a web page: for the same
 computer, for a tablet next to your rig, or as a browser source in OBS.
 
+![The dashboard on a 16:9 screen with the demo lap](docs/images/en/dashboard.png)
+
 *Deutsche Fassung: [README.de.md](README.de.md)*
 
 > **Unofficial.** This project is not affiliated with, endorsed by or connected to Sony
@@ -29,6 +31,23 @@ computer, for a tablet next to your rig, or as a browser source in OBS.
 - **The Box** (optional): a race engineer on the radio who calls out best laps and fuel and
   answers questions – with your own Google Gemini API key.
 - **A demo lap** is built in, so you can try everything without a console.
+
+<p>
+  <img src="docs/images/milk.gif" width="170" alt="A glass of milk that sloshes with the forces in the car">
+  <img src="docs/images/dachshund.gif" width="170" alt="A nodding dachshund">
+  <img src="docs/images/kerb.gif" width="190" alt="Tyres with a ring that flashes on the kerb">
+</p>
+
+*Recorded from a real drive: the glass of milk, the nodding dachshund, and the tyres with the
+surface ring that flashes on a kerb (the ring needs the real console; the demo lap has no surface data).*
+
+| Dashboard on a 4:3 tablet | Layout for the stream (transparent in OBS) |
+|---|---|
+| <img src="docs/images/en/tablet.png" width="400" alt="Dashboard on a 4:3 tablet"> | <img src="docs/images/en/overlay.png" width="400" alt="Layout for the stream (transparent in OBS)"> |
+
+| Editor: choose a widget, buttons below | Style of a single widget |
+|---|---|
+| <img src="docs/images/en/editor.png" width="400" alt="Editor: choose a widget, buttons below"> | <img src="docs/images/en/editor-style.png" width="400" alt="Style of a single widget"> |
 
 ## Start
 
@@ -81,6 +100,8 @@ enter the PIN from the same page.
 Tablets go to sleep: set the display to stay on, or use the device's kiosk mode ("Guided
 Access" on an iPad). Adding the page to the home screen shows it without the browser's bars.
 
+<img src="docs/images/en/connect.png" width="430" alt="The page "Connect devices" with QR code and PIN (made-up values)">
+
 ## OBS
 
 Add a *Browser* source, 1920 × 1080, with the address `http://127.0.0.1:8707/?obs=1`.
@@ -94,6 +115,8 @@ German and English; each device uses its own language unless you choose one unde
 Speed in km/h or mph, temperatures in °C or °F.
 
 ## The Box (optional)
+
+<img src="docs/images/en/settings-box.png" width="360" align="right" alt="Settings of the Box">
 
 A race engineer on the radio: a voice calls out best laps, fuel and the course of the race.
 It is spoken by Google's Gemini Live API with **your own API key** (from Google AI Studio),
@@ -121,6 +144,12 @@ entered under *Settings* on the computer running the program.
 - The key is stored only on your computer (`secrets.json`, readable by you alone) and is never
   shown again, sent to a page or written to a log.
 - Without a key everything else works as usual.
+
+<br clear="both">
+
+The menu of the dashboard appears when you move the pointer or touch the screen:
+
+<img src="docs/images/en/menu.png" width="540" alt="Menu of the dashboard: Talk, Sound on, layout, Edit, Full screen">
 
 ## Privacy and safety
 

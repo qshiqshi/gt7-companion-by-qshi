@@ -47,6 +47,16 @@ class Repository(unittest.TestCase):
             for needed in ("start-mac.command", "start-windows.bat", "python.org", "?obs=1", ".[wake]"):
                 self.assertIn(needed, text, guide)
 
+    def test_every_picture_in_the_guides_exists(self):
+        tracked = set(git("ls-files").splitlines())
+        for guide in ("README.md", "README.de.md", "docs/INSTALL.md", "docs/INSTALL.de.md"):
+            text = (ROOT / guide).read_text(encoding="utf-8")
+            pictures = re.findall(r'(?:src="|\]\()([^")]+\.(?:png|gif))', text)
+            self.assertGreater(len(pictures), 4, guide)
+            for picture in pictures:
+                path = (Path(guide).parent / picture).as_posix()
+                self.assertIn(path, tracked, f"{guide}: {picture}")
+
     def test_nothing_private_is_tracked(self):
         names = git("ls-files").splitlines()
         for name in names:

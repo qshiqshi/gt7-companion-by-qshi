@@ -8,6 +8,8 @@ Ein kleines Programm läuft auf deinem PC oder Mac. Es empfängt die Fahrdaten d
 deiner PlayStation im Heimnetz und liefert das Dashboard als Webseite aus: für denselben
 Rechner, für ein Tablet neben dem Rig oder als Browser-Quelle in OBS.
 
+![Das Dashboard auf einem 16:9-Bildschirm mit der Demo-Runde](docs/images/de/dashboard.png)
+
 *English version: [README.md](README.md)*
 
 > **Inoffiziell.** Dieses Projekt steht in keiner Verbindung zu Sony Interactive Entertainment
@@ -30,6 +32,24 @@ Rechner, für ein Tablet neben dem Rig oder als Browser-Quelle in OBS.
 - **Die Box** (wer mag): ein Renningenieur am Funk, der Bestzeiten und Sprit ansagt und Fragen
   beantwortet – mit deinem eigenen Schlüssel für Google Gemini.
 - **Eine Demo-Runde** ist eingebaut; du kannst alles ohne Konsole ausprobieren.
+
+<p>
+  <img src="docs/images/milk.gif" width="170" alt="Ein Glas Milch, das mit den Kräften im Auto schwappt">
+  <img src="docs/images/dachshund.gif" width="170" alt="Ein Wackeldackel">
+  <img src="docs/images/kerb.gif" width="190" alt="Reifen mit Ring, der auf dem Randstein blinkt">
+</p>
+
+*Aufgenommen bei einer echten Fahrt: das Glas Milch, der Wackeldackel und die Reifen mit dem
+Untergrund-Ring, der auf dem Randstein blinkt (der Ring braucht die echte Konsole; die Demo-Runde enthält keine
+Untergrund-Daten).*
+
+| Dashboard auf einem 4:3-Tablet | Layout für den Stream (in OBS durchsichtig) |
+|---|---|
+| <img src="docs/images/de/tablet.png" width="400" alt="Dashboard auf einem 4:3-Tablet"> | <img src="docs/images/de/overlay.png" width="400" alt="Layout für den Stream (in OBS durchsichtig)"> |
+
+| Editor: Anzeige wählen, Knöpfe unten | Stil einer einzelnen Anzeige |
+|---|---|
+| <img src="docs/images/de/editor.png" width="400" alt="Editor: Anzeige wählen, Knöpfe unten"> | <img src="docs/images/de/editor-style.png" width="400" alt="Stil einer einzelnen Anzeige"> |
 
 ## Start
 
@@ -85,6 +105,8 @@ Tablets schalten den Bildschirm ab: Bildschirmsperre ausschalten oder den Kiosk-
 Geräts nutzen (auf dem iPad „Geführter Zugriff“). Zum Home-Bildschirm hinzugefügt, erscheint
 die Seite ohne die Leisten des Browsers.
 
+<img src="docs/images/de/connect.png" width="430" alt="Die Seite „Geräte verbinden“ mit QR-Code und PIN (erfundene Werte)">
+
 ## OBS
 
 Eine Quelle *Browser* anlegen, 1920 × 1080, mit der Adresse `http://127.0.0.1:8707/?obs=1`.
@@ -98,6 +120,8 @@ Deutsch und Englisch; jedes Gerät nimmt seine eigene Sprache, solange du unter 
 keine festlegst. Tempo in km/h oder mph, Temperaturen in °C oder °F.
 
 ## Die Box (wer mag)
+
+<img src="docs/images/de/settings-box.png" width="360" align="right" alt="Einstellungen der Box">
 
 Ein Renningenieur am Funk: Eine Stimme sagt Bestzeiten, Sprit und Rennverlauf an. Gesprochen
 wird sie von Googles Gemini Live API mit **deinem eigenen API-Schlüssel** (aus Google AI
@@ -128,6 +152,12 @@ Studio), den du unter *Einstellungen* am Rechner mit dem Programm einträgst.
 - Der Schlüssel liegt nur auf deinem Rechner (`secrets.json`, nur für dich lesbar) und wird nie
   wieder angezeigt, an eine Seite geschickt oder in ein Protokoll geschrieben.
 - Ohne Schlüssel läuft alles andere wie gewohnt.
+
+<br clear="both">
+
+Das Menü des Dashboards erscheint, wenn du den Zeiger bewegst oder den Bildschirm berührst:
+
+<img src="docs/images/de/menu.png" width="540" alt="Menü des Dashboards: Sprechen, Ton an, Layout, Bearbeiten, Vollbild">
 
 ## Datenschutz und Sicherheit
 

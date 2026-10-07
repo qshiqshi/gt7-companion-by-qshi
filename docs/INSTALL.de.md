@@ -39,6 +39,13 @@ Dashboard öffnet sich im Browser mit einer Demo-Runde.
 
 Beenden: auf das Symbol klicken → **Beenden**. Wieder starten: Doppelklick auf dieselbe Datei.
 
+<img src="images/de/dashboard.png" width="640" alt="Dashboard">
+
+Bewegst du den Zeiger (oder berührst den Bildschirm), erscheint oben rechts ein kleines Menü –
+mit **Bearbeiten** ordnest du das Dashboard um:
+
+<img src="images/de/menu.png" width="540" alt="Menu">
+
 ## 4. PlayStation verbinden
 
 1. PlayStation und Rechner sind im selben Heimnetz (kein Gäste-WLAN).
@@ -49,6 +56,8 @@ Beenden: auf das Symbol klicken → **Beenden**. Wieder starten: Doppelklick auf
 Die Konsole wird von selbst gefunden. Beim ersten Mal fragt dein Rechner, ob das Programm
 Daten aus dem Netz empfangen darf – erlauben (Windows: „Zugriff zulassen“; Mac: „Erlauben“).
 
+<img src="images/de/settings-source.png" width="500" alt="Settings">
+
 Kommt nichts an? Andere Telemetrie-Programme beenden (es kann immer nur eines zuhören) und
 prüfen, ob beide Geräte im selben Netz sind.
 
@@ -58,6 +67,10 @@ Symbol → **Im Heimnetz freigeben**, dann → **Geräte verbinden**. Den QR-Cod
 des Tablets scannen. Um auf dem Tablet Layouts zu ändern, dort auf **Bearbeiten** tippen und
 die PIN von derselben Seite eingeben.
 
+<img src="images/de/connect.png" width="430" alt="Connect">
+
+<img src="images/de/tablet.png" width="430" alt="Tablet">
+
 ## 6. Stream-Overlay in OBS
 
 Eine Quelle der Art **Browser** anlegen, Breite 1920, Höhe 1080, Adresse:
@@ -66,12 +79,16 @@ Eine Quelle der Art **Browser** anlegen, Breite 1920, Höhe 1080, Adresse:
 http://127.0.0.1:8707/?obs=1
 ```
 
+<img src="images/de/overlay.png" width="640" alt="Overlay">
+
 ## 7. Die Box – Renningenieur am Funk (wer mag)
 
 1. In Google AI Studio (<https://aistudio.google.com/>) einen API-Schlüssel holen. Die Nutzung
    kostet Geld; Google rechnet über dein Konto ab.
 2. Symbol → **Einstellungen** → *Die Box*: **Ansagen einschalten** ankreuzen, den Schlüssel
    einfügen, **Schlüssel speichern**, dann **Prüfen** und **Probeansage**.
+
+<img src="images/de/settings-box.png" width="360" alt="Box">
 
 ### „Hey Box“ (wer mag)
 

@@ -64,3 +64,4 @@ fieldset.kinds label.check { margin-bottom: 10px; }
 details { margin-bottom: 16px; }
 details summary { cursor: pointer; margin-bottom: 12px; color: #b5bac5; }
 input[type="password"] { width: 100%; min-height: 44px; padding: 0 12px; border: 1px solid #3a3e48; border-radius: 8px; background: #0e0f13; color: #f2f2f2; font: inherit; }
+#box-key .row { margin-bottom: 18px; }

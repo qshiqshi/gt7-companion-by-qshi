@@ -38,6 +38,13 @@ the dashboard opens in your browser with a demo lap.
 
 To quit, click the symbol → **Quit**. To start again, double-click the same file.
 
+<img src="images/en/dashboard.png" width="640" alt="Dashboard">
+
+Move the pointer (or touch the screen) and a small menu appears at the top right – with
+**Edit** you rearrange the dashboard:
+
+<img src="images/en/menu.png" width="540" alt="Menu">
+
 ## 4. Connect your PlayStation
 
 1. PlayStation and computer are in the same home network (not a guest Wi-Fi).
@@ -48,6 +55,8 @@ To quit, click the symbol → **Quit**. To start again, double-click the same fi
 The console is found by itself. The first time your computer asks whether the program may
 receive data from the network – allow it (Windows: "Allow access"; Mac: "Allow").
 
+<img src="images/en/settings-source.png" width="500" alt="Settings">
+
 Nothing arrives? Quit other telemetry programs (only one can listen at a time), and check
 that both devices are in the same network.
 
@@ -57,6 +66,10 @@ Click the symbol → **Share in the home network**, then → **Connect devices**
 with the tablet's camera. To change layouts on the tablet, tap **Edit** there and enter the
 PIN from the same page.
 
+<img src="images/en/connect.png" width="430" alt="Connect">
+
+<img src="images/en/tablet.png" width="430" alt="Tablet">
+
 ## 6. Stream overlay in OBS
 
 Add a source of the kind **Browser**, width 1920, height 1080, address:
@@ -65,12 +78,16 @@ Add a source of the kind **Browser**, width 1920, height 1080, address:
 http://127.0.0.1:8707/?obs=1
 ```
 
+<img src="images/en/overlay.png" width="640" alt="Overlay">
+
 ## 7. The Box – race engineer on the radio (optional)
 
 1. Get an API key in Google AI Studio (<https://aistudio.google.com/>). Using it costs money;
    Google bills it to your account.
 2. Symbol → **Settings** → *The Box*: tick **Switch on the messages**, paste the key,
    **Save the key**, then **Check** and **Test message**.
+
+<img src="images/en/settings-box.png" width="360" alt="Box">
 
 ### "Hey Box" (optional)
 
