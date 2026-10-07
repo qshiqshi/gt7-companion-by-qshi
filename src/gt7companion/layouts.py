@@ -23,6 +23,8 @@ MAX_BYTES = 100_000            # a layout is a few kilobytes; anything larger is
 _MAX_DEPTH = 8
 _MAX_TEXT = 2_000
 _NAME = re.compile(r"[a-z0-9][a-z0-9-]{0,39}\Z")
+KINDS = ("dashboard", "overlay")     # opaque screen of its own / transparent layer over the game picture
+_MAX_OWN = 50                        # user layouts; nobody needs more, and the disk stays tidy
 
 
 class LayoutError(ValueError):
@@ -90,10 +92,47 @@ class LayoutStore:
 
     def names(self) -> list[str]:
         """Presets first (in their shipped order), then the user's own layouts."""
-        presets = sorted(p.stem for p in PRESET_DIR.glob("*.json") if valid_name(p.stem))
+        presets = sorted((p.stem for p in PRESET_DIR.glob("*.json") if valid_name(p.stem)),
+                         key=lambda name: (not name.startswith("dashboard"), name))
         own = sorted(p.stem for p in self.folder.glob("*.json")
                      if valid_name(p.stem) and p.stem not in presets) if self.folder.exists() else []
         return presets + own
+
+    def describe(self) -> list[dict]:
+        """What a screen needs to choose a layout: name, kind, stage size, whether it was edited."""
+        described = []
+        for name in self.names():
+            try:
+                layout = self.get(name)
+            except KeyError:
+                continue
+            canvas = layout.get("canvas") or {}
+            described.append({
+                "name": name,
+                "kind": layout.get("kind") if layout.get("kind") in KINDS else "dashboard",
+                "label": layout.get("label") if isinstance(layout.get("label"), dict) else {},
+                "width": canvas.get("width", 1920), "height": canvas.get("height", 1080),
+                "preset": (PRESET_DIR / f"{name}.json").exists(),
+                "edited": self.is_edited(name),
+            })
+        return described
+
+    def copy(self, source: str, name: str) -> dict:
+        """A new layout of the user's own, starting as a copy of ``source``."""
+        if not valid_name(name):
+            raise LayoutError("invalid layout name")
+        if self.exists(name):
+            raise LayoutError("a layout with this name exists already")
+        layout = self.get(source)
+        layout.pop("label", None)
+        return self.save(name, layout)
+
+    def delete(self, name: str) -> None:
+        """Remove one of the user's own layouts (presets can only be reset)."""
+        if not valid_name(name) or (PRESET_DIR / f"{name}.json").exists() or not self.is_edited(name):
+            raise KeyError(name)
+        (self.folder / f"{name}.json").unlink(missing_ok=True)
+        self._cache.pop(name, None)
 
     def exists(self, name: str) -> bool:
         return valid_name(name) and ((PRESET_DIR / f"{name}.json").exists()
@@ -126,6 +165,8 @@ class LayoutStore:
         if not valid_name(name):
             raise LayoutError("invalid layout name")
         checked = validate(layout)
+        if not self.exists(name) and len(self.names()) >= _MAX_OWN:
+            raise LayoutError("too many layouts")
         write_atomic(self.folder / f"{name}.json",
                      json.dumps(checked, indent=2, ensure_ascii=False) + "\n")
         self._cache[name] = checked

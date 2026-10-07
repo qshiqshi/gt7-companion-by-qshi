@@ -1,11 +1,10 @@
 /* Entry point of the page: load what this kind of screen needs, then connect. */
-import { IS_EDITOR, urlFor } from './modes.js';
+import { IS_EDITOR, MODE, chooseLayout, urlFor } from './modes.js';
 import { onTopic, wsConnect } from './net.js';
 import './stage.js';
 import './layout.js';
 import { updateStatusDot } from './widgets.js';
 import './figure.js';
-import './viewer.js';
 
 function loadScript(src) {
   return new Promise(function(resolve, reject) {
@@ -17,6 +16,9 @@ function loadScript(src) {
   });
 }
 
+await chooseLayout();                 // before anything asks which layout this screen shows
+await import('./viewer.js');
+
 if (IS_EDITOR) {
   await loadScript('/static/vendor/interact.min.js');      // dragging; only the editor needs it
   await import('./editor.js');
@@ -25,6 +27,12 @@ if (IS_EDITOR) {
     if (d && d.role !== 'owner') location.replace(urlFor('view'));
   });
 }
+
+/* The layout of this screen was deleted: start over with the one that fits best. */
+onTopic('layout_gone', function() {
+  try { localStorage.removeItem('gt7c.layout'); } catch (e) { /* nothing stored */ }
+  location.replace(urlFor(MODE, ''));
+});
 
 wsConnect();
 updateStatusDot();

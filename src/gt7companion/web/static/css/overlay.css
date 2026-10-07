@@ -92,6 +92,7 @@ body.mode-view {
 #view-menu[hidden] { display: none; }
 #view-menu.show { opacity: 1; pointer-events: auto; }
 #view-menu a,
+#view-menu select,
 #view-menu button {
   display: inline-flex;
   align-items: center;
@@ -106,7 +107,9 @@ body.mode-view {
   cursor: pointer;
 }
 #view-menu a[hidden],
+#view-menu select[hidden],
 #view-menu button[hidden] { display: none; }
+#view-menu select { appearance: none; -webkit-appearance: none; padding-right: 30px; background-image: linear-gradient(45deg, transparent 50%, #f2f2f2 50%), linear-gradient(135deg, #f2f2f2 50%, transparent 50%); background-position: calc(100% - 17px) 19px, calc(100% - 12px) 19px; background-size: 5px 5px; background-repeat: no-repeat; }
 #view-menu a:hover,
 #view-menu button:hover { background: rgba(48, 50, 58, 0.95); }
 

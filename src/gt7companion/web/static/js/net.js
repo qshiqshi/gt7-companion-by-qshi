@@ -2,11 +2,13 @@
 
    The page is always served by the program itself, so API and live connection
    use the address the page was loaded from. */
-import { LAYOUT_NAME } from './modes.js';
+import { layoutName } from './modes.js';
 
 export const API = location.origin;
-const wsUrl = (location.protocol === 'https:' ? 'wss://' : 'ws://') + location.host + '/ws' +
-  (LAYOUT_NAME ? '?layout=' + encodeURIComponent(LAYOUT_NAME) : '');
+function wsUrl() {
+  return (location.protocol === 'https:' ? 'wss://' : 'ws://') + location.host + '/ws' +
+    (layoutName ? '?layout=' + encodeURIComponent(layoutName) : '');
+}
 
 const QUIET_MS = 10000;        // no message for this long: ask whether the program is still there
 const ANSWER_MS = 5000;        // no answer for this long: the connection is dead, start over
@@ -34,7 +36,7 @@ export function wsSend(obj) {
 
 export function wsConnect() {
   clearTimeout(reconnectTimer);
-  const socket = new WebSocket(wsUrl);
+  const socket = new WebSocket(wsUrl());
   ws = socket;
   socket.onopen = function() {
     if (socket !== ws) return;

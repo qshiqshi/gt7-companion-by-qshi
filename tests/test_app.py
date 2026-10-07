@@ -158,6 +158,57 @@ class Layouts(AppCase):
             ws.send_json({"topic": "layout_save", "data": {"widgets": 5}})
             self.assertEqual(self.until(ws, "error")["data"]["code"], "layout_invalid")
 
+    def test_presets_are_listed_dashboards_first(self):
+        listing = self.client().get("/api/layouts").json()
+        self.assertEqual(listing["default"], DEFAULT_LAYOUT)
+        self.assertEqual([item["name"] for item in listing["layouts"]],
+                         ["dashboard-16x10", "dashboard-16x9", "dashboard-4x3", "overlay-16x9"])
+        by_name = {item["name"]: item for item in listing["layouts"]}
+        self.assertEqual((by_name["dashboard-4x3"]["width"], by_name["dashboard-4x3"]["height"]), (1440, 1080))
+        self.assertEqual((by_name["dashboard-16x10"]["width"], by_name["dashboard-16x10"]["height"]), (1920, 1200))
+        self.assertEqual(by_name["overlay-16x9"]["kind"], "overlay")
+        self.assertEqual(by_name["dashboard-16x9"]["kind"], "dashboard")
+        self.assertTrue(all(item["preset"] and not item["edited"] for item in listing["layouts"]))
+        self.assertIn("de", by_name["dashboard-16x9"]["label"])
+
+    def test_each_screen_follows_its_own_layout(self):
+        client = self.client()
+        with client.websocket_connect("/ws?layout=dashboard-4x3") as tablet, \
+                client.websocket_connect("/ws?layout=overlay-16x9") as stream:
+            self.assertEqual(self.until(tablet, "layout")["data"]["canvas"], {"width": 1440, "height": 1080})
+            self.assertEqual(self.until(stream, "layout")["data"]["canvas"], {"width": 1920, "height": 1080})
+            layout = client.get("/api/layout?name=dashboard-4x3").json()
+            layout["widgets"]["speed"]["x"] = 5
+            self.assertEqual(client.post("/api/layout?name=dashboard-4x3", json=layout).status_code, 200)
+            message = self.until(tablet, "layout")
+            self.assertEqual((message["name"], message["data"]["widgets"]["speed"]["x"]), ("dashboard-4x3", 5))
+            client.post("/api/test/spin")
+            for _ in range(200):                              # the stream source never hears of that layout
+                message = stream.receive_json()
+                self.assertNotEqual(message["topic"], "layout")
+                if message["topic"] == "event":
+                    break
+        self.assertTrue(client.get("/api/layouts").json()["layouts"][2]["edited"])
+
+    def test_own_layouts_can_be_made_and_removed_by_the_owner_only(self):
+        client = self.client()
+        tablet = self.client(TABLET, base="http://192.168.1.20:8707")
+        made = client.post("/api/layouts", json={"name": "my-rig", "copy_of": "dashboard-16x9"})
+        self.assertEqual(made.json(), {"ok": True, "name": "my-rig"})
+        mine = [item for item in client.get("/api/layouts").json()["layouts"] if item["name"] == "my-rig"][0]
+        self.assertEqual((mine["preset"], mine["edited"], mine["kind"], mine["label"]), (False, True, "dashboard", {}))
+        for body in ({"name": "my-rig"}, {"name": "Bad Name"}, {"name": "x", "copy_of": "../y"}, {}, "text"):
+            self.assertIn(client.post("/api/layouts", json=body).status_code, (400, 404))
+        self.assertEqual(tablet.post("/api/layouts", json={"name": "theirs"}).status_code, 403)
+        self.assertEqual(tablet.delete("/api/layouts/my-rig").status_code, 403)
+        with client.websocket_connect("/ws?layout=my-rig") as ws:
+            self.until(ws, "layout")
+            self.assertEqual(client.delete("/api/layouts/my-rig").status_code, 200)
+            self.assertEqual(self.until(ws, "layout_gone")["data"], {"name": "my-rig"})
+        self.assertEqual(client.delete("/api/layouts/my-rig").status_code, 404)
+        self.assertEqual(client.delete("/api/layouts/dashboard-16x9").status_code, 404)    # presets stay
+        self.assertEqual(len(client.get("/api/layouts").json()["layouts"]), 4)
+
     def test_unknown_layout_is_not_found(self):
         client = self.client()
         self.assertEqual(client.get("/api/layout?name=nope").status_code, 404)

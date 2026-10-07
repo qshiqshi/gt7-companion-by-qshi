@@ -124,6 +124,36 @@ def create_app(settings: Settings | None = None, *, layouts: LayoutStore | None 
                              "lan": bool(app.state.lan), "screens": manager.count,
                              **companion.status()}, headers=_NO_STORE)
 
+    @app.get("/api/layouts")
+    async def list_layouts():
+        return JSONResponse({"default": DEFAULT_LAYOUT, "layouts": companion.layouts.describe()},
+                            headers=_NO_STORE)
+
+    @app.post("/api/layouts")
+    async def create_layout(request: Request):
+        """A new layout of the user's own, as a copy of an existing one."""
+        require_owner(request)
+        try:
+            body = await request.json()
+            name, source = body.get("name"), body.get("copy_of") or DEFAULT_LAYOUT
+            if not companion.layouts.exists(source):
+                raise HTTPException(status_code=404, detail="No such layout.")
+            companion.layouts.copy(source, name)
+        except (LayoutError, ValueError, AttributeError) as error:
+            raise HTTPException(status_code=400, detail=str(error) or "Invalid request.") from None
+        return {"ok": True, "name": name}
+
+    @app.delete("/api/layouts/{name}")
+    async def delete_layout(name: str, request: Request):
+        require_owner(request)
+        try:
+            companion.layouts.delete(name)
+        except KeyError:
+            raise HTTPException(status_code=404, detail="Only your own layouts can be deleted.") from None
+        # Screens that showed it fall back to the default.
+        await manager.broadcast("layout_gone", {"name": name}, where=lambda meta: meta.get("layout") == name)
+        return {"ok": True}
+
     @app.get("/api/layout")
     async def get_layout(name: str | None = None):
         return JSONResponse(companion.layouts.get(layout_name(name)), headers=_NO_STORE)

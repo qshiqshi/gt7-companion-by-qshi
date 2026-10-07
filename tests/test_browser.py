@@ -70,8 +70,12 @@ class BrowserCase(unittest.TestCase):
         cls.thread.join(timeout=10)
         cls.folder.cleanup()
 
+    def setUp(self):
+        self._open = []
+
     def open(self, query="", size=(1280, 800)):
         """A page of the program; script errors fail the test when it is closed."""
+        self.close_pages()                            # one page at a time: 3D in software is slow
         context = self.browser.new_context(viewport={"width": size[0], "height": size[1]})
         page = context.new_page()
         problems = []
@@ -80,11 +84,15 @@ class BrowserCase(unittest.TestCase):
         page.goto(f"http://127.0.0.1:{self.port}/{query}")
         page.wait_for_function("document.body.classList.contains('layout-ready')", timeout=10000)
 
-        def close():
+        self._open.append((context, problems))
+        self.addCleanup(self.close_pages)
+        return page
+
+    def close_pages(self):
+        opened, self._open = getattr(self, "_open", []), []
+        for context, problems in opened:
             context.close()
             self.assertEqual(problems, [])
-        self.addCleanup(close)
-        return page
 
     def test_dashboard_fits_every_screen_uncropped_and_centred(self):
         for size in SCREENS:
@@ -99,6 +107,26 @@ class BrowserCase(unittest.TestCase):
                 fills = (abs(box["right"] - box["left"] - box["width"]) < 1.2
                          or abs(box["bottom"] - box["top"] - box["height"]) < 1.2)
                 self.assertTrue(fills, "the stage is as large as the screen allows")
+
+    def test_each_screen_gets_the_layout_of_its_shape(self):
+        shown = "document.getElementById('canvas').style.width + ' ' + document.getElementById('canvas').style.height"
+        for size, query, expected in (((1920, 1080), "", "1920px 1080px"), ((1280, 800), "", "1920px 1200px"),
+                                      ((1024, 768), "", "1440px 1080px"), ((1024, 768), "?obs=1", "1920px 1080px"),
+                                      ((1920, 1080), "?layout=dashboard-4x3", "1440px 1080px")):
+            with self.subTest(size=size, query=query):
+                self.assertEqual(self.open(query, size=size).evaluate(shown), expected)
+
+    def test_a_choice_in_the_menu_is_remembered_on_the_device(self):
+        page = self.open(size=(1920, 1080))
+        self.assertEqual(page.evaluate("document.getElementById('layout-select').value"), "dashboard-16x9")
+        self.assertEqual(page.evaluate("document.getElementById('layout-select').options.length"), 4)
+        with page.expect_navigation():
+            page.select_option("#layout-select", "dashboard-4x3")
+        page.wait_for_function("document.getElementById('canvas').style.width === '1440px'")
+        page.goto(f"http://127.0.0.1:{self.port}/")                  # plain address again: the choice stays
+        page.wait_for_function("document.getElementById('canvas').style.width === '1440px'")
+        self.assertEqual(page.evaluate("document.getElementById('btn-edit').getAttribute('href')"),
+                         "/?layout=dashboard-4x3&edit=1")
 
     def test_stage_follows_the_window(self):
         page = self.open(size=(1920, 1080))
@@ -123,7 +151,7 @@ class BrowserCase(unittest.TestCase):
         self.assertFalse(page.evaluate("document.getElementById('btn-edit').hidden"))
 
     def test_editor_opens_for_the_owner_and_fits_below_its_toolbar(self):
-        page = self.open("?edit=1", size=(1440, 900))
+        page = self.open("?edit=1&layout=overlay-16x9", size=(1440, 900))
         page.wait_for_function("typeof interact !== 'undefined'", timeout=10000)
         self.assertEqual(page.evaluate("document.body.dataset.mode"), "edit")
         toolbar = page.evaluate("document.getElementById('editor-toolbar').getBoundingClientRect().bottom")
@@ -134,7 +162,7 @@ class BrowserCase(unittest.TestCase):
         self.assertGreater(page.evaluate("document.querySelectorAll('#canvas .wresize').length"), 50)
 
     def test_dragging_in_the_editor_moves_a_widget_by_stage_pixels(self):
-        page = self.open("?edit=1", size=(960, 700))            # stage shown at half size
+        page = self.open("?edit=1&layout=overlay-16x9", size=(960, 700))     # stage shown at half size
         page.wait_for_function("document.querySelectorAll('#canvas .wresize').length > 50", timeout=10000)
         before = page.evaluate("parseFloat(document.getElementById('w-livetime').style.left)")
         rect = page.evaluate("(() => { const r = document.getElementById('w-livetime').getBoundingClientRect();"

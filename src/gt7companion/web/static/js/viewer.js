@@ -1,7 +1,7 @@
 /* The dashboard as people see it on a tablet or second screen: a hint while there is
    nothing to show, and a small menu (full screen, edit) that stays out of the way. */
 import { t } from './i18n.js';
-import { IS_VIEW, urlFor } from './modes.js';
+import { IS_VIEW, layoutLabel, layoutName, layouts, switchLayout, urlFor } from './modes.js';
 import { onTopic, role, wsConnected } from './net.js';
 
 const wait = document.getElementById('wait');
@@ -61,6 +61,19 @@ if (IS_VIEW && wait && menu) {
   }
   menu.hidden = false;
   edit.href = urlFor('edit');
+  const select = document.getElementById('layout-select');
+  layouts.forEach(function(layout) {
+    const option = document.createElement('option');
+    option.value = layout.name;
+    option.textContent = layoutLabel(layout);
+    option.selected = layout.name === layoutName;
+    select.appendChild(option);
+  });
+  select.hidden = layouts.length < 2;
+  select.addEventListener('change', function() { switchLayout(select.value); });
+  /* While the list is open the menu must stay. */
+  select.addEventListener('focus', function() { clearTimeout(hideTimer); });
+  select.addEventListener('blur', showMenu);
   ['pointermove', 'pointerdown', 'keydown'].forEach(function(name) {
     window.addEventListener(name, showMenu, { passive: true });
   });

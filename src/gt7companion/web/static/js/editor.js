@@ -1,7 +1,7 @@
 /* The editor: drag, resize, scale and style the widgets. Loaded only in editor mode.
    Moved here from the former single page; fixed stage numbers became the stage size. */
 /* global interact */
-import { LAYOUT_NAME } from './modes.js';
+import { layoutLabel, layoutName, layouts, switchLayout, urlFor } from './modes.js';
 import { API, onTopic, wsConnected, wsSend } from './net.js';
 import { WIDGET_NAMES, applyLayout, currentLayout, ensureWidgetEntry, setOverlayBackground,
          setWidgetCornerRadius, updateBackgroundControls } from './layout.js';
@@ -22,6 +22,23 @@ onTopic('_ws_status', function(d) {
     if (label) label.textContent = 'Programm nicht erreichbar';
   }
 });
+
+/* Welches Layout wird bearbeitet? Auswahl in der Werkzeugleiste; „Zur Ansicht“ zeigt dasselbe Layout. */
+(function initLayoutSelect() {
+  var select = document.getElementById('layout-select-edit');
+  var view = document.getElementById('btn-view');
+  if (view) view.href = urlFor('view');
+  if (!select) return;
+  layouts.forEach(function(layout) {
+    var option = document.createElement('option');
+    option.value = layout.name;
+    option.textContent = layoutLabel(layout) + (layout.edited && layout.preset ? ' (angepasst)' : '');
+    option.selected = layout.name === layoutName;
+    select.appendChild(option);
+  });
+  select.disabled = layouts.length < 2;
+  select.addEventListener('change', function() { switchLayout(select.value); });
+})();
 
 /* Datenquelle: Demo-Runde oder PlayStation. Der Knopf zeigt, was läuft, und schaltet um. */
 (function initSourceToggle() {
@@ -642,7 +659,7 @@ function initEditor() {
   var btnReset = document.getElementById('btn-reset');
   if (btnReset) {
     btnReset.addEventListener('click', function() {
-      fetch(API + '/api/layout/reset' + (LAYOUT_NAME ? '?name=' + encodeURIComponent(LAYOUT_NAME) : ''), { method: 'POST' })
+      fetch(API + '/api/layout/reset' + (layoutName ? '?name=' + encodeURIComponent(layoutName) : ''), { method: 'POST' })
         .then(function(r) { return r.json(); })
         .then(function(data) { applyLayout(data); });
     });
