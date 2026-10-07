@@ -30,6 +30,7 @@ class FakeLive:
     def __init__(self, *, key=KEY, refuse_model=None, quota=False):
         self.key, self.refuse_model, self.quota = key, refuse_model, quota
         self.setups, self.turns, self.paths, self.keys_seen = [], [], [], []
+        self.questions, self.lookups, self.mime = [], [], None
         self.server = None
 
     async def __aenter__(self):
@@ -56,9 +57,30 @@ class FakeLive:
             await ws.close(1008, f"models/{self.refuse_model} is not found for API version v1beta")
             return
         await ws.send(json.dumps({"setupComplete": {}}))
+        question = None
         async for raw in ws:
-            turn = json.loads(raw)["clientContent"]
-            self.turns.append(turn["turns"][0]["parts"][0]["text"])
+            message = json.loads(raw)
+            if "toolResponse" in message:
+                self.lookups.append(message["toolResponse"]["functionResponses"])
+            elif "realtimeInput" in message:
+                part = message["realtimeInput"]
+                if "activityStart" in part:
+                    question = b""
+                elif "audio" in part:
+                    self.mime = part["audio"]["mimeType"]
+                    question += base64.b64decode(part["audio"]["data"])
+                elif "activityEnd" in part:
+                    self.questions.append(question)
+                    # like the real service: look the facts up first, then answer
+                    await ws.send(json.dumps({"toolCall": {"functionCalls": [
+                        {"id": "call-1", "name": "get_session_status", "args": {}},
+                        {"id": "call-2", "name": "format_disk", "args": {}}]}}))
+                    continue
+                else:
+                    continue
+                continue
+            else:
+                self.turns.append(message["clientContent"]["turns"][0]["parts"][0]["text"])
             for chunk in AUDIO:
                 await ws.send(json.dumps({"serverContent": {"modelTurn": {"parts": [
                     {"inlineData": {"mimeType": "audio/pcm;rate=24000", "data": base64.b64encode(chunk).decode()}}]}}}))
@@ -69,12 +91,29 @@ class FakeSpeaker:
     available = True
 
     def __init__(self):
-        self.played = []
+        self.played, self.muted = [], []
 
-    async def play(self, chunks, rate):
+    async def play(self, chunks, rate, *, mute=False):
         data = b"".join([chunk async for chunk in chunks])
-        self.played.append((rate, data))
+        (self.muted if mute else self.played).append((rate, data))
         return len(data)
+
+
+class FakeMicrophone:
+    """Records nothing; hands over what the test "said"."""
+    available = True
+
+    def __init__(self, said=b"\x10\x00" * 16000):           # one second
+        self.said, self.recording, self.starts = said, False, 0
+
+    def start(self):
+        self.recording = True
+        self.starts += 1
+        return True
+
+    def stop(self):
+        self.recording = False
+        return self.said
 
 
 class Folder(unittest.IsolatedAsyncioTestCase):
@@ -85,10 +124,11 @@ class Folder(unittest.IsolatedAsyncioTestCase):
         self.settings = Settings(self.home / "settings.json")
         self.keys = KeyStore(self.home / "secrets.json")
         self.speaker = FakeSpeaker()
+        self.microphone = FakeMicrophone()
 
     async def engineer(self, url, **changes):
         self.settings.update({"box_enabled": True, "box_driver": "Alex", "box_language": "en", **changes})
-        engineer = Engineer(self.settings, self.keys, speaker=self.speaker, url=url)
+        engineer = Engineer(self.settings, self.keys, speaker=self.speaker, microphone=self.microphone, url=url)
         await engineer.start()
         self.addAsyncCleanup(engineer.stop)
         return engineer
@@ -232,6 +272,65 @@ class EngineTests(Folder):
             self.assertEqual([turn.splitlines()[-1] for turn in service.turns][2:], ["spin", "fuel low"])
 
 
+class TalkTests(Folder):
+    async def test_a_question_is_recorded_sent_and_answered_with_facts(self):
+        async with FakeLive() as service:
+            self.keys.set(KEY)
+            box = await self.engineer(service.url)
+            box.session_status = lambda: {"fuel_percent": 41, "lap": 7}
+            self.assertTrue(box.talk(True))
+            self.assertEqual((box.state(), self.microphone.recording), ("listening", True))
+            self.assertTrue(box.talk(True))                       # holding on changes nothing
+            self.assertEqual(self.microphone.starts, 1)
+            self.assertFalse(box.talk(False))
+            self.assertFalse(self.microphone.recording)
+            await self.until(lambda: box.said == 1 and not box.speaking)
+            self.assertEqual(service.questions, [self.microphone.said])
+            self.assertEqual(service.mime, "audio/pcm;rate=16000")
+            self.assertEqual(self.speaker.played, [(24000, b"".join(AUDIO))])
+            setup = service.setups[0]
+            self.assertEqual(setup["realtimeInputConfig"], {"automaticActivityDetection": {"disabled": True}})
+            self.assertEqual(setup["tools"][0]["function_declarations"][0]["name"], "get_session_status")
+            first, second = service.lookups[0]
+            self.assertEqual((first["id"], first["response"]), ("call-1", {"fuel_percent": 41, "lap": 7}))
+            self.assertEqual((second["id"], second["response"]), ("call-2", {"error": "unknown function"}))
+            self.assertIn("get_session_status", setup["systemInstruction"]["parts"][0]["text"])
+
+    async def test_a_slip_of_the_finger_asks_nothing_and_off_means_off(self):
+        async with FakeLive() as service:
+            self.keys.set(KEY)
+            self.microphone.said = b"\x10\x00" * 1600            # a tenth of a second
+            box = await self.engineer(service.url)
+            box.talk(True)
+            box.talk(False)
+            self.assertFalse(box.talk(False))                     # releasing twice is harmless
+            await asyncio.sleep(0.1)
+            self.assertEqual((service.questions, box.said), ([], 0))
+            self.settings.update({"box_enabled": False})
+            self.assertFalse(box.talk(True))
+            self.assertEqual(self.microphone.starts, 1)
+            self.settings.update({"box_enabled": True})
+            self.keys.clear()
+            self.assertFalse(box.talk(True))
+
+    async def test_without_the_loudspeaker_the_voice_only_goes_to_other_listeners(self):
+        async with FakeLive() as service:
+            self.keys.set(KEY)
+            heard = []
+
+            async def listener(kind, data):
+                heard.append((kind, data))
+            box = await self.engineer(service.url, box_speaker=False)
+            box.on_audio = listener
+            box.say("Final lap.")
+            await self.until(lambda: box.said == 1 and not box.speaking)
+            self.assertEqual(self.speaker.played, [])
+            self.assertEqual(self.speaker.muted, [(24000, b"".join(AUDIO))])
+            self.assertEqual([kind for kind, _ in heard], ["start", "chunk", "chunk", "chunk", "end"])
+            self.assertEqual(heard[0][1], 24000)
+            self.assertEqual(b"".join(data for kind, data in heard if kind == "chunk"), b"".join(AUDIO))
+
+
 class AnnouncerTests(Folder):
     class Recorder:
         def __init__(self, settings, language):
@@ -318,11 +417,12 @@ class BoxOverTheWeb(AppCase):
 
     def setUp(self):
         self.speaker = FakeSpeaker()
+        self.microphone = FakeMicrophone()
         self.service_url = "ws://127.0.0.1:9/replaced-when-the-service-runs"
         super().setUp()
 
     def app_options(self):
-        return {"speaker": self.speaker, "box_url": self.service_url}
+        return {"speaker": self.speaker, "microphone": self.microphone, "box_url": self.service_url}
 
     def service(self, client, **options):
         service = FakeLive(**options)
@@ -390,6 +490,57 @@ class BoxOverTheWeb(AppCase):
         for bad in ({"box_announce": ["gossip"]}, {"box_model": "a b"}, {"box_voice": "<b>"}, {"box_per_minute": "many"},
                     {"box_driver": "x" * 50}, {"box_language": "fr"}):
             self.assertEqual(client.post("/api/settings", json=bad).status_code, 400)
+
+    def test_screens_with_sound_on_hear_the_voice_and_the_talk_button_asks(self):
+        client = self.client()
+        tablet = self.client(TABLET, base="http://192.168.1.20:8707")
+        service = self.service(client)
+        client.post("/api/box/key", json={"key": KEY})
+        client.post("/api/settings", json={"box_enabled": True, "box_speaker": False})
+        with client.websocket_connect("/ws") as loud, client.websocket_connect("/ws") as quiet, \
+                tablet.websocket_connect("/ws") as guest:
+            self.until(quiet, "box")
+            self.until(guest, "box")
+            loud.send_json({"topic": "audio", "on": True})
+            guest.send_json({"topic": "talk", "on": True})          # not paired: the button does nothing
+            guest.send_json({"topic": "ping"})
+            self.until(guest, "pong")
+            self.assertEqual(self.microphone.starts, 0)
+            self.assertEqual(tablet.post("/api/box/talk", json={"on": True}).status_code, 403)
+            loud.send_json({"topic": "talk", "on": True})
+            for _ in range(200):
+                if self.until(loud, "box")["data"]["state"] == "listening":
+                    break
+            else:
+                self.fail("the Box never listened")
+            self.assertEqual(client.post("/api/box/talk", json={"on": "yes"}).status_code, 400)
+            released = client.post("/api/box/talk", json={"on": False}).json()
+            self.assertFalse(released["listening"])
+            kinds, heard = [], b""
+            for _ in range(600):
+                message = loud.receive_json()
+                if message["topic"] == "box_audio":
+                    kinds.append(message["type"])
+                    if message["type"] == "start":
+                        self.assertEqual(message["data"]["rate"], 24000)
+                    if message["type"] == "chunk":
+                        heard += base64.b64decode(message["data"]["pcm"])
+                    if message["type"] == "end":
+                        break
+            self.assertEqual(kinds, ["start", "chunk", "chunk", "chunk", "end"])
+            self.assertEqual(heard, b"".join(AUDIO))
+            quiet.send_json({"topic": "ping"})
+            for _ in range(600):                                    # the quiet screen got no audio at all
+                message = quiet.receive_json()
+                self.assertNotEqual(message["topic"], "box_audio")
+                if message["topic"] == "pong":
+                    break
+        self.assertEqual(service.questions, [self.microphone.said])
+        facts = service.lookups[0][0]["response"]
+        self.assertTrue(facts["available"])
+        self.assertEqual(facts["lap"], 1)
+        self.assertGreater(facts["speed_kmh"], 50)
+        self.assertEqual(self.speaker.played, [])                  # the computer's loudspeaker is switched off
 
     def test_a_lap_in_the_drive_is_announced(self):
         client = self.client()

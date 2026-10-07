@@ -2,7 +2,8 @@
    nothing to show, and a small menu (full screen, edit) that stays out of the way. */
 import { t } from './i18n.js';
 import { IS_VIEW, layoutLabel, layoutName, layouts, switchLayout, urlFor } from './modes.js';
-import { onTopic, role, wsConnected } from './net.js';
+import { onTopic, role, wsConnected, wsSend } from './net.js';
+import { setSound, soundOn, wantsSound } from './audio.js';
 
 const wait = document.getElementById('wait');
 const menu = document.getElementById('view-menu');
@@ -81,6 +82,35 @@ if (IS_VIEW && wait && menu) {
   ['pointermove', 'pointerdown', 'keydown'].forEach(function(name) {
     window.addEventListener(name, showMenu, { passive: true });
   });
+
+  /* Sound of the Box in this browser, and the talk button (the microphone is on the computer). */
+  const sound = document.getElementById('btn-sound');
+  const talk = document.getElementById('btn-talk');
+  let box = {};
+  function renderBox() {
+    const usable = !!box.enabled && !!box.has_key;
+    sound.hidden = !usable;
+    sound.classList.toggle('on', soundOn);
+    sound.textContent = soundOn ? t('Ton aus') : t('Ton an');
+    talk.hidden = !(usable && box.microphone && (role === 'owner' || role === 'editor'));
+    talk.classList.toggle('talking', box.state === 'listening');
+    talk.textContent = box.state === 'listening' ? t('Loslassen zum Senden') : t('Sprechen');
+  }
+  onTopic('box', function(status) { box = status || {}; renderBox(); });
+  window.addEventListener('gt7:sound', renderBox);
+  sound.addEventListener('click', function() { setSound(!soundOn); });
+  /* Sound was on last time: the first touch anywhere brings it back (browsers insist on a touch). */
+  if (wantsSound()) window.addEventListener('pointerdown', function() { if (!soundOn) setSound(true); }, { once: true });
+  function hold(on) {
+    return function(event) {
+      if (event.type === 'pointerdown') { event.preventDefault(); try { talk.setPointerCapture(event.pointerId); } catch (e) { /* fine */ } }
+      wsSend({ topic: 'talk', on: on });
+      if (on) { menu.classList.add('show'); clearTimeout(hideTimer); } else { showMenu(); }
+    };
+  }
+  talk.addEventListener('pointerdown', hold(true));
+  ['pointerup', 'pointercancel', 'lostpointercapture'].forEach(function(name) { talk.addEventListener(name, hold(false)); });
+  talk.addEventListener('contextmenu', function(event) { event.preventDefault(); });
 
   const root = document.documentElement;
   const canFullscreen = !!(root.requestFullscreen || root.webkitRequestFullscreen);

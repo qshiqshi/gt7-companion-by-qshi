@@ -5,6 +5,8 @@ import './stage.js';
 import './layout.js';
 import { updateStatusDot } from './widgets.js';
 import './figure.js';
+import './audio.js';
+import './radio.js';
 
 function loadScript(src) {
   return new Promise(function(resolve, reject) {

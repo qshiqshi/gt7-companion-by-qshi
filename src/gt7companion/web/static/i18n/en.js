@@ -113,6 +113,17 @@ window.GT7_TEXTS_EN = {
   "Der Schlüssel funktioniert.": "The key works.",
   "Die Probeansage läuft …": "The test message is playing …",
 
+  "Über die Lautsprecher dieses Computers sprechen": "Speak through this computer's loudspeakers",
+  "Ausschalten, wenn die Stimme nur im Browser zu hören sein soll (Knopf „Ton an“ im Dashboard, oder die OBS-Quelle).": "Switch off if the voice should only be heard in a browser (button “Sound on” in the dashboard, or the OBS source).",
+  "Gedrückt halten und mit der Box sprechen (Mikrofon am Computer)": "Hold and talk to the Box (the microphone of the computer is used)",
+  "Sprechen": "Talk",
+  "Loslassen zum Senden": "Release to send",
+  "Ton an": "Sound on",
+  "Ton aus": "Sound off",
+  "BOX FUNKT": "BOX ON AIR",
+  "BOX HÖRT ZU": "BOX LISTENING",
+  "Funk-Anzeige (Box)": "Radio display (Box)",
+
   "Styling": "Styling",
   "Flächen": "Panels",
   "Farbe": "Colour",

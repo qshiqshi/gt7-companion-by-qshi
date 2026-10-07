@@ -91,6 +91,27 @@ class Hub:
     def status(self) -> dict:
         return {"telemetry_connected": self.telemetry_connected, **self.status_info()}
 
+    def facts(self) -> dict:
+        """The drive in a few plain numbers – what the Box may look up when asked."""
+        d = self.latest
+        if d is None or not self.telemetry_connected:
+            return {"available": False, "note": "no data from the game right now"}
+        time_of = lambda ms: None if not ms or ms < 0 else f"{ms // 60000}:{ms % 60000 / 1000:06.3f}"   # noqa: E731
+        return {
+            "available": True, "on_track": bool(d.get("on_track")), "paused": bool(d.get("paused")),
+            "speed_kmh": d.get("speed_kmh"), "gear": d.get("gear"),
+            "lap": d.get("lap_number"), "total_laps": d.get("total_laps") or None,
+            "last_lap": time_of(d.get("last_lap_ms")), "best_lap": time_of(d.get("best_lap_ms")),
+            "session_best_lap": time_of(self.stats["best_lap_ms"]),
+            "fuel_percent": None if d.get("fuel_pct") is None else round(d["fuel_pct"] * 100),
+            "fuel_per_lap_litres": d.get("fuel_per_lap_l"), "fuel_laps_remaining": d.get("fuel_laps_remaining"),
+            "tyre_temperatures_celsius": dict(zip(("front_left", "front_right", "rear_left", "rear_right"),
+                                                  d.get("tyre_temp") or [])),
+            "start_position": d.get("race_position") if (d.get("race_position") or 0) > 0 else None,
+            "car_class": d.get("car_class"),
+            "laps_this_session": self.stats["laps"], "spins": self.stats["spins"], "impacts": self.stats["crashes"],
+        }
+
     async def announce_status(self) -> None:
         await self.ws.broadcast("status", self.status())
 

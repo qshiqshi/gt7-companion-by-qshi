@@ -92,7 +92,7 @@ class Companion:
 def create_app(settings: Settings | None = None, *, layouts: LayoutStore | None = None,
                source: str | None = None, lan: bool = False, port: int = 8707,
                ports: tuple[int, int] | None = None, keys: KeyStore | None = None,
-               box_url: str | None = None, speaker=None) -> FastAPI:
+               box_url: str | None = None, speaker=None, microphone=None) -> FastAPI:
     """Build the application.
 
     ``source`` overrides the stored setting for this run ("demo" or "live");
@@ -117,9 +117,23 @@ def create_app(settings: Settings | None = None, *, layouts: LayoutStore | None 
         system_language = "de" if (locale.getlocale()[0] or "").lower().startswith("de") else "en"
     except ValueError:
         system_language = "en"
-    engineer = Engineer(settings, keys or KeyStore(), speaker=speaker, on_change=box_changed,
+    engineer = Engineer(settings, keys or KeyStore(), speaker=speaker, microphone=microphone, on_change=box_changed,
                         device_language=system_language, **({"url": box_url} if box_url else {}))
     announcer = Announcer(bus, engineer)
+    engineer.session_status = hub.facts
+
+    async def box_audio(kind: str, data) -> None:
+        """Pass the voice on to every screen that switched its sound on."""
+        wants = lambda meta: bool(meta.get("audio"))               # noqa: E731
+        if kind == "start":
+            await manager.broadcast("box_audio", {"rate": data}, where=wants, type="start")
+        elif kind == "chunk":
+            await manager.broadcast("box_audio", {"pcm": base64.b64encode(data).decode("ascii")},
+                                    where=wants, type="chunk", timeout=2.0)
+        else:
+            await manager.broadcast("box_audio", {}, where=wants, type="end")
+
+    engineer.on_audio = box_audio
 
     def new_session(kind: str) -> None:
         detectors.reset()
@@ -357,6 +371,19 @@ def create_app(settings: Settings | None = None, *, layouts: LayoutStore | None 
         require_owner(request)
         return JSONResponse({**(await engineer.check()), **box_view()}, headers=_NO_STORE)
 
+    @app.post("/api/box/talk")
+    async def talk_box(request: Request):
+        """The talk button, for anything that can send a request (a tablet, a stream deck):
+        ``{"on": true}`` while it is held, ``{"on": false}`` when it is released."""
+        require_edit(request)
+        try:
+            on = (await request.json()).get("on")
+        except (ValueError, AttributeError):
+            on = None
+        if not isinstance(on, bool):
+            raise HTTPException(status_code=400, detail="'on' must be true or false.")
+        return JSONResponse({"listening": engineer.talk(on), **box_view()}, headers=_NO_STORE)
+
     @app.post("/api/box/test")
     async def test_box(request: Request):
         """Let the Box say one sample message."""
@@ -449,6 +476,11 @@ def create_app(settings: Settings | None = None, *, layouts: LayoutStore | None 
                 topic = incoming.get("topic")
                 if topic == "ping":
                     await manager.send(ws, "pong", {})
+                elif topic == "audio":
+                    manager.update(ws, audio=incoming.get("on") is True)       # this screen plays the voice
+                elif topic == "talk" and may_edit(who(ws)):
+                    if isinstance(incoming.get("on"), bool):
+                        engineer.talk(incoming["on"])
                 elif topic == "test_event" and may_edit(who(ws)):
                     kind = incoming.get("type")
                     if kind in TEST_MESSAGES:

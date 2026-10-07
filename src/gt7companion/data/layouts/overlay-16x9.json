@@ -231,6 +231,16 @@
       "config": {},
       "width": 190,
       "height": 240
+    },
+    "radio": {
+      "x": 835,
+      "y": 280,
+      "scale": 1.0,
+      "visible": true,
+      "zIndex": 40,
+      "config": {},
+      "width": 250,
+      "height": 56
     }
   },
   "widgetCornerRadius": 6

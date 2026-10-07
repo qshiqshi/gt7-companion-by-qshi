@@ -11,7 +11,7 @@ export const WIDGET_NAMES = [
   'speed','gear','rpm-bar','laptimes','pedals','fuel','tyres',
   'livetime','position','session-stats','alert-area','status-dot',
   'input-trace','track-map','g-forces','wheel-state','powertrain','driving-aids',
-  'car-class','milk'
+  'car-class','milk','radio'
 ];
 
 export function updateBackgroundControls() {

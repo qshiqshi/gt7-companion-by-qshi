@@ -659,6 +659,45 @@ body.editor-mode #w-alert-area:has(.alert-item) .alert-editor-preview {
   100% { opacity: 0; transform: translateX(30px); }
 }
 
+/* ========== 10b. FUNK-ANZEIGE (Box) ========== */
+#w-radio {
+  display: flex;
+  align-items: center;
+  gap: 14px;
+  width: 250px;
+  height: 56px;
+  opacity: 0;
+  transition: opacity 0.2s ease;
+}
+#w-radio.on-air,
+body.editor-mode #w-radio { opacity: 1; }
+#w-radio .radio-bars { display: flex; align-items: center; gap: 4px; height: 26px; }
+#w-radio .radio-bars i {
+  display: block;
+  width: calc(4px * var(--lw, 1));
+  height: 30%;
+  border-radius: 2px;
+  background: var(--c-radio, var(--accent));
+}
+#w-radio.on-air .radio-bars i { animation: radioBar 0.9s ease-in-out infinite; }
+#w-radio.on-air .radio-bars i:nth-child(2) { animation-delay: 0.12s; }
+#w-radio.on-air .radio-bars i:nth-child(3) { animation-delay: 0.31s; }
+#w-radio.on-air .radio-bars i:nth-child(4) { animation-delay: 0.07s; }
+#w-radio.on-air .radio-bars i:nth-child(5) { animation-delay: 0.24s; }
+#w-radio.listening .radio-bars i { background: var(--c-radio-listening, var(--green)); animation-duration: 1.6s; }
+#w-radio .radio-text {
+  font-family: var(--font-gt7);
+  font-size: calc(15px * var(--fs-label, 1));
+  letter-spacing: 0.06em;
+  color: var(--c-label, var(--white));
+  white-space: nowrap;
+}
+@keyframes radioBar {
+  0%, 100% { height: 25%; }
+  50% { height: 100%; }
+}
+@media (prefers-reduced-motion: reduce) { #w-radio.on-air .radio-bars i { animation: none; height: 70%; } }
+
 /* ========== 10. STATUS DOT ========== */
 #w-status-dot {
   display: none;
@@ -908,3 +947,7 @@ body.editor-mode .rpm-resize-r { right: -6px; }
 body.editor-mode .rpm-resize:hover {
   background: linear-gradient(to right, transparent, rgba(225,6,0,0.35), transparent);
 }
+
+#view-menu #btn-talk { border-color: #4fc860; touch-action: none; }
+#view-menu #btn-talk.talking { background: #1f5a2b; }
+#view-menu #btn-sound.on { border-color: #83b7fa; }

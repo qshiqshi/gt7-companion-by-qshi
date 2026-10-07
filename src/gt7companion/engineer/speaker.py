@@ -24,13 +24,14 @@ class Speaker:
     def available(self) -> bool:
         return self._sd is not None
 
-    async def play(self, chunks: AsyncIterator[bytes], rate: int) -> int:
-        """Play audio (mono, 16 bit) as it arrives. Returns the number of bytes played."""
+    async def play(self, chunks: AsyncIterator[bytes], rate: int, *, mute: bool = False) -> int:
+        """Play audio (mono, 16 bit) as it arrives. Returns the number of bytes received.
+        ``mute``: only let it pass (somebody else plays it, for example a browser)."""
         played = 0
         stream = None
         try:
             async for chunk in chunks:
-                if self._sd is not None and stream is None:
+                if self._sd is not None and stream is None and not mute:
                     stream = self._sd.RawOutputStream(samplerate=rate, channels=1, dtype="int16")
                     stream.start()
                 if stream is not None:

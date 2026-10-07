@@ -60,7 +60,14 @@ entered under *Settings* on the computer running the program.
   the name you chose. No telemetry, no audio.
 - The key is stored only on your computer (`secrets.json`, readable by you alone) and is never
   shown again, sent to a page or written to a log.
-- For sound on the computer's loudspeakers install the extra: `pip install -e ".[box]"`.
+- Sound comes from the computer's loudspeakers (install the extra: `pip install -e ".[box]"`)
+  or from any browser showing the dashboard after a tap on "Sound on"; an OBS source plays it
+  without a tap.
+- Talk back: hold the "Talk" button in the dashboard menu and ask ("how much fuel is left?").
+  The microphone of the computer is used, also when the button is held on a tablet. The Box
+  looks up fuel, tyres, laps and times before it answers. For a button of your own:
+  `POST /api/box/talk` with `{"on": true}` and `{"on": false}`.
+- Then your question (as audio) goes to Google as well.
 - Without a key everything else works as usual.
 
 ## Development

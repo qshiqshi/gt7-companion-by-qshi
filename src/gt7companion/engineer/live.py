@@ -21,6 +21,17 @@ log = logging.getLogger("box.live")
 URL = ("wss://generativelanguage.googleapis.com/ws/"
        "google.ai.generativelanguage.v1beta.GenerativeService.BidiGenerateContent")
 OUT_RATE = 24_000          # the service answers with 24 kHz mono, 16 bit
+IN_RATE = 16_000           # questions are sent as 16 kHz mono, 16 bit
+_BLOCK = IN_RATE           # bytes per message: half a second of audio
+
+# The one thing the voice may look up: how the drive is going right now.
+STATUS_TOOL = {
+    "name": "get_session_status",
+    "description": ("Current state of the drive: fuel, tyre temperatures, lap, lap times, speed, "
+                    "position, spins and impacts of the session. Call it before answering any "
+                    "question about these; never guess."),
+    "parameters": {"type": "object", "properties": {}},
+}
 _OPEN_TIMEOUT_S = 10.0
 _SILENCE_TIMEOUT_S = 20.0  # no message for this long in the middle of an answer: give up
 
@@ -59,8 +70,10 @@ def _error_for(status: int | None, text: str) -> BoxError:
 
 
 class LiveSession:
-    def __init__(self, key: str, *, model: str, voice: str, language: str, system: str, url: str = URL) -> None:
+    def __init__(self, key: str, *, model: str, voice: str, language: str, system: str, url: str = URL,
+                 status=None) -> None:
         self._key, self._url = key, url
+        self._status = status                 # callable() -> dict, answers the voice's look-ups
         self._model, self._voice, self._language, self._system = model, voice, language, system
         self._ws = None
         self.tokens = 0                       # tokens the service billed in this conversation
@@ -81,7 +94,10 @@ class LiveSession:
                                  "languageCode": self._language},
             },
             "systemInstruction": {"parts": [{"text": self._system}]},
+            # The driver's questions are marked by hand (push-to-talk), not detected by the service.
+            "realtimeInputConfig": {"automaticActivityDetection": {"disabled": True}},
             "contextWindowCompression": {"slidingWindow": {}},
+            "tools": [{"function_declarations": [STATUS_TOOL]}],
         }}
 
     async def open(self) -> None:
@@ -109,12 +125,44 @@ class LiveSession:
             raise _error_for(None, json.dumps(answer.get("error", answer))[:500])
 
     async def say(self, text: str) -> AsyncIterator[bytes]:
-        """Send one turn and yield the spoken answer as raw audio until it is complete."""
+        """Send one turn of text and yield the spoken answer as raw audio until it is complete."""
+        async for chunk in self._turn([{"clientContent": {
+                "turns": [{"role": "user", "parts": [{"text": text}]}], "turnComplete": True}}]):
+            yield chunk
+
+    async def ask(self, pcm: bytes) -> AsyncIterator[bytes]:
+        """Send a spoken question (16 kHz mono, 16 bit) and yield the spoken answer."""
+        messages = [{"realtimeInput": {"activityStart": {}}}]
+        for start in range(0, len(pcm), _BLOCK):
+            messages.append({"realtimeInput": {"audio": {
+                "data": base64.b64encode(pcm[start:start + _BLOCK]).decode("ascii"),
+                "mimeType": f"audio/pcm;rate={IN_RATE}"}}})
+        messages.append({"realtimeInput": {"activityEnd": {}}})
+        async for chunk in self._turn(messages):
+            yield chunk
+
+    async def _look_up(self, call: dict) -> None:
+        """The voice asks for facts: answer every call, unknown ones with an error."""
+        answers = []
+        for function in call.get("functionCalls", []):
+            name = function.get("name", "")
+            if name == STATUS_TOOL["name"] and self._status is not None:
+                try:
+                    result = self._status()
+                except Exception:
+                    result = {"error": "status is not available"}
+            else:
+                result = {"error": "unknown function"}
+            answers.append({"name": name, "id": function.get("id", ""), "response": result})
+        if answers:
+            await self._ws.send(json.dumps({"toolResponse": {"functionResponses": answers}}))
+
+    async def _turn(self, messages: list[dict]) -> AsyncIterator[bytes]:
         if not self.is_open:
             raise Offline()
         try:
-            await self._ws.send(json.dumps({"clientContent": {
-                "turns": [{"role": "user", "parts": [{"text": text}]}], "turnComplete": True}}))
+            for outgoing in messages:
+                await self._ws.send(json.dumps(outgoing))
             while True:
                 message = json.loads(await asyncio.wait_for(self._ws.recv(), timeout=_SILENCE_TIMEOUT_S))
                 usage = message.get("usageMetadata")
@@ -122,6 +170,8 @@ class LiveSession:
                     self.tokens += usage["totalTokenCount"]
                 if "goAway" in message:              # the service is about to end this conversation
                     self._retire = True
+                if isinstance(message.get("toolCall"), dict):
+                    await self._look_up(message["toolCall"])
                 content = message.get("serverContent")
                 if not isinstance(content, dict):
                     continue

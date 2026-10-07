@@ -41,6 +41,11 @@ class ConnectionManager:
         async with self._lock:
             self._connections[ws] = dict(meta)
 
+    def update(self, ws: WebSocket, **meta) -> None:
+        """Change facts about a screen that is connected (for example: its sound is on)."""
+        if ws in self._connections:
+            self._connections[ws].update(meta)
+
     async def disconnect(self, ws: WebSocket) -> None:
         async with self._lock:
             self._connections.pop(ws, None)

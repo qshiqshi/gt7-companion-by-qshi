@@ -358,6 +358,30 @@ class BrowserCase(unittest.TestCase):
         page.click("#box-key-clear")
         page.wait_for_function("() => document.getElementById('box-state').textContent.includes('kein Schlüssel')")
 
+    def test_radio_display_and_sound_button_follow_the_box(self):
+        page = self.open(size=(1280, 720))
+        self.assertTrue(page.evaluate("document.getElementById('btn-sound').hidden"))        # no Box, no buttons
+        self.assertTrue(page.evaluate("document.getElementById('btn-talk').hidden"))
+        self.assertEqual(page.evaluate("getComputedStyle(document.getElementById('w-radio')).opacity"), "0")
+        page.evaluate("""fetch('/api/box/key', {method: 'POST', headers: {'Content-Type': 'application/json'},
+                               body: JSON.stringify({key: 'browser-test-key-7c1e93'})})
+            .then(() => fetch('/api/settings', {method: 'POST', headers: {'Content-Type': 'application/json'},
+                               body: JSON.stringify({box_enabled: true})}))""")
+        page.wait_for_function("() => !document.getElementById('btn-sound').hidden")
+        self.assertEqual(page.evaluate("document.getElementById('btn-sound').textContent"), "Ton an")
+        page.mouse.move(300, 300)
+        page.click("#btn-sound")
+        page.wait_for_function("() => document.getElementById('btn-sound').textContent === 'Ton aus'")
+        self.assertEqual(page.evaluate("localStorage.getItem('gt7c.sound')"), "1")
+        page.evaluate("""fetch('/api/settings', {method: 'POST', headers: {'Content-Type': 'application/json'},
+                               body: JSON.stringify({box_enabled: false})})
+            .then(() => fetch('/api/box/key', {method: 'POST', headers: {'Content-Type': 'application/json'},
+                               body: JSON.stringify({key: ''})}))""")
+        page.wait_for_function("() => document.getElementById('btn-sound').hidden")
+        editor = self.open("?edit=1&layout=overlay-16x9", size=(1600, 900), figure=False)
+        editor.wait_for_function("() => document.querySelectorAll('#canvas .wresize').length > 50", timeout=10000)
+        self.assertEqual(editor.evaluate("getComputedStyle(document.getElementById('w-radio')).opacity"), "1")
+
     def test_obs_source_is_transparent_and_bare(self):
         page = self.open("?obs=1", size=(1920, 1080))
         self.assertEqual(page.evaluate("document.body.dataset.mode"), "obs")

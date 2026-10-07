@@ -19,7 +19,7 @@ Comments in files that were taken over unchanged are still German.
 | `detectors.py` | `server/detectors.py` | thresholds live in the module instead of a config file; hints are codes instead of German sentences; tyre positions FL/FR/RL/RR; `reset()` |
 | `livetrace.py` | output shape of `live_trace()` in `server/analysis_routes.py` | new, without numpy |
 | `engineer/live.py` | protocol handling in `server/voice2.py` (setup, text turn, audio parts) | new and much smaller; the key travels in a header instead of the address; errors get names the user can act on |
-| `engineer/engine.py`, `announcer.py`, `speaker.py`, `texts.py` | ideas from `server/voice2.py` and `server/director.py` (queue with priorities, pauses per kind of message) | new |
+| `engineer/engine.py`, `announcer.py`, `speaker.py`, `mic.py`, `texts.py` | ideas from `server/voice2.py` and `server/director.py` (queue with priorities, pauses per kind of message) | new |
 | `data/texts/*.json`, `data/prompts/*.md` | – | newly written in German and English (the private project's radio lines and persona were not taken over) |
 | `app.py` | pattern of `tools/overlay_preview.py` | new |
 | everything else | – | new |
@@ -30,6 +30,8 @@ Comments in files that were taken over unchanged are still German.
 |---|---|---|
 | `index.html`, `static/css/overlay.css`, `static/css/editor.css` | `static/overlay.html` | the single page was cut into a page, two stylesheets and ES modules; licensed typeface replaced by Michroma; personal artwork and everything about chat, clips, voice and training removed |
 | `static/js/layout.js`, `widgets.js`, `editor.js`, `figure.js` | script of `static/overlay.html` | moved, not rewritten; fixed 1920×1080 numbers became the stage size; widgets are only hidden outside a race in an OBS source |
+| `static/js/audio.js` | sound playback in `static/overlay.html` (gapless scheduling) | rewritten as a module with a "sound on" switch |
+| `static/js/radio.js` | – | new: radio display instead of the private project's pictures of a person |
 | `static/js/early.js`, `modes.js`, `net.js`, `stage.js`, `stage-fit.js`, `layout-pick.js`, `viewer.js`, `i18n-classic.js`, `i18n.js`, `main.js`, `pages/`, `static/i18n/en.js`, `connect.html`, `settings.html` | – | new (modes, connection with reconnect, scaling the stage into any screen, choosing a layout, dashboard hint and menu, English, units, pairing and settings pages) |
 | `static/overlay-style.js` | `static/overlay-style.js` | none |
 | `static/telemetry-charts.js` | same name | charts draw in layout pixels, so they keep their proportions on a scaled stage |

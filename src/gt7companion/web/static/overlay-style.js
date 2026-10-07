@@ -106,6 +106,7 @@
     'position': { sizes: ['label', 'value'], panel: GLASS, tokens: ['label', 'position', 'positionTotal'] },
     'car-class': { sizes: ['label', 'value'], panel: GLASS, tokens: ['label', 'carClass'] },
     'milk': { sizes: [], panel: [], tokens: [] },
+    'radio': { sizes: ['label', 'line'], panel: GLASS, tokens: ['label'] },
     'session-stats': { sizes: ['label', 'value', 'line'], panel: GLASS, tokens: ['statsTitle', 'label', 'value', 'divider'] },
     'alert-area': { sizes: ['value'], panel: ['bg', 'radius'], names: { value: 'Text' },
       tokens: ['alertBest', 'alertSpin', 'alertCrash'] },

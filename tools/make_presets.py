@@ -21,7 +21,7 @@ BASE = {
     "alert-area": (900, 110, 50), "status-dot": (210, 42, 5), "livetime": (360, 84, 15), "position": (120, 102, 15),
     "track-map": (270, 240, 20), "g-forces": (240, 220, 20), "input-trace": (470, 190, 20),
     "wheel-state": (280, 300, 20), "powertrain": (260, 142, 20), "driving-aids": (260, 72, 20),
-    "car-class": (120, 26, 15), "milk": (190, 240, 20),
+    "car-class": (120, 26, 15), "milk": (190, 240, 20), "radio": (250, 56, 40),
 }
 ALERTS = {"events": {
     "best_lap": {"player": "css", "className": "anim-bestlap", "duration": 4000},
@@ -67,7 +67,8 @@ def dashboard_16x9() -> dict:
         "livetime": widget("livetime", 672, 500, 1.6),
         "laptimes": widget("laptimes", 744, 654, 1.6),
         "alert-area": widget("alert-area", 550, 856, width=820),
-        "status-dot": widget("status-dot", 855, 1012),
+        "status-dot": widget("status-dot", 640, 1012),
+        "radio": widget("radio", 880, 1004),
         # left: where am I, what does the car do
         "track-map": widget("track-map", 40, 40, 1.45),
         "g-forces": widget("g-forces", 40, 410, 1.45),
@@ -90,7 +91,8 @@ def dashboard_16x10() -> dict:
         "livetime": widget("livetime", 654, 548, 1.7),
         "laptimes": widget("laptimes", 730, 716, 1.7),
         "alert-area": widget("alert-area", 550, 950, width=820),
-        "status-dot": widget("status-dot", 855, 1128),
+        "status-dot": widget("status-dot", 640, 1128),
+        "radio": widget("radio", 880, 1120),
         "track-map": widget("track-map", 40, 40, 1.55),
         "g-forces": widget("g-forces", 40, 440, 1.55),
         "input-trace": widget("input-trace", 40, 960),
@@ -111,7 +113,8 @@ def dashboard_4x3() -> dict:
         "livetime": widget("livetime", 468, 410, 1.4),
         "laptimes": widget("laptimes", 504, 548, 1.6),
         "alert-area": widget("alert-area", 320, 744, width=800),
-        "status-dot": widget("status-dot", 615, 1012),
+        "status-dot": widget("status-dot", 515, 1012),
+        "radio": widget("radio", 745, 1004),
         "track-map": widget("track-map", 30, 40, 1.05),
         "g-forces": widget("g-forces", 30, 312, 1.1),
         "tyres": widget("tyres", 30, 574, 1.5),
@@ -147,6 +150,7 @@ def overlay_16x9() -> dict:
         "driving-aids": widget("driving-aids", 1080, 742, visible=False),
         "car-class": widget("car-class", 1760, 4),
         "milk": widget("milk", 1690, 546),
+        "radio": widget("radio", 835, 280),
     })
 
 

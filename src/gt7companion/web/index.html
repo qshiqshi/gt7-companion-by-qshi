@@ -327,6 +327,16 @@
     <div class="alert-editor-preview">TEXTEINBLENDUNGEN</div>
   </div>
 
+  <!-- 10b. Funk-Anzeige: die Box spricht oder hört zu -->
+  <div class="widget glass" id="w-radio">
+    <div class="editor-controls">
+      <button data-scale="-">-</button>
+      <button data-scale="+">+</button>
+    </div>
+    <div class="radio-bars" aria-hidden="true"><i></i><i></i><i></i><i></i><i></i></div>
+    <div class="radio-text label">BOX FUNKT</div>
+  </div>
+
   <!-- 11. Status Dot -->
   <div class="widget" id="w-status-dot">
     <div class="status-pill">
@@ -344,6 +354,8 @@
   </div>
 </div>
 <nav id="view-menu" hidden>
+  <button id="btn-talk" type="button" hidden title="Gedrückt halten und mit der Box sprechen (Mikrofon am Computer)">Sprechen</button>
+  <button id="btn-sound" type="button" hidden>Ton an</button>
   <select id="layout-select" aria-label="Layout" hidden></select>
   <a id="btn-edit" href="?edit=1" hidden>Bearbeiten</a>
   <button id="btn-fullscreen" type="button">Vollbild</button>

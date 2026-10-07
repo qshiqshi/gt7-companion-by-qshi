@@ -800,7 +800,7 @@ var WIDGET_LABELS = {
   'speed': 'Geschwindigkeit', 'gear': 'Gang', 'rpm-bar': 'Drehzahl',
   'laptimes': 'Rundenzeiten', 'pedals': 'Pedale', 'fuel': 'Sprit',
   'tyres': 'Reifen', 'livetime': 'Live-Rundenzeit', 'position': 'Position',
-  'car-class': 'Fahrzeugklasse', 'milk': 'Milchglas / Wackeldackel',
+  'car-class': 'Fahrzeugklasse', 'milk': 'Milchglas / Wackeldackel', 'radio': 'Funk-Anzeige (Box)',
   'session-stats': 'Session-Statistik',
   'alert-area': 'Alerts / Einblendungen', 'status-dot': 'PS5-Status-Anzeige'
 };

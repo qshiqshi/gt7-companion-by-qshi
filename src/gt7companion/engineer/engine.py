@@ -17,6 +17,7 @@ import time
 from ..keystore import KeyStore
 from ..settings import Settings
 from . import live
+from .mic import Microphone
 from .speaker import Speaker
 from .texts import SPEECH_CODE, Texts
 
@@ -35,13 +36,19 @@ class _Item:
     text: str = dataclasses.field(compare=False)
     created: float = dataclasses.field(compare=False)
     forced: bool = dataclasses.field(compare=False, default=False)     # a test message ignores the limits
+    audio: bytes = dataclasses.field(compare=False, default=b"")       # a spoken question instead of text
 
 
 class Engineer:
     def __init__(self, settings: Settings, keys: KeyStore, *, speaker: Speaker | None = None,
-                 url: str = live.URL, device_language: str = "en", on_change=None, clock=time.monotonic) -> None:
+                 microphone: Microphone | None = None, url: str = live.URL, device_language: str = "en",
+                 on_change=None, clock=time.monotonic) -> None:
         self.settings, self.keys = settings, keys
         self.speaker = speaker or Speaker()
+        self.microphone = microphone or Microphone()
+        self.session_status = dict              # callable() -> dict: facts the voice may look up
+        self.listening = False                  # the talk button is held
+        self._listen_timer: asyncio.TimerHandle | None = None
         self._url, self._device_language, self._clock = url, device_language, clock
         self._on_change = on_change             # called when the status changed
         self._queue: asyncio.PriorityQueue[_Item] = asyncio.PriorityQueue(maxsize=20)
@@ -87,6 +94,8 @@ class Engineer:
             return "off"
         if not self.keys.has_key:
             return "no_key"
+        if self.listening:
+            return "listening"
         if self.speaking:
             return "speaking"
         return "error" if self.error else "ready"
@@ -95,7 +104,8 @@ class Engineer:
         return {"enabled": self.enabled, "has_key": self.keys.has_key, "state": self.state(), "error": self.error,
                 "said": self.said, "skipped": self.skipped, "tokens": self.tokens,
                 "per_minute": self.settings["box_per_minute"], "per_session": self.settings["box_per_session"],
-                "speaker": self.speaker.available, "language": self.language()}
+                "speaker": self.speaker.available, "microphone": self.microphone.available,
+                "language": self.language()}
 
     def _changed(self) -> None:
         if self._on_change is not None:
@@ -121,11 +131,42 @@ class Engineer:
             return False
         return True
 
+    def talk(self, on: bool) -> bool:
+        """The talk button: record while it is held, send the question when it is released.
+        Returns whether the Box is listening now."""
+        if on:
+            if self.listening or not self.enabled or not self.keys.has_key:
+                return self.listening
+            if not self.microphone.start():
+                return False
+            self.listening = True
+            with contextlib.suppress(RuntimeError):           # a stuck button ends by itself
+                self._listen_timer = asyncio.get_running_loop().call_later(20.0, self.talk, False)
+            self._changed()
+            return True
+        if not self.listening:
+            return False
+        if self._listen_timer is not None:
+            self._listen_timer.cancel()
+            self._listen_timer = None
+        self.listening = False
+        question = self.microphone.stop()
+        if len(question) >= live.IN_RATE * 2 * 0.3:           # shorter than 0.3 s was a slip of the finger
+            try:
+                self._queue.put_nowait(_Item(URGENT, next(self._seq), "", self._clock(), audio=question))
+            except asyncio.QueueFull:
+                pass
+        self._changed()
+        return False
+
     async def start(self) -> None:
         if self._task is None:
             self._task = asyncio.create_task(self._run())
 
     async def stop(self) -> None:
+        if self.listening:
+            self.listening = False
+            self.microphone.stop()
         task, self._task = self._task, None
         if task is not None:
             task.cancel()
@@ -142,7 +183,8 @@ class Engineer:
     def _new_session(self) -> live.LiveSession:
         texts = self.texts
         return live.LiveSession(self.keys.reveal(), model=self.settings["box_model"], voice=self.settings["box_voice"],
-                                language=SPEECH_CODE[texts.language], system=texts.system_prompt(), url=self._url)
+                                language=SPEECH_CODE[texts.language], system=texts.system_prompt(), url=self._url,
+                                status=lambda: self.session_status())
 
     async def _run(self) -> None:
         while True:
@@ -152,7 +194,8 @@ class Engineer:
                 await self._close_session()          # nothing to say for a while: hang up
                 continue
             now = self._clock()
-            if now - item.created > (_URGENT_MAX_AGE_S if item.priority == URGENT else _NORMAL_MAX_AGE_S):
+            if not item.audio and now - item.created > (_URGENT_MAX_AGE_S if item.priority == URGENT
+                                                           else _NORMAL_MAX_AGE_S):
                 continue
             if not item.forced and not self._within_limits(now):
                 self.skipped += 1
@@ -183,7 +226,8 @@ class Engineer:
         self.speaking = True
         self._changed()
         try:
-            await self.speaker.play(self._listen(session.say(self.texts.read_aloud(item.text))), live.OUT_RATE)
+            answer = session.ask(item.audio) if item.audio else session.say(self.texts.read_aloud(item.text))
+            await self.speaker.play(self._listen(answer), live.OUT_RATE, mute=not self.settings["box_speaker"])
             self.said += 1
             self._spoken_at.append(self._clock())
             self.error = None

@@ -31,6 +31,7 @@ DEFAULTS: dict = {
     "box_announce": ["best_lap", "fuel", "race"],   # kinds of messages, see engineer/announcer.py
     "box_per_minute": 4,     # at most this many messages a minute …
     "box_per_session": 150,  # … and in one session (each one costs money on the user's key)
+    "box_speaker": True,     # play the voice on this computer's loudspeakers (browsers with sound on get it anyway)
 }
 
 
@@ -104,7 +105,7 @@ def _kinds(value):
     return [kind for kind in _BOX_KINDS if kind in value]
 
 
-_CHECKS = {"box_enabled": _flag, "box_driver": _text(40), "box_language": _one_of("auto", "de", "en"),
+_CHECKS = {"box_enabled": _flag, "box_speaker": _flag, "box_driver": _text(40), "box_language": _one_of("auto", "de", "en"),
            "box_voice": _text(40, r"[A-Za-z][A-Za-z0-9 _-]*"), "box_model": _text(80, r"[A-Za-z0-9][A-Za-z0-9._-]*"),
            "box_announce": _kinds, "box_per_minute": _number(1, 20), "box_per_session": _number(1, 2000),
            "source": _source, "ps5_ip": _ps5_ip, "packet": _packet, "telemetry_hz": _telemetry_hz,
