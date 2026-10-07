@@ -22,10 +22,12 @@ dependencies = [
 
 [project.optional-dependencies]
 box = ["sounddevice>=0.4"]          # the Box on this computer's loudspeakers
+app = ["pystray>=0.19", "pillow>=10"]     # menu bar / tray symbol
 dev = ["httpx2>=2"]
 
 [project.scripts]
 gt7companion = "gt7companion.cli:main"
+gt7companion-app = "gt7companion.launcher:main"
 
 [tool.setuptools.dynamic]
 version = { attr = "gt7companion.__version__" }
