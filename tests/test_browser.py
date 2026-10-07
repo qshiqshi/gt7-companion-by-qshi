@@ -73,14 +73,15 @@ class BrowserCase(unittest.TestCase):
     def setUp(self):
         self._open = []
 
-    def open(self, query="", size=(1280, 800), **context):
-        return self._open_page(query, size, wait_for_layout=True, **context)
+    def open(self, query="", size=(1280, 800), *, figure=True, **context):
+        """``figure=False`` leaves the 3D figure out: drawn in software it slows the editor to a crawl."""
+        return self._open_page(query, size, wait_for_layout=True, figure=figure, **context)
 
     def open_plain(self, path, size=(900, 900), **context):
         """One of the plain pages (connect, settings)."""
         return self._open_page(path, size, wait_for_layout=False, **context)
 
-    def _open_page(self, query, size, *, wait_for_layout, **context_options):
+    def _open_page(self, query, size, *, wait_for_layout, figure=True, **context_options):
         """A page of the program; script errors fail the test when it is closed.
 
         The pages forbid ``eval`` (Content-Security-Policy), so conditions to wait
@@ -90,7 +91,11 @@ class BrowserCase(unittest.TestCase):
         page = context.new_page()
         problems = []
         page.on("pageerror", lambda error: problems.append(str(error)))
-        page.on("console", lambda message: problems.append(message.text) if message.type == "error" else None)
+        if figure:
+            page.on("console", lambda message: problems.append(message.text) if message.type == "error" else None)
+        else:
+            page.route("**/static/milkglass/**", lambda route: route.abort())
+            page.route("**/static/wackeldackel/**", lambda route: route.abort())
         page.goto(f"http://127.0.0.1:{self.port}/{query}")
         if wait_for_layout:
             page.wait_for_function("() => document.body.classList.contains('layout-ready')", timeout=10000)
@@ -173,7 +178,7 @@ class BrowserCase(unittest.TestCase):
         self.assertGreater(page.evaluate("document.querySelectorAll('#canvas .wresize').length"), 50)
 
     def test_dragging_in_the_editor_moves_a_widget_by_stage_pixels(self):
-        page = self.open("?edit=1&layout=overlay-16x9", size=(960, 700))     # stage shown at half size
+        page = self.open("?edit=1&layout=overlay-16x9", size=(960, 700), figure=False)     # stage shown at half size
         page.wait_for_function("() => document.querySelectorAll('#canvas .wresize').length > 50", timeout=10000)
         before = page.evaluate("parseFloat(document.getElementById('w-livetime').style.left)")
         rect = page.evaluate("(() => { const r = document.getElementById('w-livetime').getBoundingClientRect();"
@@ -187,6 +192,54 @@ class BrowserCase(unittest.TestCase):
         page.mouse.up()
         after = page.evaluate("parseFloat(document.getElementById('w-livetime').style.left)")
         self.assertAlmostEqual(after - before, 200, delta=10)   # … are 200 px on the stage
+
+    def test_editor_on_a_tablet_works_with_taps_and_saves_by_itself(self):
+        page = self.open("?edit=1&layout=dashboard-4x3", size=(1024, 768), has_touch=True, is_mobile=True, figure=False)
+        page.wait_for_function("() => document.querySelectorAll('#canvas .wresize').length > 50", timeout=10000)
+        self.assertTrue(page.evaluate("matchMedia('(pointer: coarse)').matches"))
+        self.assertTrue(page.evaluate("document.getElementById('select-bar').hidden"))
+        grip = "getComputedStyle(document.querySelector('#w-fuel .wresize-se')).display"
+        self.assertEqual(page.evaluate(grip), "none")                    # no handles until something is chosen
+        box = page.evaluate("(() => { const r = document.getElementById('w-fuel').getBoundingClientRect();"
+                            " return [r.left + r.width / 2, r.top + r.height / 2]; })()")
+        page.touchscreen.tap(*box)
+        page.wait_for_function("() => !document.getElementById('select-bar').hidden")
+        self.assertEqual(page.evaluate("document.getElementById('select-name').textContent"), "Sprit")
+        self.assertEqual(page.evaluate(grip), "block")
+        size = page.evaluate("(() => { const r = document.querySelector('#w-fuel .wresize-se').getBoundingClientRect();"
+                             " return Math.min(r.width, r.height); })()")
+        self.assertGreaterEqual(size, 36)                                # a finger hits it, at any scale
+        for button in page.query_selector_all("#select-bar button:not([hidden])"):
+            self.assertGreaterEqual(button.bounding_box()["height"], 44)
+        before = page.evaluate("fetch('/api/layout?name=dashboard-4x3').then(r => r.json()).then(d => d.widgets.fuel.scale)")
+        page.tap("#select-bar button[data-act=larger]")
+        page.tap("#select-bar button[data-act=larger]")
+        page.wait_for_function("(before) => fetch('/api/layout?name=dashboard-4x3').then(r => r.json())"
+                               ".then(d => Math.abs(d.widgets.fuel.scale - before - 0.2) < 0.001)", arg=before, timeout=5000)
+        page.tap("#select-bar button[data-act=hide]")
+        page.wait_for_function("() => document.getElementById('select-bar').hidden")
+        page.wait_for_function("() => fetch('/api/layout?name=dashboard-4x3').then(r => r.json())"
+                               ".then(d => d.widgets.fuel.visible === false)", timeout=5000)
+
+    def test_own_layout_is_made_from_the_editor(self):
+        page = self.open("?edit=1&layout=dashboard-16x9", size=(1600, 900), figure=False)
+        page.wait_for_function("() => document.querySelectorAll('#canvas .wresize').length > 50", timeout=10000)
+        page.click("#own-layouts summary")
+        page.fill("#new-layout-name", "Mein Tablet")
+        with page.expect_navigation():
+            page.click("#btn-layout-copy")
+        page.wait_for_function("() => document.body.classList.contains('layout-ready')")
+        self.assertIn("layout=mein-tablet", page.url)
+        self.assertEqual(page.evaluate("document.getElementById('layout-select-edit').value"), "mein-tablet")
+        self.assertFalse(page.evaluate("document.getElementById('btn-layout-delete').hidden"))
+        page.click("#own-layouts summary")
+        page.click("#btn-layout-delete")
+        with page.expect_navigation():
+            page.click("#btn-layout-delete")                              # the second click confirms
+        page.wait_for_function("() => document.body.classList.contains('layout-ready')")
+        self.assertNotIn("mein-tablet", page.url)
+        names = page.evaluate("fetch('/api/layouts').then(r => r.json()).then(d => d.layouts.map(l => l.name))")
+        self.assertNotIn("mein-tablet", names)
 
     def test_owner_sees_the_pin_and_another_device_pairs_with_it(self):
         owner = self.open_plain("connect")

@@ -53,6 +53,17 @@
     </div>
   </details>
   <select id="layout-select-edit" aria-label="Layout" title="Welches Layout bearbeitet wird"></select>
+  <details class="toolbar-background" id="own-layouts">
+    <summary>Eigenes Layout</summary>
+    <div class="background-panel">
+      <h3 class="st-h">Kopie anlegen</h3>
+      <p>Legt eine Kopie des gezeigten Layouts unter eigenem Namen an. Die Vorlagen bleiben, wie sie sind.</p>
+      <label class="own-name"><span>Name</span><input id="new-layout-name" type="text" maxlength="40" placeholder="Mein Tablet" autocomplete="off"></label>
+      <button id="btn-layout-copy" type="button">Kopie anlegen</button>
+      <button id="btn-layout-delete" type="button" hidden>Dieses Layout löschen</button>
+      <p id="own-layouts-note" role="status"></p>
+    </div>
+  </details>
   <button id="btn-save">Layout speichern</button>
   <button id="btn-reset">Zurücksetzen</button>
   <button id="btn-widgets">Widgets ein/aus</button>
@@ -79,11 +90,22 @@
   </div>
 </div>
 
+<!-- Auswahl-Leiste (nur Editor): Knöpfe für die gewählte Anzeige -->
+<div id="select-bar" hidden>
+  <span id="select-name"></span>
+  <button type="button" data-act="smaller" data-one aria-label="Kleiner">−</button>
+  <button type="button" data-act="larger" data-one aria-label="Größer">+</button>
+  <button type="button" data-act="style" data-one>Stil</button>
+  <button type="button" data-act="figure" hidden></button>
+  <button type="button" data-act="hide">Ausblenden</button>
+  <button type="button" data-act="done">Fertig</button>
+</div>
+
 <!-- Widget-Sichtbarkeits-Panel (nur Editor) -->
 <div id="widget-panel" hidden>
   <div class="wp-title">Sichtbare Widgets</div>
   <div id="widget-panel-list"></div>
-  <div class="wp-hint">Änderungen werden sofort gespeichert.<br>Tipp: Alt+Klick auf ein Widget geht auch.</div>
+  <div class="wp-hint">Änderungen werden sofort gespeichert.</div>
 </div>
 
 <!-- === WIDGET CONTAINER === -->

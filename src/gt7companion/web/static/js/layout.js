@@ -105,6 +105,7 @@ export function applyLayout(layout) {
     el.style.left = (wCfg.x || 0) + 'px';
     el.style.top  = (wCfg.y || 0) + 'px';
     el.style.transform = 'scale(' + (wCfg.scale || 1) + ')';
+    el.style.setProperty('--w-scale', String(wCfg.scale || 1));
     el.style.zIndex = wCfg.zIndex || 10;
     if (name === 'rpm-bar') {
       if (wCfg.width) el.style.setProperty('--rpm-w', wCfg.width + 'px');

@@ -165,7 +165,8 @@ body.editor-mode #canvas::after  { top: 50%; left: 0; right: 0; height: 1px; }
 }
 body.editor-mode .widget {
   pointer-events: auto;
-  outline: 1px dashed rgba(255,255,255,0.18);
+  /* durchgezogen: gestrichelte Umrisse an skalierten Feldern kosten den Browser ein Vielfaches */
+  outline: 1px solid rgba(255,255,255,0.16);
   cursor: grab;
 }
 body.editor-mode .widget:hover {
@@ -201,10 +202,7 @@ body.no-race #w-milk,
 body.no-race .telemetry-widget {
   opacity: 0;
 }
-body.editor-mode .widget.hidden-widget {
-  display: block;
-  opacity: 0.25;
-}
+/* Ausgeblendete Anzeigen sind auch im Editor weg; zurück holt man sie über „Widgets ein/aus“. */
 
 /* ========== LABELS ========== */
 .label {

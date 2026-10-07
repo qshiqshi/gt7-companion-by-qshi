@@ -200,7 +200,9 @@ function initEditor() {
       var el = document.getElementById('w-' + name);
       if (el) el.classList.toggle('selected', isSelected(el));
     });
+    window.dispatchEvent(new CustomEvent('gt7:selection', { detail: selectedWidgets.map(function(el) { return el.id.replace('w-', ''); }) }));
   }
+  window.addEventListener('gt7:deselect', function() { setSelection([]); });
 
   function toggleSelection(el) {
     var next = selectedWidgets.slice();
@@ -336,6 +338,7 @@ function initEditor() {
           });
           target._dragGroup = null;
           target._dragLimits = null;
+          saveSoon();
         }
       }
     });
@@ -672,9 +675,113 @@ function scaleWidget(name, delta) {
   var newScale = Math.max(0.3, Math.min(3.0, (w.scale || 1) + delta));
   w.scale = Math.round(newScale * 100) / 100;
   var el = document.getElementById('w-' + name);
-  if (el) el.style.transform = 'scale(' + w.scale + ')';
+  if (el) {
+    el.style.transform = 'scale(' + w.scale + ')';
+    el.style.setProperty('--w-scale', String(w.scale));
+  }
   setWidgetCornerRadius(currentLayout.widgetCornerRadius);
+  saveSoon();
 }
+
+/* Änderungen speichern sich selbst, kurz nachdem nichts mehr bewegt wird. */
+var saveTimer = null;
+function saveSoon() {
+  clearTimeout(saveTimer);
+  saveTimer = setTimeout(function() {
+    if (currentLayout && wsConnected) wsSend({ topic: 'layout_save', data: currentLayout });
+  }, 400);
+}
+
+/* Auswahl-Leiste: alles, was sonst Mauszeiger, Mausrad oder Alt-Taste braucht, als große Knöpfe –
+   für Finger auf dem Tablet, aber auch mit der Maus bequem. */
+(function initSelectionBar() {
+  var bar = document.getElementById('select-bar');
+  if (!bar) return;
+  var names = [];
+  function place() {
+    var only = names.length === 1 ? document.getElementById('w-' + names[0]) : null;
+    var low = false;
+    if (only) {
+      var rect = only.getBoundingClientRect();
+      low = rect.top + rect.height / 2 > window.innerHeight * 0.6;
+    }
+    bar.classList.toggle('at-top', low);          /* nie über der gewählten Anzeige */
+    var toolbar = document.getElementById('editor-toolbar');
+    bar.style.setProperty('--bar-top', ((toolbar ? toolbar.offsetHeight : 52) + 10) + 'px');
+  }
+  function render() {
+    bar.hidden = names.length === 0;
+    if (!names.length) return;
+    var one = names.length === 1;
+    document.getElementById('select-name').textContent = one ? (WIDGET_LABELS[names[0]] || names[0])
+      : names.length + ' Anzeigen gewählt';
+    bar.querySelectorAll('[data-one]').forEach(function(button) { button.hidden = !one; });
+    var entry = one && currentLayout && currentLayout.widgets && currentLayout.widgets[names[0]];
+    bar.querySelector('[data-act="style"]').hidden = !one || !(window.GT7Style && window.GT7Style.WIDGET_META[names[0]]);
+    var figure = bar.querySelector('[data-act="figure"]');
+    figure.hidden = !(one && names[0] === 'milk');
+    figure.textContent = entry && entry.config && entry.config.figure === 'dackel' ? 'Glas Milch zeigen' : 'Wackeldackel zeigen';
+    place();
+  }
+  window.addEventListener('gt7:selection', function(event) { names = event.detail || []; render(); });
+  window.addEventListener('gt7:layout', render);
+  window.addEventListener('gt7:stage', place);
+  bar.addEventListener('pointerdown', function(event) { event.stopPropagation(); });
+  bar.addEventListener('click', function(event) {
+    var button = event.target.closest('button[data-act]');
+    if (!button) return;
+    var act = button.dataset.act, name = names[0];
+    if (act === 'done') { window.dispatchEvent(new CustomEvent('gt7:deselect')); return; }
+    if (act === 'hide') {
+      names.slice().forEach(function(n) { toggleWidget(n); });
+      window.dispatchEvent(new CustomEvent('gt7:deselect'));
+      return;
+    }
+    if (!name) return;
+    if (act === 'smaller') scaleWidget(name, -0.1);
+    else if (act === 'larger') scaleWidget(name, 0.1);
+    else if (act === 'style' && window.GT7Style) window.GT7Style.openWidget(name);
+    else if (act === 'figure') { var toggle = document.querySelector('[data-figure-toggle]'); if (toggle) toggle.click(); }
+    render();
+  });
+})();
+
+/* Eigene Layouts: Kopie des gezeigten Layouts unter neuem Namen anlegen, eigene wieder löschen. */
+(function initOwnLayouts() {
+  var panel = document.getElementById('own-layouts');
+  if (!panel) return;
+  var input = document.getElementById('new-layout-name');
+  var note = document.getElementById('own-layouts-note');
+  var remove = document.getElementById('btn-layout-delete');
+  var mine = layouts.filter(function(layout) { return layout.name === layoutName; })[0];
+  remove.hidden = !mine || mine.preset;
+  function slug(text) {
+    return text.toLowerCase().replace(/ä/g, 'ae').replace(/ö/g, 'oe').replace(/ü/g, 'ue').replace(/ß/g, 'ss')
+      .replace(/[^a-z0-9]+/g, '-').replace(/^-+|-+$/g, '').slice(0, 40);
+  }
+  document.getElementById('btn-layout-copy').addEventListener('click', function() {
+    var name = slug(input.value);
+    if (!name) { note.textContent = 'Gib einen Namen ein, zum Beispiel „Mein Tablet“.'; input.focus(); return; }
+    fetch(API + '/api/layouts', { method: 'POST', headers: {'Content-Type': 'application/json'},
+                                  body: JSON.stringify({ name: name, copy_of: layoutName }) })
+      .then(function(r) {
+        if (r.ok) { switchLayout(name); return; }
+        note.textContent = r.status === 400 ? 'Den Namen gibt es schon, oder er ist nicht erlaubt.' : 'Das hat nicht geklappt.';
+      })
+      .catch(function() { note.textContent = 'Das hat nicht geklappt.'; });
+  });
+  remove.addEventListener('click', function() {
+    if (!remove.classList.contains('armed')) {          /* zweiter Klick bestätigt */
+      remove.classList.add('armed');
+      remove.textContent = 'Wirklich löschen?';
+      setTimeout(function() { remove.classList.remove('armed'); remove.textContent = 'Dieses Layout löschen'; }, 4000);
+      return;
+    }
+    fetch(API + '/api/layouts/' + encodeURIComponent(layoutName), { method: 'DELETE' })
+      .then(function(r) { if (!r.ok) note.textContent = 'Das hat nicht geklappt.'; });
+    /* Die Seite wechselt von selbst, sobald das Programm das Löschen meldet. */
+  });
+})();
 
 function toggleWidget(name) {
   if (!currentLayout) return;

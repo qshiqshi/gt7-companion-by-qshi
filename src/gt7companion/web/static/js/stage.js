@@ -47,4 +47,6 @@ export function refit() {
 window.addEventListener('resize', refit);
 window.addEventListener('orientationchange', refit);
 if (window.visualViewport) window.visualViewport.addEventListener('resize', refit);
+/* The editor toolbar wraps on narrow screens; the stage follows its height. */
+if (toolbar && window.ResizeObserver) new ResizeObserver(refit).observe(toolbar);
 refit();

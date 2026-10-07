@@ -78,3 +78,53 @@ body.editor-mode .widget.style-editing { outline:2px solid #83b7fa !important; o
 #editor-toolbar .tb-link:hover { background:#343944; }
 #editor-toolbar #layout-select-edit { height:32px; padding:0 8px; border:1px solid #41454e; border-radius:5px; background:#25282f; color:#e5e7ec; font:inherit; max-width:230px; }
 #editor-toolbar .tb-link.tb-next { margin-left:0; }
+
+/* Toolbar: wraps on narrow screens instead of running out of the window. */
+#editor-toolbar { height:auto; min-height:52px; flex-wrap:wrap; padding-top:8px; padding-bottom:8px; row-gap:8px; }
+#editor-toolbar .own-name { display:grid; gap:6px; margin-bottom:12px; font-size:13px; }
+#editor-toolbar .own-name input { height:36px; padding:0 10px; border:1px solid #69717f; border-radius:4px; background:#25282f; color:#e5e7ec; font:inherit; }
+#editor-toolbar #own-layouts .background-panel { width:320px; }
+#editor-toolbar #own-layouts button { margin-right:8px; }
+#editor-toolbar #btn-layout-delete.armed { border-color:#e10600; color:#ff8a85; }
+
+/* Widgets are moved with a finger, so the browser must not scroll or zoom on them. */
+body.editor-mode .widget, body.editor-mode #canvas { touch-action:none; }
+
+/* Selection bar */
+#select-bar { position:fixed; left:50%; bottom:18px; transform:translateX(-50%); z-index:10002; display:flex; align-items:center; gap:8px;
+  max-width:calc(100vw - 24px); padding:8px 8px 8px 16px; border:1px solid #41454e; border-radius:12px; background:rgba(27,29,35,.97);
+  box-shadow:0 12px 36px rgba(0,0,0,.5); color:#e5e7ec; font:500 14px/1.2 system-ui,-apple-system,"Segoe UI",Roboto,"Helvetica Neue",Arial,sans-serif; flex-wrap:wrap; }
+#select-bar[hidden] { display:none; }
+#select-bar.at-top { bottom:auto; top:var(--bar-top, 62px); }
+#select-bar #select-name { margin-right:6px; white-space:nowrap; overflow:hidden; text-overflow:ellipsis; max-width:240px; }
+#select-bar button { min-width:48px; height:48px; padding:0 14px; border:1px solid #41454e; border-radius:8px; background:#25282f; color:#e5e7ec; font:inherit; cursor:pointer; }
+#select-bar button[hidden] { display:none; }
+#select-bar button:hover { background:#343944; }
+#select-bar button[data-act="smaller"], #select-bar button[data-act="larger"] { font-size:24px; padding:0; }
+#select-bar button[data-act="done"] { border-color:#83b7fa; }
+
+/* Touch screens: no hover, so the small buttons inside the widgets are replaced by the bar, and the
+   selected widget gets handles large enough for a finger – at any scale of stage and widget. */
+@media (pointer: coarse) {
+  body.editor-mode .widget:hover .editor-controls, body.editor-mode .widget.dragging .editor-controls { display:none; }
+  body.editor-mode .wresize, body.editor-mode .rpm-resize { display:none; }
+  body.editor-mode .widget.selected .wresize, body.editor-mode .widget.selected .rpm-resize {
+    display:block; --grip:calc(40px / (var(--stage-scale, 1) * var(--w-scale, 1))); }
+  body.editor-mode .widget.selected .wresize-e, body.editor-mode .widget.selected .wresize-w { width:var(--grip); top:var(--grip); bottom:var(--grip); }
+  body.editor-mode .widget.selected .wresize-n, body.editor-mode .widget.selected .wresize-s { height:var(--grip); left:var(--grip); right:var(--grip); }
+  body.editor-mode .widget.selected .wresize-e { right:calc(var(--grip) / -2); }
+  body.editor-mode .widget.selected .wresize-w { left:calc(var(--grip) / -2); }
+  body.editor-mode .widget.selected .wresize-s { bottom:calc(var(--grip) / -2); }
+  body.editor-mode .widget.selected .wresize-n { top:calc(var(--grip) / -2); }
+  body.editor-mode .widget.selected .wresize-se, body.editor-mode .widget.selected .wresize-ne,
+  body.editor-mode .widget.selected .wresize-sw, body.editor-mode .widget.selected .wresize-nw {
+    width:var(--grip); height:var(--grip); border-radius:50%;
+    background:radial-gradient(circle, rgba(131,183,250,.95) 0 28%, rgba(11,11,14,.8) 29% 36%, transparent 37%); }
+  body.editor-mode .widget.selected .wresize-se { right:calc(var(--grip) / -2); bottom:calc(var(--grip) / -2); }
+  body.editor-mode .widget.selected .wresize-ne { right:calc(var(--grip) / -2); top:calc(var(--grip) / -2); }
+  body.editor-mode .widget.selected .wresize-sw { left:calc(var(--grip) / -2); bottom:calc(var(--grip) / -2); }
+  body.editor-mode .widget.selected .wresize-nw { left:calc(var(--grip) / -2); top:calc(var(--grip) / -2); }
+  body.editor-mode .widget.selected .rpm-resize { width:var(--grip); }
+  body.editor-mode .widget.selected .rpm-resize-l { left:calc(var(--grip) / -2); }
+  body.editor-mode .widget.selected .rpm-resize-r { right:calc(var(--grip) / -2); }
+}
