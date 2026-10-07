@@ -164,6 +164,36 @@ class Layouts(AppCase):
         self.assertEqual(client.get("/api/layout?name=../settings").status_code, 404)
 
 
+class TestMessages(AppCase):
+    def test_owner_can_show_sample_messages_that_count_nothing(self):
+        client = self.client()
+        with client.websocket_connect("/ws") as ws:
+            self.until(ws, "layout")
+            self.assertEqual(client.post("/api/test/spin").status_code, 200)
+            message = self.until(ws, "event")
+            self.assertEqual((message["type"], message["data"]["total_spins"]), ("spin", 1))
+            ws.send_json({"topic": "test_event", "type": "best_lap"})
+            message = self.until(ws, "event")
+            self.assertEqual((message["type"], message["data"]["lap_time_ms"]), ("best_lap", 91208))
+            ws.send_json({"topic": "test_event", "type": "tyre_sweep"})
+            self.assertEqual(self.until(ws, "event")["type"], "tyre_sweep")
+            ws.send_json({"topic": "test_event", "type": "no-such-thing"})
+            self.assertEqual(self.until(ws, "telemetry")["data"]["stats"]["spins"], 0)
+        self.assertEqual(client.post("/api/test/no-such-thing").status_code, 404)
+
+    def test_other_devices_cannot_trigger_messages(self):
+        owner = self.client()
+        tablet = self.client(TABLET, base="http://192.168.1.20:8707")
+        self.assertEqual(tablet.post("/api/test/spin").status_code, 403)
+        with owner.websocket_connect("/ws") as watching, tablet.websocket_connect("/ws") as ws:
+            self.until(watching, "layout")
+            ws.send_json({"topic": "test_event", "type": "crash"})
+            ws.send_json({"topic": "ping"})
+            self.until(ws, "pong")
+            owner.post("/api/test/spin")
+            self.assertEqual(self.until(watching, "event")["type"], "spin")     # the crash never came
+
+
 class WhoMayWrite(AppCase):
     def test_another_device_may_watch_but_not_change(self):
         owner = self.client()

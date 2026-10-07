@@ -14,10 +14,12 @@ class Screens:
     """Stands in for the connection manager and keeps what would have been sent."""
 
     def __init__(self):
-        self.sent = []
+        self.sent = []          # (topic, data)
+        self.log = []           # (topic, data, everything else that was passed)
 
     async def broadcast(self, topic, data, **extra):
         self.sent.append((topic, dict(data)))
+        self.log.append((topic, dict(data), extra))
         return 1
 
 

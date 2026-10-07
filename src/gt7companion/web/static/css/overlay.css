@@ -1,8 +1,9 @@
 /* Widgets, stage and editor chrome of the dashboard. Moved here from the former single page. */
-/* Display typeface for speed, lap times and messages: Michroma (SIL Open Font License). */
+/* Display typeface for speed, lap times and messages: a variant of Michroma (SIL Open Font
+   License) with the proportions this layout was made for, see tools/fonts/make_display_font.py. */
 @font-face {
   font-family: "GT7C Display";
-  src: url("/static/fonts/Michroma-Regular.ttf") format("truetype");
+  src: url("/static/fonts/GT7CDisplay-Regular.ttf") format("truetype");
   font-style: normal;
   font-weight: 400;
   font-display: swap;

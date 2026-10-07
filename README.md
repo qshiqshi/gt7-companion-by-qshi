@@ -50,5 +50,5 @@ Copyright © 2026 qshi. Free software under the
 it; changed versions that you pass on must stay free under the same licence.
 
 Bundled third-party parts keep their own licences: three.js (MIT), interact.js (MIT), Michroma
-and Mona Sans (SIL Open Font License 1.1). Where the code comes from is listed in
+(as the derived "GT7C Display") and Mona Sans (SIL Open Font License 1.1). Where the code comes from is listed in
 [PROVENANCE.md](PROVENANCE.md).

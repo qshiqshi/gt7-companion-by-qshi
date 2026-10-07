@@ -224,6 +224,14 @@ onTopic('telemetry', function(d) {
   if (ssCrashes) ssCrashes.textContent = st.crashes || 0;
 });
 
+/* Titel der Session-Statistik: frei wählbar im Layout (widgets['session-stats'].config.title). */
+window.addEventListener('gt7:layout', function(event) {
+  var entry = event.detail && event.detail.widgets && event.detail.widgets['session-stats'];
+  var title = entry && entry.config && typeof entry.config.title === 'string' ? entry.config.title.trim() : '';
+  var header = document.querySelector('#w-session-stats .ss-header');
+  if (header) header.textContent = title ? title.slice(0, 40) : 'SESSION';
+});
+
 /* ================================================================
    STATUS
    ================================================================ */

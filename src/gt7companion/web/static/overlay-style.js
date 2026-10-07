@@ -86,9 +86,6 @@
     { id: 'alertBest', group: 'alerts', name: 'Neue Bestzeit', vars: ['--c-alert-best'], probe: { cssVar: '--green' } },
     { id: 'alertSpin', group: 'alerts', name: 'Dreher', vars: ['--c-alert-spin'], probe: { value: '#ff9100' } },
     { id: 'alertCrash', group: 'alerts', name: 'Crash', vars: ['--c-alert-crash'], probe: { cssVar: '--red' } },
-    { id: 'alertFollower', group: 'alerts', name: 'Neuer Follower', vars: ['--c-alert-follower'], probe: { cssVar: '--white' } },
-    { id: 'alertSub', group: 'alerts', name: 'Neues Abo', vars: ['--c-alert-sub'], probe: { cssVar: '--white' } },
-    { id: 'alertClip', group: 'alerts', name: 'Clip gespeichert', vars: ['--c-alert-clip'], alpha: true, probe: { value: '#ffffffb3' } },
     { id: 'statusOffline', group: 'alerts', name: 'PS5 getrennt', vars: ['--c-status-off'], derive: v => ({ '--c-status-off-border': fade(v, .3) }),
       probe: { cssVar: '--red' } }
   ];
@@ -111,8 +108,7 @@
     'milk': { sizes: [], panel: [], tokens: [] },
     'session-stats': { sizes: ['label', 'value', 'line'], panel: GLASS, tokens: ['statsTitle', 'label', 'value', 'divider'] },
     'alert-area': { sizes: ['value'], panel: ['bg', 'radius'], names: { value: 'Text' },
-      tokens: ['alertBest', 'alertSpin', 'alertCrash', 'alertFollower', 'alertSub', 'alertClip'] },
-    'companion': { sizes: [], panel: [], tokens: [] },
+      tokens: ['alertBest', 'alertSpin', 'alertCrash'] },
     'status-dot': { sizes: ['label', 'line'], panel: ['bg'], tokens: ['statusOffline'] },
     'input-trace': { sizes: ['label', 'value', 'line'], panel: GLASS, canvas: 'ov-input-chart',
       tokens: ['title', 'subtle', 'value', 'gas', 'brake', 'chartGrid', 'chartText', 'chartSpeed'] },

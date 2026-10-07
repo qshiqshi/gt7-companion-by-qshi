@@ -16,6 +16,7 @@ from fastapi.staticfiles import StaticFiles
 
 from . import APP_NAME, __version__
 from .bus import EventBus
+from .detectors import DetectorSuite
 from .hub import Hub
 from .layouts import DEFAULT_LAYOUT, MAX_BYTES, LayoutError, LayoutStore
 from .paths import WEB
@@ -27,6 +28,14 @@ from .ws_manager import ConnectionManager
 log = logging.getLogger("app")
 
 _MAX_MESSAGE = MAX_BYTES + 4_096       # a layout plus its envelope
+# Sample messages for the editor's test buttons; they change no counter.
+TEST_MESSAGES: dict[str, dict] = {
+    "best_lap": {"lap_time_ms": 91_208, "lap_number": 5},
+    "spin": {"total_spins": 1, "angle_deg": 120.0, "speed_kmh": 140.0},
+    "crash": {"severity": "major", "speed_kmh": 160.0},
+    "tyre_sweep": {},                  # tyres run once from cold to hot
+    "surface_sweep": {},               # every surface colour runs once around the car
+}
 _NO_STORE = {"Cache-Control": "no-store"}
 
 
@@ -55,10 +64,15 @@ def create_app(settings: Settings | None = None, *, layouts: LayoutStore | None 
     bus = EventBus()
     manager = ConnectionManager()
     hub = Hub(bus, manager, telemetry_hz=settings["telemetry_hz"])
+    detectors = DetectorSuite(bus)                 # laps, spins, impacts → messages on the bus
+
+    def new_session(kind: str) -> None:
+        detectors.reset()
+        hub.reset(first_lap_complete=kind == "demo")
+
     companion = Companion(settings=settings, layouts=layouts or LayoutStore(), bus=bus,
                           manager=manager, hub=hub,
-                          sources=Sources(bus, settings,
-                                          on_switch=lambda kind: hub.reset(first_lap_complete=kind == "demo")))
+                          sources=Sources(bus, settings, on_switch=new_session))
 
     @asynccontextmanager
     async def lifespan(app: FastAPI):
@@ -115,6 +129,15 @@ def create_app(settings: Settings | None = None, *, layouts: LayoutStore | None 
     async def trace():
         """The driven line for the track map."""
         return JSONResponse(hub.trace.snapshot(), headers=_NO_STORE)
+
+    @app.post("/api/test/{kind}")
+    async def test_message(kind: str, request: Request):
+        """Show a sample message on all screens (for arranging and checking a layout)."""
+        require_owner(request)
+        if kind not in TEST_MESSAGES:
+            raise HTTPException(status_code=404, detail="No such test.")
+        await hub.show(kind, TEST_MESSAGES[kind])
+        return {"ok": True}
 
     @app.post("/api/layout")
     async def post_layout(request: Request, name: str | None = None):
@@ -173,6 +196,10 @@ def create_app(settings: Settings | None = None, *, layouts: LayoutStore | None 
                 topic = incoming.get("topic")
                 if topic == "ping":
                     await manager.send(ws, "pong", {})
+                elif topic == "test_event" and role == OWNER:
+                    kind = incoming.get("type")
+                    if kind in TEST_MESSAGES:
+                        await hub.show(kind, TEST_MESSAGES[kind])
                 elif topic == "layout_save" and role == OWNER:
                     try:
                         layout = companion.layouts.save(name, incoming.get("data"))

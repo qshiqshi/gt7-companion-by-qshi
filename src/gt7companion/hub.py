@@ -41,6 +41,10 @@ class Hub:
 
         bus.subscribe("telemetry.frame", self.on_frame)
         bus.subscribe("telemetry.status", self.on_telemetry_status)
+        bus.subscribe("event.lap_done", self.on_lap_done)
+        bus.subscribe("event.best_lap", self.on_best_lap)
+        bus.subscribe("event.spin", self.on_spin)
+        bus.subscribe("event.crash", self.on_crash)
 
     def reset(self, *, first_lap_complete: bool = False) -> None:
         """Start a new session: new source, so counters and running values start over.
@@ -81,3 +85,25 @@ class Hub:
     async def on_telemetry_status(self, data: dict) -> None:
         self.telemetry_connected = bool((data or {}).get("connected", False))
         await self.ws.broadcast("status", {"telemetry_connected": self.telemetry_connected})
+
+    # ------------------------------------------------- session counters, messages
+    async def show(self, kind: str, data: dict | None = None) -> None:
+        """Show a message of this kind on every screen (no counter changes)."""
+        await self.ws.broadcast("event", data or {}, type=kind)
+
+    async def on_lap_done(self, data: dict) -> None:
+        self.stats["laps"] += 1
+        last = data.get("last_ms") or -1
+        if last > 0 and (self.stats["best_lap_ms"] < 0 or last < self.stats["best_lap_ms"]):
+            self.stats["best_lap_ms"] = last            # the first timed lap sets the mark silently
+
+    async def on_best_lap(self, data: dict) -> None:
+        await self.show("best_lap", data)
+
+    async def on_spin(self, data: dict) -> None:
+        self.stats["spins"] += 1
+        await self.show("spin", {"total_spins": self.stats["spins"], **data})
+
+    async def on_crash(self, data: dict) -> None:
+        self.stats["crashes"] += 1
+        await self.show("crash", data)
