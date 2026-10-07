@@ -317,6 +317,7 @@ class _RealReceiver:
         self._ps5_ip: str = str(cfg.get("ps5_ip") or "").strip()
         self._on_ip = on_ip                    # callable(ip) | None: neue Adresse merken
         self._port: int = int(cfg.get("telemetry", {}).get("port", _RECV_PORT))
+        self._send_port: int = int(cfg.get("telemetry", {}).get("send_port", _SEND_PORT))
         self._transport: asyncio.DatagramTransport | None = None
         self._heartbeat_task: asyncio.Task | None = None
         self._watchdog_task: asyncio.Task | None = None
@@ -489,9 +490,9 @@ class _RealReceiver:
                     beat = b"A"
                     log.info("PS5 seit %.0f s stumm: Probe mit Paket A", silent)
                 if self._ps5_ip:
-                    self._transport.sendto(beat, (self._ps5_ip, _SEND_PORT))
+                    self._transport.sendto(beat, (self._ps5_ip, self._send_port))
                     if self._last_packet > 0 and now - self._last_packet > 5.0:
-                        self._transport.sendto(beat, (self._ps5_ip, _SEND_PORT))
+                        self._transport.sendto(beat, (self._ps5_ip, self._send_port))
                 sweep_every = 15.0 if self._ps5_ip else 5.0
                 if (silent > 10.0 or not self._ps5_ip) and now - last_sweep > sweep_every:
                     last_sweep = now
@@ -510,7 +511,7 @@ class _RealReceiver:
         log.debug("PS5-Discovery: Sweep ueber %d Adressen", len(targets))
         for host in targets:
             with contextlib.suppress(Exception):
-                self._transport.sendto(self._heartbeat, (host, _SEND_PORT))
+                self._transport.sendto(self._heartbeat, (host, self._send_port))
 
     async def _watchdog_loop(self) -> None:
         """Publiziert ``telemetry.status connected=False`` wenn >5s lang kein

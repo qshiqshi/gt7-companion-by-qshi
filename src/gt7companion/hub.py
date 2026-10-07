@@ -30,6 +30,7 @@ class Hub:
         self.stats = new_stats()
         self.latest: dict | None = None            # last telemetry message, for new screens
         self.telemetry_connected = False
+        self.status_info = dict                    # callable: more facts for the status message
         self._clock = clock
         self._interval = 1.0 / max(1.0, float(telemetry_hz))
         self._due = float("-inf")                  # when the next message may go out
@@ -51,6 +52,7 @@ class Hub:
         ``first_lap_complete``: the source begins exactly at a start line (the demo)."""
         self.stats = new_stats()
         self.latest = None
+        self.telemetry_connected = False
         self._view.reset()
         self.trace.reset(first_lap_complete=first_lap_complete)
         self._live_lap, self._live_ms = -99, 0.0
@@ -84,7 +86,13 @@ class Hub:
 
     async def on_telemetry_status(self, data: dict) -> None:
         self.telemetry_connected = bool((data or {}).get("connected", False))
-        await self.ws.broadcast("status", {"telemetry_connected": self.telemetry_connected})
+        await self.announce_status()
+
+    def status(self) -> dict:
+        return {"telemetry_connected": self.telemetry_connected, **self.status_info()}
+
+    async def announce_status(self) -> None:
+        await self.ws.broadcast("status", self.status())
 
     # ------------------------------------------------- session counters, messages
     async def show(self, kind: str, data: dict | None = None) -> None:

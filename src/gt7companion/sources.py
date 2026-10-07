@@ -13,7 +13,7 @@ import logging
 from .bus import EventBus
 from .demo import DEMO_FILE, demo_laps
 from .settings import Settings
-from .telemetry import _RECV_PORT, create_receiver, create_replay_receiver
+from .telemetry import _RECV_PORT, _SEND_PORT, create_receiver, create_replay_receiver
 
 log = logging.getLogger("sources")
 
@@ -21,13 +21,15 @@ KINDS = ("demo", "live")
 
 
 class Sources:
-    def __init__(self, bus: EventBus, settings: Settings, *, on_switch=None) -> None:
+    def __init__(self, bus: EventBus, settings: Settings, *, on_switch=None,
+                 ports: tuple[int, int] = (_RECV_PORT, _SEND_PORT)) -> None:
         self.bus = bus
         self.settings = settings
         self.kind: str | None = None           # what is running right now
         self.error: str | None = None          # "port_in_use" | "failed" | None
         self._receiver = None
         self._on_switch = on_switch            # called with the kind before a new source starts
+        self._ports = ports                    # (listen, heartbeat); other values only in tests
         self._lock = asyncio.Lock()
 
     async def start(self, kind: str | None = None) -> None:
@@ -59,13 +61,14 @@ class Sources:
                 else:
                     receiver = create_receiver(
                         {"ps5_ip": self.settings["ps5_ip"],
-                         "telemetry": {"packet": self.settings["packet"]}},
+                         "telemetry": {"packet": self.settings["packet"], "port": self._ports[0],
+                                       "send_port": self._ports[1]}},
                         self.bus, on_ip=self._remember_ip)
                 await receiver.start()
             except OSError as error:
                 in_use = error.errno in (errno.EADDRINUSE, getattr(errno, "WSAEADDRINUSE", -1))
                 self.error = "port_in_use" if in_use else "failed"
-                log.error("Cannot listen for the console on UDP port %d: %s", _RECV_PORT, error)
+                log.error("Cannot listen for the console on UDP port %d: %s", self._ports[0], error)
                 self.kind = kind
                 return
             self._receiver = receiver

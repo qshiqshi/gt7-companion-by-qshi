@@ -23,6 +23,32 @@ onTopic('_ws_status', function(d) {
   }
 });
 
+/* Datenquelle: Demo-Runde oder PlayStation. Der Knopf zeigt, was läuft, und schaltet um. */
+(function initSourceToggle() {
+  var btn = document.getElementById('btn-source');
+  if (!btn) return;
+  var source = null, busy = false;
+  function render(error) {
+    btn.disabled = busy || !wsConnected || !source;
+    btn.textContent = busy ? 'Daten: …' : source === 'live'
+      ? (error === 'port_in_use' ? 'Daten: PlayStation (Anschluss belegt)' : 'Daten: PlayStation')
+      : source === 'demo' ? 'Daten: Demo-Runde' : 'Daten: …';
+  }
+  onTopic('status', function(d) {
+    if (d && d.source) { source = d.source; render(d.source_error); }
+  });
+  onTopic('_ws_status', function() { render(); });
+  btn.addEventListener('click', function() {
+    if (btn.disabled) return;
+    busy = true; render();
+    fetch(API + '/api/source', { method: 'POST', headers: {'Content-Type': 'application/json'},
+                                 body: JSON.stringify({ source: source === 'live' ? 'demo' : 'live' }) })
+      .then(function(r) { return r.ok ? r.json() : null; })
+      .then(function(d) { busy = false; if (d && d.source) source = d.source; render(d && d.source_error); })
+      .catch(function() { busy = false; render(); });
+  });
+})();
+
 /* ================================================================
    EDITOR MODE
    ================================================================ */

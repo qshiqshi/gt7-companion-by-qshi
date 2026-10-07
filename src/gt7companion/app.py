@@ -50,11 +50,12 @@ class Companion:
     sources: Sources
 
     def status(self) -> dict:
-        return {"telemetry_connected": self.hub.telemetry_connected, **self.sources.status()}
+        return self.hub.status()
 
 
 def create_app(settings: Settings | None = None, *, layouts: LayoutStore | None = None,
-               source: str | None = None, lan: bool = False) -> FastAPI:
+               source: str | None = None, lan: bool = False,
+               ports: tuple[int, int] | None = None) -> FastAPI:
     """Build the application.
 
     ``source`` overrides the stored setting for this run ("demo" or "live");
@@ -72,7 +73,9 @@ def create_app(settings: Settings | None = None, *, layouts: LayoutStore | None 
 
     companion = Companion(settings=settings, layouts=layouts or LayoutStore(), bus=bus,
                           manager=manager, hub=hub,
-                          sources=Sources(bus, settings, on_switch=new_session))
+                          sources=Sources(bus, settings, on_switch=new_session,
+                                          **({"ports": ports} if ports else {})))
+    hub.status_info = companion.sources.status
 
     @asynccontextmanager
     async def lifespan(app: FastAPI):
@@ -124,6 +127,19 @@ def create_app(settings: Settings | None = None, *, layouts: LayoutStore | None 
     @app.get("/api/layout")
     async def get_layout(name: str | None = None):
         return JSONResponse(companion.layouts.get(layout_name(name)), headers=_NO_STORE)
+
+    @app.post("/api/source")
+    async def set_source(request: Request):
+        """Switch between the demo lap and the real console; the choice is remembered."""
+        require_owner(request)
+        try:
+            wanted = (await request.json()).get("source")
+            settings.update({"source": wanted})
+        except (ValueError, AttributeError):
+            raise HTTPException(status_code=400, detail="source must be 'demo' or 'live'.") from None
+        await companion.sources.use(wanted)
+        await hub.announce_status()
+        return companion.status()
 
     @app.get("/api/trace")
     async def trace():
