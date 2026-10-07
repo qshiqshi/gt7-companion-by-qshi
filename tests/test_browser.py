@@ -136,9 +136,10 @@ class BrowserCase(unittest.TestCase):
                 self.assertEqual(self.open(query, size=size).evaluate(shown), expected)
 
     def test_a_choice_in_the_menu_is_remembered_on_the_device(self):
-        page = self.open(size=(1920, 1080))
+        page = self.open(size=(1920, 1080), figure=False)
         self.assertEqual(page.evaluate("document.getElementById('layout-select').value"), "dashboard-16x9")
         self.assertEqual(page.evaluate("document.getElementById('layout-select').options.length"), 4)
+        page.hover("#layout-select", force=True)
         with page.expect_navigation():
             page.select_option("#layout-select", "dashboard-4x3")
         page.wait_for_function("() => document.getElementById('canvas').style.width === '1440px'")
@@ -286,7 +287,7 @@ class BrowserCase(unittest.TestCase):
         self.assertEqual(german.evaluate("document.documentElement.lang"), "de")
         self.assertEqual(german.evaluate("document.querySelector('#w-fuel .label').textContent"), "SPRIT")
         self.assertEqual(german.evaluate("document.querySelector('#w-speed .speed-unit').textContent"), "KM/H")
-        english = self.open("?units=imperial", size=(1280, 720), locale="en-US")       # language of the device
+        english = self.open("?units=imperial", size=(1280, 720), locale="en-US", figure=False)   # language of the device
         self.assertEqual(english.evaluate("document.documentElement.lang"), "en")
         self.assertEqual(english.evaluate("document.querySelector('#w-fuel .label').textContent"), "FUEL")
         self.assertEqual(english.evaluate("document.querySelector('#w-laptimes .label').textContent"), "LAP")
@@ -295,8 +296,8 @@ class BrowserCase(unittest.TestCase):
         self.assertEqual(english.evaluate("document.querySelector('#w-speed .speed-unit').textContent"), "MPH")
         english.wait_for_function("() => Number(document.querySelector('#w-speed .speed-val').textContent) > 10")
         ratio = english.evaluate("""() => new Promise(resolve => window.addEventListener('gt7:telemetry', event =>
-            requestAnimationFrame(() => resolve(Number(document.querySelector('#w-speed .speed-val').textContent)
-                                                / event.detail.speed_kmh)), { once: true }))""")
+            setTimeout(() => resolve(Number(document.querySelector('#w-speed .speed-val').textContent)
+                                     / event.detail.speed_kmh), 0), { once: true }))""")       # same frame, right after it was shown
         self.assertAlmostEqual(ratio, 0.6214, delta=0.02)
         english.evaluate("fetch('/api/test/spin', { method: 'POST' })")
         english.wait_for_function("() => /Spin no\\. 1/.test(document.getElementById('w-alert-area').textContent)")
@@ -359,7 +360,7 @@ class BrowserCase(unittest.TestCase):
         page.wait_for_function("() => document.getElementById('box-state').textContent.includes('kein Schlüssel')")
 
     def test_radio_display_and_sound_button_follow_the_box(self):
-        page = self.open(size=(1280, 720))
+        page = self.open(size=(1280, 720), figure=False)
         self.assertTrue(page.evaluate("document.getElementById('btn-sound').hidden"))        # no Box, no buttons
         self.assertTrue(page.evaluate("document.getElementById('btn-talk').hidden"))
         self.assertEqual(page.evaluate("getComputedStyle(document.getElementById('w-radio')).opacity"), "0")
@@ -369,7 +370,7 @@ class BrowserCase(unittest.TestCase):
                                body: JSON.stringify({box_enabled: true})}))""")
         page.wait_for_function("() => !document.getElementById('btn-sound').hidden")
         self.assertEqual(page.evaluate("document.getElementById('btn-sound').textContent"), "Ton an")
-        page.mouse.move(300, 300)
+        page.hover("#btn-sound", force=True)            # the menu stays while the pointer rests on it
         page.click("#btn-sound")
         page.wait_for_function("() => document.getElementById('btn-sound').textContent === 'Ton aus'")
         self.assertEqual(page.evaluate("localStorage.getItem('gt7c.sound')"), "1")

@@ -65,6 +65,9 @@ if (IS_VIEW && wait && menu) {
     hideTimer = setTimeout(function() { menu.classList.remove('show'); }, 3500);
   }
   menu.hidden = false;
+  /* While the pointer rests on the menu, it stays. */
+  menu.addEventListener('pointerenter', function() { menu.classList.add('show'); clearTimeout(hideTimer); });
+  menu.addEventListener('pointerleave', showMenu);
   edit.href = urlFor('edit');
   const select = document.getElementById('layout-select');
   layouts.forEach(function(layout) {
