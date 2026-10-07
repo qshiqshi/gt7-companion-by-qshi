@@ -4,7 +4,7 @@
    Texteinblendungen behalten bewusst die Schrift des Standard-Looks.
    Farben kommen aus dem Farbregister (static/overlay-style.js, Standards je Look, im Styling-Menü änderbar);
    hier stehen nur die Grundtöne, auf die Farben ohne eigenen Reel-Standard zurückfallen. */
-@font-face { font-family: "Mona Sans Reel"; src: url("/static/fonts/MonaSans-Variable.woff2") format("woff2"); font-weight: 200 900; font-display: block; }
+@font-face { font-family: "GT7C Text"; src: url("/static/fonts/GT7CText-Variable.woff2") format("woff2"); font-weight: 200 900; font-display: block; }
 
 body.look-reel {
   --accent: #c9973f; --white: #f1f1e9; --grey: #847e74; --green: #b3bfa0; --red: #e10600;
@@ -13,12 +13,12 @@ body.look-reel {
 /* Beschriftungen: Mona Sans, Versalien – Größe wie im Standard-Look, damit nichts umbricht */
 body.look-reel .widget .label,
 body.look-reel .telemetry-widget .instrument-title h2 {
-  font-family: "Mona Sans Reel", "Helvetica Neue", Helvetica, Arial, sans-serif;
+  font-family: "GT7C Text", "Helvetica Neue", Helvetica, Arial, sans-serif;
   font-weight: 700; letter-spacing: .1em; text-transform: uppercase;
   line-height: 1.15;                      /* Mona Sans hat höhere „normal“-Zeilen als Helvetica */
 }
 body.look-reel .telemetry-widget .instrument-title span {
-  font-family: "Mona Sans Reel", "Helvetica Neue", Helvetica, Arial, sans-serif;
+  font-family: "GT7C Text", "Helvetica Neue", Helvetica, Arial, sans-serif;
   font-weight: 600; letter-spacing: .1em; text-transform: uppercase;
 }
 
@@ -29,7 +29,7 @@ body.look-reel .forces-values b,
 body.look-reel .powertrain-values strong,
 body.look-reel .wheel-state-grid strong,
 body.look-reel .overlay-legend strong {
-  font-family: "Mona Sans Reel", "Helvetica Neue", Helvetica, Arial, sans-serif;
+  font-family: "GT7C Text", "Helvetica Neue", Helvetica, Arial, sans-serif;
   font-weight: 560; font-variant-numeric: tabular-nums;
   line-height: 1.12;
 }
@@ -45,7 +45,7 @@ body.look-reel .forces-values,
 body.look-reel .powertrain-values div,
 body.look-reel .wheel-state-grid .wheel-top,
 body.look-reel .wheel-state-grid .travel-label {
-  font-family: "Mona Sans Reel", "Helvetica Neue", Helvetica, Arial, sans-serif; font-weight: 650; letter-spacing: .06em;
+  font-family: "GT7C Text", "Helvetica Neue", Helvetica, Arial, sans-serif; font-weight: 650; letter-spacing: .06em;
 }
 
 /* Balken mit runden Enden */
@@ -53,7 +53,7 @@ body.look-reel #w-pedals .pedal-track,
 body.look-reel #w-fuel .fuel-track,
 body.look-reel .wheel-state-grid .travel-track,
 body.look-reel #w-fuel .fuel-fill { border-radius: 4px; }
-body.look-reel .overlay-aids span { font-family: "Mona Sans Reel", Helvetica, Arial, sans-serif; font-weight: 700; letter-spacing: .08em; }
+body.look-reel .overlay-aids span { font-family: "GT7C Text", Helvetica, Arial, sans-serif; font-weight: 700; letter-spacing: .08em; }
 
 /* Drehzahl: Grundskala zurückhaltender */
 body.look-reel #w-rpm-bar .rpm-ticks-idle,
