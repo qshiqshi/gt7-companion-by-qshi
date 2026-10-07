@@ -1,0 +1,29 @@
+three.js r186 (npm-Paket three@0.186.1), MIT-Lizenz – siehe LICENSE.
+
+Herkunft: `npm pack three@0.186.1` (registry.npmjs.org), geholt am 06.10.2026.
+Prüfsumme des Pakets (sha1, stimmt mit der Registry überein):
+6d50f70c2c437f844179bbb56d6f5b774e1ca38a  three-0.186.1.tgz
+
+Unverändert übernommen, nur die Dateien, die das Milchglas-Modul braucht:
+
+  build/three.module.js            WebGL-Renderer (importiert ./three.core.js)
+  build/three.core.js              Kern
+  examples/jsm/loaders/GLTFLoader.js
+  examples/jsm/utils/BufferGeometryUtils.js   (von GLTFLoader benötigt)
+  examples/jsm/utils/SkeletonUtils.js         (von GLTFLoader benötigt)
+
+Die Addons importieren `three` als nackten Spezifizierer. Die einbindende Seite
+braucht deshalb – vor dem ersten Modul-Skript – diese Import-Map:
+
+  <script type="importmap">
+  {
+    "imports": {
+      "three": "/static/vendor/three/build/three.module.js",
+      "three/addons/": "/static/vendor/three/examples/jsm/"
+    }
+  }
+  </script>
+
+Aktualisieren: neue Version mit `npm pack three@<Version>` in einen leeren
+Ordner holen, dieselben Dateien ersetzen, Version hier nachtragen. Danach
+`node --test tests/js/` und die Demo (`/static/milkglass/demo.html`) prüfen.

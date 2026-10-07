@@ -1,0 +1,90 @@
+/* GT7-Instrumente: die Bildmitte bleibt für das Rennen frei. */
+#editor-toolbar { height: 60px; padding: 0 24px; gap: 10px; background: #1b1d23; border-bottom: 1px solid #363a44; }
+#editor-toolbar .tb-title { color:#f2f3f5; white-space:nowrap; margin-right:12px; }
+#editor-toolbar button, #editor-toolbar a { border:1px solid #41454e; border-radius:5px; padding:7px 12px; color:#e5e7ec; background:#25282f; font-size:13px; text-decoration:none; }
+#editor-toolbar a.telemetry-link { background:#e10600; border-color:#e10600; color:#fff; margin-left:auto; }
+#editor-toolbar #ws-status { margin-left:0; }
+#editor-toolbar .preview-label { color:#c1c5ce; font-size:12px; white-space:nowrap; }
+#editor-toolbar .fork-only-hidden { display:none; }
+body.editor-mode #canvas { margin-top:80px; background-size:20px 20px,20px 20px,80px 80px,80px 80px,320px 320px,320px 320px; }
+body.editor-mode { background:#101217; }
+body.editor-mode .widget { outline-color:rgba(157,168,186,.23); }
+/* Farben über --c-* aus dem Styling-Menü (overlay-style.js); ohne Eintrag gelten die Werte hinter dem Komma. */
+.glass { background:var(--panel-bg); padding:14px 18px; }
+/* Lichtschimmer und Rahmenlinie nur, wenn gesetzt (Styling-Menü, Pinsel am Widget oder Look-Standard) */
+.glass.has-glow { background:radial-gradient(120% 140% at 20% 10%, var(--c-panel-glow), transparent 62%), var(--panel-bg); }
+.glass.has-border { box-shadow:inset 0 0 0 calc(1px * var(--lw, 1)) var(--c-panel-border); }
+.widget .label { color:var(--c-label, #b5bac5); }
+.widget.hidden-widget { display:none !important; }
+/* Im Editor bleiben ausgeblendete Widgets als Geist sichtbar (anklickbar, Alt+Klick blendet wieder ein) */
+body.editor-mode .widget.hidden-widget { display:block !important; opacity:.25; }
+#w-tyres .tyre-grid { padding:8px 3px; gap:16px 40px; grid-template-columns:34px 34px; }
+#w-tyres .tyre-cell { position:relative; width:22px; height:42px; transform:none; border-radius:7px; }
+/* Untergrund je Reifen (Paket C): Ring um die Reifenform, Farbe aus --c-surface-*. Ohne Daten unsichtbar und ohne
+   Einfluss auf das Layout; mit Daten rückt das Raster 4 px nach rechts, damit der linke Ring im Panel bleibt.
+   Das Zeichen „C“ ist Randstein (am 06.10.2026 an einer Deep-Forest-Fahrt mit Bild bestätigt): Der Ring blinkt
+   rot/weiß. Die Farbe wechselt am Reifenfeld selbst, damit alle vier Ringe im Gleichtakt blinken. */
+@property --kerb-color { syntax:'<color>'; inherits:true; initial-value:#e10600; }
+@keyframes kerbBlink { 0%, 49.99% { --kerb-color:var(--c-surface-kerb, #e10600); } 50%, 100% { --kerb-color:var(--c-surface-kerb-2, #ffffff); } }
+#w-tyres:has(.tyre-cell[data-surface="C"]) { animation:kerbBlink .24s linear infinite; }
+#w-tyres .tyre-cell::before { content:''; position:absolute; inset:calc(-2px - 3.5px * var(--lw, 1)); border:calc(3.5px * var(--lw, 1)) solid var(--surface-color, transparent); border-radius:calc(9px + 3.5px * var(--lw, 1)); transition:border-color .12s linear; pointer-events:none; }
+#w-tyres .tyre-cell[data-surface="T"] { --surface-color:var(--c-surface-tarmac, #8a8a8a); }
+#w-tyres .tyre-cell[data-surface="C"] { --surface-color:var(--kerb-color, var(--c-surface-kerb, #e10600)); }
+#w-tyres .tyre-cell[data-surface="C"]::before { transition:none; }
+#w-tyres .tyre-cell[data-surface="G"] { --surface-color:var(--c-surface-grass, #4fc860); }
+#w-tyres .tyre-cell[data-surface="S"] { --surface-color:var(--c-surface-sand, #f2c230); }
+#w-tyres .tyre-cell[data-surface="D"] { --surface-color:var(--c-surface-dirt, #a0673a); }
+#w-tyres .tyre-cell[data-surface="s"] { --surface-color:var(--c-surface-snow, #bfe3ff); }
+#w-tyres.has-surface .tyre-grid { padding-left:7px; }
+#w-tyres .tyre-cell::after { content:attr(data-temp); position:absolute; left:30px; top:12px; font:calc(14px * var(--fs-value, 1)) 'Helvetica Neue',Helvetica,Arial,sans-serif; color:var(--c-tyre-text, #f2f3f5); }
+.telemetry-widget { padding:16px 18px; }
+.telemetry-widget h2 { font:500 calc(15px * var(--fs-label, 1)) 'Helvetica Neue',Helvetica,Arial,sans-serif; color:var(--c-title, #f1f2f6); }
+.telemetry-widget .instrument-title { display:flex; align-items:center; justify-content:space-between; gap:8px; margin-bottom:8px; }
+.telemetry-widget .instrument-title span { color:var(--c-subtle, #b5bac5); font-size:calc(11px * var(--fs-label, 1)); }
+.telemetry-widget canvas { width:100%; display:block; }
+#w-input-trace { width:470px; height:190px; }
+#w-input-trace canvas { height:116px; }
+#w-track-map { width:270px; height:240px; }
+#w-track-map canvas { height:175px; }
+#w-g-forces { width:240px; height:220px; }
+#w-g-forces canvas { height:144px; }
+.overlay-legend { display:flex; gap:18px; font-size:calc(12px * var(--fs-label, 1)); color:var(--c-subtle, #bec3cd); }
+.overlay-legend .gas { color:var(--c-gas, #77d9a2); }
+.overlay-legend .brake { color:var(--c-brake, #ff635c); }
+.overlay-legend strong { font-variant-numeric:tabular-nums; font-size:calc(12px * var(--fs-value, 1)); }
+.forces-values { display:flex; justify-content:space-between; color:var(--c-subtle, #cbd0d9); font-size:calc(12px * var(--fs-label, 1)); }
+.forces-values b { font-size:calc(12px * var(--fs-value, 1)); }
+#w-wheel-state { width:300px; height:225px; }
+.wheel-state-grid { display:grid; grid-template-columns:1fr 1fr; gap:14px 20px; margin-top:14px; }
+.wheel-state-grid .wheel-top { display:flex; justify-content:space-between; color:var(--c-subtle, #b9c0cc); font-size:calc(11px * var(--fs-label, 1)); }
+.wheel-state-grid strong { color:var(--c-value, #f2f3f7); font-size:calc(16px * var(--fs-value, 1)); }
+.wheel-state-grid .travel-track { height:calc(4px * var(--lw, 1)); background:var(--c-bar-track, #393f4c); margin-top:7px; }
+.wheel-state-grid .travel-track span { display:block; height:100%; background:var(--c-travel, #9aa9c4); max-width:100%; }
+.wheel-state-grid .travel-label { color:var(--c-subtle, #b9c0cc); font-size:calc(11px * var(--fs-label, 1)); margin-top:5px; }
+#w-powertrain { width:260px; height:142px; }
+.powertrain-values { display:flex; gap:22px; margin-top:18px; }
+.powertrain-values div { display:flex; flex-direction:column; gap:8px; font-size:calc(12px * var(--fs-label, 1)); color:var(--c-subtle, #b9c0cc); }
+.powertrain-values strong { font-size:calc(25px * var(--fs-value, 1)); color:var(--c-value, #f1f2f5); font-variant-numeric:tabular-nums; }
+#w-driving-aids { width:260px; height:72px; }
+.overlay-aids { display:flex; justify-content:space-between; gap:7px; }
+.overlay-aids span { color:var(--c-aid-text, #a2a9b6); font-size:calc(12px * var(--fs-label, 1)); padding:8px; border:calc(1px * var(--lw, 1)) solid var(--c-aid-border, #454a55); border-radius:4px; }
+.overlay-aids span.active { color:var(--c-aid-on-text, #f4f5f7); border-color:var(--c-aid-on-border, #c6ccd6); background:var(--c-aid-on-bg, #3a414e); }
+#w-position .label::after { content:' · START'; }
+body.fork-preview { background:#101217; }
+body.fork-preview #editor-toolbar,body.fork-preview #widget-panel,body.fork-preview .editor-controls { display:none !important; }
+body.fork-preview #canvas { margin:0; }
+body.fork-preview #w-companion { visibility:visible;opacity:1; }
+body.fork-preview #w-companion .companion-art { transform:translateY(0);opacity:1; }
+body.fork-preview #w-alert-area { display:none; }
+body.fork-preview .widget { outline:0; }
+#fork-preview-stamp { display:none; }
+body.fork-preview #fork-preview-stamp { display:block; position:absolute; top:535px; left:760px; color:#5e6573; font-size:14px; letter-spacing:.01em; }
+@media(prefers-reduced-motion:reduce) { .telemetry-widget * { animation:none !important;transition:none !important; } }
+
+/* Bestehende Testfunktionen bleiben im Editor kompakt erreichbar. */
+#editor-toolbar .toolbar-tests { position:relative; }
+#editor-toolbar .toolbar-tests summary { cursor:pointer; padding:7px 12px; white-space:nowrap; border:1px solid #41454e; border-radius:5px; background:#25282f; }
+#editor-toolbar .toolbar-tests>div { position:absolute; top:38px; right:0; width:200px; padding:10px; border:1px solid #41454e; border-radius:5px; background:#1b1d23; box-shadow:0 8px 24px #0008; }
+#editor-toolbar .toolbar-tests button { display:block; width:100%; margin:4px 0; }
+#editor-toolbar .toolbar-tests .tb-sep { display:none; }
+@media(max-width:1300px) { #editor-toolbar { gap:6px; padding:0 12px; } #editor-toolbar button,#editor-toolbar a { padding:7px 8px; font-size:12px; } #editor-toolbar .tb-radius { display:none; } }

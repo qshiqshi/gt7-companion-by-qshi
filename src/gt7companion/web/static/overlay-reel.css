@@ -1,0 +1,66 @@
+/* Reel-Look (29.09.2026): Stil der qshi-Reels als zweite Darstellung des Overlays.
+   Aktiv nur mit body.look-reel (Layout-JSON "look": "reel"); Positionen/Sichtbarkeit bleiben unverändert.
+   Schriften: Mona Sans (Labels, kleine Werte), die breite Anzeigeschrift --font-gt7 (Tempo, Gang, Live-Rundenzeit).
+   Texteinblendungen behalten bewusst die Schrift des Standard-Looks.
+   Farben kommen aus dem Farbregister (static/overlay-style.js, Standards je Look, im Styling-Menü änderbar);
+   hier stehen nur die Grundtöne, auf die Farben ohne eigenen Reel-Standard zurückfallen. */
+@font-face { font-family: "Mona Sans Reel"; src: url("/static/fonts/MonaSans-Variable.woff2") format("woff2"); font-weight: 200 900; font-display: block; }
+
+body.look-reel {
+  --accent: #c9973f; --white: #f1f1e9; --grey: #847e74; --green: #b3bfa0; --red: #e10600;
+}
+
+/* Beschriftungen: Mona Sans, Versalien – Größe wie im Standard-Look, damit nichts umbricht */
+body.look-reel .widget .label,
+body.look-reel .telemetry-widget .instrument-title h2 {
+  font-family: "Mona Sans Reel", "Helvetica Neue", Helvetica, Arial, sans-serif;
+  font-weight: 700; letter-spacing: .1em; text-transform: uppercase;
+  line-height: 1.15;                      /* Mona Sans hat höhere „normal“-Zeilen als Helvetica */
+}
+body.look-reel .telemetry-widget .instrument-title span {
+  font-family: "Mona Sans Reel", "Helvetica Neue", Helvetica, Arial, sans-serif;
+  font-weight: 600; letter-spacing: .1em; text-transform: uppercase;
+}
+
+/* Zahlen: Tempo und Live-Rundenzeit bleiben in der GT7-Schrift, der Gang wechselt in sie (wie im Reel).
+   Kleine Werte in Mona Sans – die Anzeigeschrift ist deutlich breiter als Helvetica und sprengt Position/Rundenzeiten. */
+body.look-reel .widget .num,
+body.look-reel .forces-values b,
+body.look-reel .powertrain-values strong,
+body.look-reel .wheel-state-grid strong,
+body.look-reel .overlay-legend strong {
+  font-family: "Mona Sans Reel", "Helvetica Neue", Helvetica, Arial, sans-serif;
+  font-weight: 560; font-variant-numeric: tabular-nums;
+  line-height: 1.12;
+}
+body.look-reel .forces-values b,
+body.look-reel .overlay-legend strong { color: var(--c-value); }
+body.look-reel #w-gear .gear-current {
+  font-family: var(--font-gt7); font-weight: 400;
+}
+
+/* Legenden und Kleintexte */
+body.look-reel .overlay-legend,
+body.look-reel .forces-values,
+body.look-reel .powertrain-values div,
+body.look-reel .wheel-state-grid .wheel-top,
+body.look-reel .wheel-state-grid .travel-label {
+  font-family: "Mona Sans Reel", "Helvetica Neue", Helvetica, Arial, sans-serif; font-weight: 650; letter-spacing: .06em;
+}
+
+/* Balken mit runden Enden */
+body.look-reel #w-pedals .pedal-track,
+body.look-reel #w-fuel .fuel-track,
+body.look-reel .wheel-state-grid .travel-track,
+body.look-reel #w-fuel .fuel-fill { border-radius: 4px; }
+body.look-reel .overlay-aids span { font-family: "Mona Sans Reel", Helvetica, Arial, sans-serif; font-weight: 700; letter-spacing: .08em; }
+
+/* Drehzahl: Grundskala zurückhaltender */
+body.look-reel #w-rpm-bar .rpm-ticks-idle,
+body.look-reel #w-rpm-bar:not(.rpm-idle-color) .rpm-ticks-style-idle { opacity: .4; }
+
+/* Kurven füllen den Kasten statt fester Canvas-Höhe: kleiner gezogene Widgets (z. B. Gas & Bremse 270×150) laufen
+   nicht mehr unten aus dem Kasten. height:0 + flex-basis 0 verhindert eine Rückkopplung mit der Canvas-Auflösung. */
+body.look-reel .telemetry-widget { display: flex; flex-direction: column; }
+body.look-reel.editor-mode .telemetry-widget.hidden-widget { display: flex !important; }
+body.look-reel .telemetry-widget canvas { flex: 1 1 0; min-height: 0; height: 0; }

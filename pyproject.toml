@@ -1,0 +1,35 @@
+[build-system]
+requires = ["setuptools>=69"]
+build-backend = "setuptools.build_meta"
+
+[project]
+name = "gt7-companion-by-qshi"
+description = "Unofficial dashboard and stream overlay for Gran Turismo 7 telemetry – for tablets, PCs, Macs and OBS."
+readme = "README.md"
+requires-python = ">=3.12"
+license = "GPL-3.0-or-later"
+authors = [{ name = "qshi" }]
+dynamic = ["version"]
+dependencies = [
+    "fastapi>=0.115",
+    "uvicorn>=0.30",
+    "websockets>=13",
+    "pycryptodome>=3.20",
+    "platformdirs>=4",
+    "ifaddr>=0.2",
+]
+
+[project.optional-dependencies]
+dev = ["httpx2>=2"]
+
+[project.scripts]
+gt7companion = "gt7companion.cli:main"
+
+[tool.setuptools.dynamic]
+version = { attr = "gt7companion.__version__" }
+
+[tool.setuptools.packages.find]
+where = ["src"]
+
+[tool.setuptools.package-data]
+gt7companion = ["web/**/*", "data/**/*"]
