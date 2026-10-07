@@ -7,7 +7,7 @@ Minuten. Außerhalb des Programmordners wird nichts installiert (außer Python s
 
 > Die Mac-Schritte sind auf einem Mac mit Apple-Chip durchgelaufen. **Die Windows-Schritte
 > sind ungetestet** – sie sollten funktionieren, aber noch niemand hat sie an einem echten
-> Windows-PC ausprobiert. Wenn etwas hakt, melde es bitte als Issue.
+> Windows-PC ausprobiert. Wenn etwas hakt, melde es bitte als Issue: <https://github.com/qshiqshi/gt7-companion-by-qshi/issues>.
 
 ## 1. Python installieren (einmalig)
 
@@ -19,7 +19,7 @@ Das Programm ist in Python geschrieben und braucht Version 3.12 oder neuer.
 
 ## 2. Programm holen
 
-Auf der GitHub-Seite des Projekts auf den grünen Knopf **Code** → **Download ZIP** klicken.
+<https://github.com/qshiqshi/gt7-companion-by-qshi> öffnen und auf den grünen Knopf **Code** → **Download ZIP** klicken.
 Die ZIP-Datei entpacken und den Ordner dorthin legen, wo er bleiben kann, zum Beispiel in
 „Dokumente“.
 
