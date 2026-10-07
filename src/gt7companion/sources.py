@@ -27,7 +27,7 @@ class Sources:
         self.kind: str | None = None           # what is running right now
         self.error: str | None = None          # "port_in_use" | "failed" | None
         self._receiver = None
-        self._on_switch = on_switch            # called before a new source starts
+        self._on_switch = on_switch            # called with the kind before a new source starts
         self._lock = asyncio.Lock()
 
     async def start(self, kind: str | None = None) -> None:
@@ -50,7 +50,7 @@ class Sources:
         async with self._lock:
             await self._stop()
             if self._on_switch is not None:
-                self._on_switch()
+                self._on_switch(kind)
             self.error = None
             try:
                 if kind == "demo":

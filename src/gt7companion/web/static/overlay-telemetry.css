@@ -6,7 +6,7 @@
 #editor-toolbar #ws-status { margin-left:0; }
 #editor-toolbar .preview-label { color:#c1c5ce; font-size:12px; white-space:nowrap; }
 #editor-toolbar .fork-only-hidden { display:none; }
-body.editor-mode #canvas { margin-top:80px; background-size:20px 20px,20px 20px,80px 80px,80px 80px,320px 320px,320px 320px; }
+body.editor-mode #canvas { background-size:20px 20px,20px 20px,80px 80px,80px 80px,320px 320px,320px 320px; }
 body.editor-mode { background:#101217; }
 body.editor-mode .widget { outline-color:rgba(157,168,186,.23); }
 /* Farben über --c-* aus dem Styling-Menü (overlay-style.js); ohne Eintrag gelten die Werte hinter dem Komma. */
@@ -70,15 +70,6 @@ body.editor-mode .widget.hidden-widget { display:block !important; opacity:.25; 
 .overlay-aids span { color:var(--c-aid-text, #a2a9b6); font-size:calc(12px * var(--fs-label, 1)); padding:8px; border:calc(1px * var(--lw, 1)) solid var(--c-aid-border, #454a55); border-radius:4px; }
 .overlay-aids span.active { color:var(--c-aid-on-text, #f4f5f7); border-color:var(--c-aid-on-border, #c6ccd6); background:var(--c-aid-on-bg, #3a414e); }
 #w-position .label::after { content:' · START'; }
-body.fork-preview { background:#101217; }
-body.fork-preview #editor-toolbar,body.fork-preview #widget-panel,body.fork-preview .editor-controls { display:none !important; }
-body.fork-preview #canvas { margin:0; }
-body.fork-preview #w-companion { visibility:visible;opacity:1; }
-body.fork-preview #w-companion .companion-art { transform:translateY(0);opacity:1; }
-body.fork-preview #w-alert-area { display:none; }
-body.fork-preview .widget { outline:0; }
-#fork-preview-stamp { display:none; }
-body.fork-preview #fork-preview-stamp { display:block; position:absolute; top:535px; left:760px; color:#5e6573; font-size:14px; letter-spacing:.01em; }
 @media(prefers-reduced-motion:reduce) { .telemetry-widget * { animation:none !important;transition:none !important; } }
 
 /* Bestehende Testfunktionen bleiben im Editor kompakt erreichbar. */

@@ -40,12 +40,14 @@
   const finite = v => typeof v === 'number' && Number.isFinite(v);
   const clamp = (v, a, b) => Math.min(b, Math.max(a, v));
   function fit(canvas) {
+    // Gezeichnet wird in Layout-Pixeln (der CSS-Größe der Fläche); die Bitmap bekommt so viele Pixel, wie am
+    // Ende auf dem Bildschirm landen. So bleibt das Diagramm auf einer skalierten Bühne scharf und behält
+    // seine Proportionen zum übrigen Widget.
     const box = canvas.getBoundingClientRect(), ratio = Math.min(window.devicePixelRatio || 1, 2);
-    const w = Math.max(1, box.width), h = Math.max(1, box.height);
-    if (canvas.width !== Math.round(w * ratio) || canvas.height !== Math.round(h * ratio)) {
-      canvas.width = Math.round(w * ratio); canvas.height = Math.round(h * ratio);
-    }
-    const ctx = canvas.getContext('2d'); ctx.setTransform(ratio, 0, 0, ratio, 0, 0); ctx.clearRect(0, 0, w, h);
+    const w = Math.max(1, canvas.clientWidth || box.width), h = Math.max(1, canvas.clientHeight || box.height);
+    const pw = Math.max(1, Math.round(box.width * ratio)), ph = Math.max(1, Math.round(box.height * ratio));
+    if (canvas.width !== pw || canvas.height !== ph) { canvas.width = pw; canvas.height = ph; }
+    const ctx = canvas.getContext('2d'); ctx.setTransform(pw / w, 0, 0, ph / h, 0, 0); ctx.clearRect(0, 0, w, h);
     const k = canvasScale.get(canvas) || readScale(canvas);
     ctx.font = (12 * k.ks) + 'px "Helvetica Neue", Arial, sans-serif'; ctx.lineJoin = 'round'; ctx.lineCap = 'round';
     return { ctx, w, h, ks: k.ks, lw: k.lw };
@@ -157,7 +159,7 @@
       this.observer = new ResizeObserver(() => this.draw()); this.observer.observe(canvas); instances.add(this);
       canvas.addEventListener('pointermove', event => {
         if (!this.onInspectPoint || !this.project) return;
-        const rect = canvas.getBoundingClientRect(), px = event.clientX - rect.left, py = event.clientY - rect.top;
+        const rect = canvas.getBoundingClientRect(), px = (event.clientX - rect.left) * (canvas.clientWidth / rect.width), py = (event.clientY - rect.top) * (canvas.clientHeight / rect.height);
         let nearest = null, distance = 28;
         for (const point of this.current?.points || []) {
           const p = this.project(point), d = Math.hypot(p.x - px, p.y - py);

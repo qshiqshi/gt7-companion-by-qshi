@@ -10,6 +10,7 @@ import logging
 import time
 
 from .bus import EventBus
+from .livetrace import LiveTrace
 from .models import TelemetryFrame
 from .telemetry_view import TelemetryView
 from .ws_manager import ConnectionManager
@@ -33,6 +34,7 @@ class Hub:
         self._interval = 1.0 / max(1.0, float(telemetry_hz))
         self._due = float("-inf")                  # when the next message may go out
         self._view = TelemetryView()
+        self.trace = LiveTrace()                   # driven line for the track map
         self._live_lap = -99
         self._live_ms = 0.0
         self._live_prev = clock()
@@ -40,11 +42,13 @@ class Hub:
         bus.subscribe("telemetry.frame", self.on_frame)
         bus.subscribe("telemetry.status", self.on_telemetry_status)
 
-    def reset(self) -> None:
-        """Start a new session: new source, so counters and running values start over."""
+    def reset(self, *, first_lap_complete: bool = False) -> None:
+        """Start a new session: new source, so counters and running values start over.
+        ``first_lap_complete``: the source begins exactly at a start line (the demo)."""
         self.stats = new_stats()
         self.latest = None
         self._view.reset()
+        self.trace.reset(first_lap_complete=first_lap_complete)
         self._live_lap, self._live_ms = -99, 0.0
         self._due = float("-inf")
 
@@ -61,6 +65,7 @@ class Hub:
             self._live_ms += (now - self._live_prev) * 1000.0
         self._live_prev = now
 
+        self.trace.add(frame, now)
         # Every frame goes through the view (it smooths and integrates); only some are sent.
         data = self._view.serialize(frame, now)
         if now < self._due - 0.001:

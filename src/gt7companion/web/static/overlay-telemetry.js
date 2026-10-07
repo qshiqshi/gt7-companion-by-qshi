@@ -1,6 +1,5 @@
 (function () {
   'use strict';
-  if (new URLSearchParams(location.search).get('companion') === 'only') return;
   const root = document.getElementById('canvas');
   const controls = '<div class="editor-controls"><button data-scale="-" aria-label="Verkleinern">−</button><button data-scale="+" aria-label="Vergrößern">+</button></div>';
   const widget = (id, html) => '<section class="widget glass telemetry-widget" id="w-' + id + '">' + controls + html + '</section>';
@@ -10,8 +9,7 @@
     widget('g-forces', '<div class="instrument-title"><h2>Fahrdynamik</h2><span>Berechnet</span></div><canvas id="ov-forces-chart" aria-label="Längs- und Querbeschleunigung"></canvas><div class="forces-values"><span>Längs <b id="ov-g-long">—</b></span><span>Quer <b id="ov-g-lat">—</b></span></div>') +
     widget('wheel-state', '<div class="instrument-title"><h2>Schlupf &amp; Fahrwerk</h2></div><div id="ov-wheel-grid" class="wheel-state-grid">' + ['VL','VR','HL','HR'].map((n,i) => '<div><div class="wheel-top"><span>' + n + '</span><strong id="ov-slip-' + i + '">—</strong></div><div class="travel-track"><span id="ov-travel-' + i + '"></span></div><div class="travel-label" id="ov-travel-label-' + i + '">— mm</div></div>').join('') + '</div>') +
     widget('powertrain', '<div class="instrument-title"><h2>Antrieb</h2></div><div class="powertrain-values"><div>Ladedruck<strong id="ov-boost">—</strong></div><div>Kupplung<strong id="ov-clutch">—</strong></div></div>') +
-    widget('driving-aids','<div class="overlay-aids"><span id="ov-tcs">TCS</span><span id="ov-asm">ASM</span><span id="ov-handbrake">Handbremse</span></div>') +
-    '<div id="fork-preview-stamp">Layout-Vorschau · aufgezeichnete Fahrt</div>');
+    widget('driving-aids','<div class="overlay-aids"><span id="ov-tcs">TCS</span><span id="ov-asm">ASM</span><span id="ov-handbrake">Handbremse</span></div>'));
   const charts = window.GT7Charts;
   const pedals = new charts.Pedals(document.getElementById('ov-input-chart'));
   const track = new charts.Track(document.getElementById('ov-track-chart'));

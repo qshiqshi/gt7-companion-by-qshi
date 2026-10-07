@@ -57,7 +57,8 @@ def create_app(settings: Settings | None = None, *, layouts: LayoutStore | None 
     hub = Hub(bus, manager, telemetry_hz=settings["telemetry_hz"])
     companion = Companion(settings=settings, layouts=layouts or LayoutStore(), bus=bus,
                           manager=manager, hub=hub,
-                          sources=Sources(bus, settings, on_switch=hub.reset))
+                          sources=Sources(bus, settings,
+                                          on_switch=lambda kind: hub.reset(first_lap_complete=kind == "demo")))
 
     @asynccontextmanager
     async def lifespan(app: FastAPI):
@@ -109,6 +110,11 @@ def create_app(settings: Settings | None = None, *, layouts: LayoutStore | None 
     @app.get("/api/layout")
     async def get_layout(name: str | None = None):
         return JSONResponse(companion.layouts.get(layout_name(name)), headers=_NO_STORE)
+
+    @app.get("/api/trace")
+    async def trace():
+        """The driven line for the track map."""
+        return JSONResponse(hub.trace.snapshot(), headers=_NO_STORE)
 
     @app.post("/api/layout")
     async def post_layout(request: Request, name: str | None = None):

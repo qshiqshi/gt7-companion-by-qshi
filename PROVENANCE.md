@@ -16,6 +16,7 @@ Comments in files that were taken over unchanged are still German.
 | `telemetry.py` | `server/telemetry.py` | no config import; recording to disk and its mirror removed; the console's address is reported through a callback instead of being written to a config file; an unknown address is searched in every own network (`netinfo.py`); the synthetic simulator is gone; the replay receiver can loop and takes a per-frame transform (demo) |
 | `ws_manager.py` | `server/ws_manager.py` | rewritten around per-screen facts (`role`, `layout`) instead of one "is OBS" flag; audio helpers removed |
 | `hub.py` | parts of `server/director.py` (frame handling, lap clock, status) | new, small; steady 12 Hz rhythm instead of a restarted interval |
+| `livetrace.py` | output shape of `live_trace()` in `server/analysis_routes.py` | new, without numpy |
 | `app.py` | pattern of `tools/overlay_preview.py` | new |
 | everything else | – | new |
 
@@ -23,9 +24,13 @@ Comments in files that were taken over unchanged are still German.
 
 | File | Origin | Changes |
 |---|---|---|
-| `index.html` | `static/overlay.html` | licensed typeface replaced by Michroma; personal artwork and everything about chat, clips, voice and training removed; connects to the address it was loaded from |
-| `static/overlay-style.js`, `telemetry-charts.js`, `overlay-telemetry.js`, `overlay-telemetry.css` | `static/` (same names) | none |
-| `static/overlay-reel.css` | `static/overlay-reel.css` | display typeface through the `--font-gt7` variable |
+| `index.html`, `static/css/overlay.css`, `static/css/editor.css` | `static/overlay.html` | the single page was cut into a page, two stylesheets and ES modules; licensed typeface replaced by Michroma; personal artwork and everything about chat, clips, voice and training removed |
+| `static/js/layout.js`, `widgets.js`, `editor.js`, `figure.js` | script of `static/overlay.html` | moved, not rewritten; fixed 1920×1080 numbers became the stage size; widgets are only hidden outside a race in an OBS source |
+| `static/js/early.js`, `modes.js`, `net.js`, `stage.js`, `stage-fit.js`, `viewer.js`, `i18n.js`, `main.js` | – | new (modes, connection with reconnect, scaling the stage into any screen, dashboard hint and menu) |
+| `static/overlay-style.js` | `static/overlay-style.js` | none |
+| `static/telemetry-charts.js` | same name | charts draw in layout pixels, so they keep their proportions on a scaled stage |
+| `static/overlay-telemetry.js`, `overlay-telemetry.css` | same names | preview-only parts removed |
+| `static/overlay-reel.css` | same name | display typeface through the `--font-gt7` variable |
 | `static/milkglass/`, `static/wackeldackel/` | `static/` (same names) | none |
 | `static/img/RPM.svg` | `img/RPM.svg` | none |
 | `static/vendor/` | `static/vendor/` | none (three.js r186 subset, interact.js 1.10.28) |

@@ -70,6 +70,16 @@ class PagesAndStatus(AppCase):
         self.assertEqual(self.client(TABLET, base="http://192.168.1.20:8707").get("/api/status").json()["role"],
                          "viewer")
 
+    def test_track_map_gets_the_driven_line(self):
+        client = self.client()
+        with client.websocket_connect("/ws") as ws:
+            for _ in range(30):
+                self.until(ws, "telemetry")                  # let the demo drive a little
+        trace = client.get("/api/trace").json()
+        self.assertEqual(trace["current"]["lap_number"], 1)
+        self.assertGreater(len(trace["current"]["points"]), 3)
+        self.assertIsNone(trace["best"])                     # no lap finished yet
+
     def test_no_api_documentation_is_exposed(self):
         client = self.client()
         for path in ("/docs", "/redoc", "/openapi.json"):

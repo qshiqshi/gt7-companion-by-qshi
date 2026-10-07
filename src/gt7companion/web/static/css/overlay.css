@@ -1,0 +1,908 @@
+/* Widgets, stage and editor chrome of the dashboard. Moved here from the former single page. */
+/* Display typeface for speed, lap times and messages: Michroma (SIL Open Font License). */
+@font-face {
+  font-family: "GT7C Display";
+  src: url("/static/fonts/Michroma-Regular.ttf") format("truetype");
+  font-style: normal;
+  font-weight: 400;
+  font-display: swap;
+}
+
+/* ========== RESET ========== */
+*, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+
+:root {
+  --accent: #e10600;
+  --panel-bg: rgba(0, 0, 0, 0.5);
+  --panel-border: rgba(255, 255, 255, 0.05);
+  --widget-radius: 2px;
+  --font-num: "HelveticaNeue", "Helvetica Neue", "HelveticaNeueRoman", "HelveticaNeue-Roman", "Helvetica Neue Roman", "Helvetica", "Tahoma", "Geneva", "Arial", sans-serif;
+  --font-label: "HelveticaNeue", "Helvetica Neue", "HelveticaNeueRoman", "HelveticaNeue-Roman", "Helvetica Neue Roman", "Helvetica", "Tahoma", "Geneva", "Arial", sans-serif;
+  /* GT7-Schrift (wie Tacho/Rundenzeiten) — bewusst NICHT von den
+     Layout-JSON-Fonts (applyLayout) ueberschreibbar */
+  --font-gt7: "GT7C Display", "Helvetica Neue", Helvetica, Arial, sans-serif;
+  --green: #4fc860;
+  --red: #e10600;
+  --white: #f2f2f2;
+  --grey: #9a9a9e;
+}
+
+html, body { width: 100%; height: 100%; }
+body {
+  overflow: hidden;
+  color: var(--white);
+  background: transparent;          /* OBS source: only the widgets are visible */
+  -webkit-font-smoothing: antialiased;
+  /* Alles Helvetica Neue, alles Weight 500 (GT7-Look) */
+  font-family: var(--font-label);
+  font-weight: 500;
+}
+button, input, select, textarea { font: inherit; font-weight: 500; }
+b, strong, .num, .label { font-weight: 500; }
+
+/* ========== STAGE ==========
+   A canvas of fixed size (taken from the layout) that stage.js scales as a whole into the screen. */
+#canvas {
+  position: absolute;
+  left: 0;
+  top: 0;
+  width: 1920px;
+  height: 1080px;
+  transform-origin: 0 0;
+}
+/* Dashboard: opaque ground, nothing can be selected or zoomed by accident on a touch screen. */
+body.mode-view {
+  background: #0b0b0e;
+  user-select: none;
+  -webkit-user-select: none;
+  -webkit-touch-callout: none;
+  touch-action: manipulation;
+}
+
+/* ========== DASHBOARD: HINT AND MENU ========== */
+#wait {
+  position: fixed;
+  inset: 0;
+  z-index: 9000;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  padding: 24px;
+  background: rgba(11, 11, 14, 0.78);
+  pointer-events: none;
+  font-family: system-ui, -apple-system, "Segoe UI", Roboto, "Helvetica Neue", Arial, sans-serif;
+}
+#wait[hidden] { display: none; }
+.wait-box { max-width: 520px; text-align: center; }
+.wait-title { font-size: clamp(18px, 3.2vw, 28px); font-weight: 600; letter-spacing: 0.01em; }
+.wait-text { margin-top: 10px; font-size: clamp(13px, 1.9vw, 16px); font-weight: 400; line-height: 1.5; color: #b5bac5; }
+.wait-text:empty { display: none; }
+#view-menu {
+  position: fixed;
+  top: 12px;
+  right: 12px;
+  z-index: 9500;
+  display: flex;
+  gap: 8px;
+  opacity: 0;
+  pointer-events: none;
+  transition: opacity 0.25s ease;
+}
+#view-menu[hidden] { display: none; }
+#view-menu.show { opacity: 1; pointer-events: auto; }
+#view-menu a,
+#view-menu button {
+  display: inline-flex;
+  align-items: center;
+  min-height: 44px;
+  padding: 0 16px;
+  border: 1px solid rgba(255, 255, 255, 0.18);
+  border-radius: 8px;
+  background: rgba(20, 20, 24, 0.88);
+  color: #f2f2f2;
+  font: 500 15px/1 system-ui, -apple-system, "Segoe UI", Roboto, "Helvetica Neue", Arial, sans-serif;
+  text-decoration: none;
+  cursor: pointer;
+}
+#view-menu a[hidden],
+#view-menu button[hidden] { display: none; }
+#view-menu a:hover,
+#view-menu button:hover { background: rgba(48, 50, 58, 0.95); }
+
+/* ========== EDITOR MODE ========== */
+/* Editor: die Leinwand hebt sich von einem dunkleren Grund ab. (Kein riesiger Schatten um die
+   Leinwand: eine skalierte Ebene dieser Größe kostet auf Tablets sehr viel Speicher und Zeit.) */
+body.editor-mode {
+  background: #070709;
+  user-select: none;
+}
+html:has(.editor-mode) {
+  background: #0a0a0c;
+}
+/* Raster: Snap-Grid alle 10px (GRID im JS), fein alle 60px, kraeftiger alle 240px + Bildschirmrand */
+body.editor-mode #canvas {
+  background-image:
+    linear-gradient(rgba(255,255,255,0.012) 1px, transparent 1px),
+    linear-gradient(90deg, rgba(255,255,255,0.012) 1px, transparent 1px),
+    linear-gradient(rgba(255,255,255,0.030) 1px, transparent 1px),
+    linear-gradient(90deg, rgba(255,255,255,0.030) 1px, transparent 1px),
+    linear-gradient(rgba(255,255,255,0.065) 1px, transparent 1px),
+    linear-gradient(90deg, rgba(255,255,255,0.065) 1px, transparent 1px);
+  background-size: 10px 10px, 10px 10px, 60px 60px, 60px 60px, 240px 240px, 240px 240px;
+  outline: 1px solid rgba(225, 6, 0, 0.55);
+  outline-offset: -1px;
+  background-color: #101013;
+}
+/* Mittelkreuz */
+body.editor-mode #canvas::before,
+body.editor-mode #canvas::after {
+  content: '';
+  position: absolute;
+  pointer-events: none;
+  background: rgba(255, 255, 255, 0.09);
+  z-index: 0;
+}
+body.editor-mode #canvas::before { left: 50%; top: 0; bottom: 0; width: 1px; }
+body.editor-mode #canvas::after  { top: 50%; left: 0; right: 0; height: 1px; }
+
+/* ========== GT7 PANEL ========== */
+.glass {
+  background: var(--panel-bg);
+  border: 0;
+  border-radius: var(--widget-radius-local, var(--widget-radius));
+  padding: 12px 16px;
+}
+
+/* ========== WIDGET CONTAINER ========== */
+.widget {
+  position: absolute;
+  transform-origin: top left;
+  pointer-events: none;
+}
+body.editor-mode .widget {
+  pointer-events: auto;
+  outline: 1px dashed rgba(255,255,255,0.18);
+  cursor: grab;
+}
+body.editor-mode .widget:hover {
+  outline: 1px solid rgba(255,255,255,0.35);
+}
+body.editor-mode .widget.dragging {
+  outline: 2px solid var(--accent);
+  cursor: grabbing;
+  z-index: 9999 !important;
+}
+.widget.hidden-widget {
+  display: none;
+}
+/* Erst gespeicherte Positionen anwenden, bevor Widgets sichtbar werden. */
+body:not(.layout-ready) #canvas .widget {
+  visibility: hidden;
+}
+
+/* Auto-Ausblenden ausserhalb des Rennens: Live-Telemetrie-Widgets faden raus,
+   Session-Statistik und Alerts bleiben. Nur im OBS-Modus aktiv. */
+.widget { transition: opacity 0.6s ease; }
+body.no-race #w-speed,
+body.no-race #w-gear,
+body.no-race #w-rpm-bar,
+body.no-race #w-laptimes,
+body.no-race #w-pedals,
+body.no-race #w-fuel,
+body.no-race #w-livetime,
+body.no-race #w-position,
+body.no-race #w-tyres,
+body.no-race #w-car-class,
+body.no-race #w-milk,
+body.no-race .telemetry-widget {
+  opacity: 0;
+}
+body.editor-mode .widget.hidden-widget {
+  display: block;
+  opacity: 0.25;
+}
+
+/* ========== LABELS ========== */
+.label {
+  font-family: var(--font-label);
+  font-size: calc(10px * var(--fs-label, 1));
+  font-weight: 500;
+  letter-spacing: 0.10em;
+  text-transform: uppercase;
+  color: var(--c-label, var(--grey));
+}
+.num {
+  font-family: var(--font-num);
+  font-weight: 500;
+  color: var(--c-value, var(--white));
+  font-variant-numeric: tabular-nums;
+}
+
+/* ========== FLUIDE INHALTE (RPM-Prinzip) ==========
+   Wie beim RPM-Balken: waechst die Panelflaeche, verteilt sich der
+   Inhalt logisch mit — Balken strecken sich, Zahlen bleiben an ihrer
+   Kante, Zentriertes bleibt zentriert. Ohne explizite Groesse sehen
+   die Widgets exakt aus wie bisher. */
+#w-speed {
+  display: flex;
+  flex-direction: column;
+  justify-content: space-between; /* KM/H haelt die Unterkante */
+  min-width: 230px;              /* breite Anzeigeschrift: Platz fuer 999 */
+}
+#w-gear {
+  display: flex;
+  flex-direction: column;
+  justify-content: center;        /* Gang bleibt mittig */
+}
+#w-fuel { width: 234px; }         /* 200px Track + Padding/Border */
+#w-pedals .pedal-col { height: 100%; }
+#w-pedals .pedal-track { flex: 1; } /* Balken wachsen mit der Hoehe */
+#w-laptimes .lt-times { justify-content: space-between; }
+
+/* ========== 1. SPEED ========== */
+#w-speed .speed-val,
+#w-livetime .lt-live {
+  font-family: var(--font-gt7);
+  font-weight: 400;
+}
+#w-livetime .lt-live { color: var(--c-livetime, var(--c-value, var(--white))); }
+#w-speed .speed-val {
+  color: var(--c-speed, var(--c-value, var(--white)));
+  font-size: calc(72px * var(--fs-value, 1));
+  line-height: 1;
+  /* Fixe Breite: Platz fuer "999", damit nichts springt */
+  min-width: 3ch;
+  text-align: right;
+  font-variant-numeric: tabular-nums;
+}
+#w-speed .speed-unit {
+  color: var(--c-speed-unit, var(--c-label, #b5bac5));
+  margin-top: 2px;
+  text-align: center;
+}
+
+/* ========== 2. GEAR ========== */
+#w-gear { text-align: center; }
+#w-gear .gear-current {
+  color: var(--c-gear, var(--c-value, var(--white)));
+  font-size: calc(84px * var(--fs-value, 1));
+  line-height: 1;
+}
+#w-gear .gear-suggested {
+  font-size: calc(18px * var(--fs-value, 1));
+  color: var(--c-gear-hint, var(--grey));
+  transition: opacity 0.15s;
+}
+#w-gear .gear-suggested.pulse {
+  animation: gearPulse 0.6s ease-in-out infinite alternate;
+}
+@keyframes gearPulse {
+  0%   { color: var(--c-gear-hint, var(--grey)); }
+  100% { color: var(--c-gear-pulse, var(--accent)); }
+}
+
+/* ========== 3. RPM BAR ========== */
+#w-rpm-bar {
+  width: var(--rpm-w, 300px);
+  height: auto !important;
+  aspect-ratio: 625.78 / 78.67;
+  padding: 0;
+  background: transparent;
+}
+#w-rpm-bar .rpm-visual {
+  width: 100%;
+  height: 100%;
+  position: relative;
+  container-type: inline-size;
+}
+#w-rpm-bar .rpm-svg {
+  display: block;
+  width: 100%;
+  height: 100%;
+}
+#w-rpm-bar .rpm-ticks-idle {
+  filter: grayscale(1) brightness(0.35);
+  opacity: 0.62;
+}
+/* Eigene Drehzahlfarben/-stärke (Styling); ohne Eintrag bleibt die Original-Grafik */
+#w-rpm-bar .rpm-ticks-style,
+#w-rpm-bar .rpm-ticks-style-idle { display: none; }
+#w-rpm-bar .rpm-ticks-style-idle { fill: url(#rpm-style-gradient); filter: grayscale(1) brightness(0.35); opacity: 0.62; }
+#w-rpm-bar.rpm-idle-color .rpm-ticks-style-idle { fill: var(--c-rpm-idle); filter: none; opacity: 1; }
+#w-rpm-bar.rpm-style .rpm-ticks-original { display: none; }
+#w-rpm-bar.rpm-style .rpm-ticks-style { display: inline; }
+#w-rpm-bar.rpm-style-idle .rpm-ticks-idle { display: none; }
+#w-rpm-bar.rpm-style-idle .rpm-ticks-style-idle { display: inline; }
+#w-rpm-bar .rpm-active.redline {
+  animation: rpmFlash 0.15s ease-in-out infinite alternate;
+}
+@keyframes rpmFlash {
+  0%   { filter: brightness(1); opacity: 1; }
+  100% { filter: brightness(1.9); opacity: 0.72; }
+}
+/* Lenkpunkt über dem Drehzahlband (Paket B/C), wie im GT7-HUD. Ohne Lenkdaten ausgeblendet. */
+#w-rpm-bar .rpm-svg { overflow: visible; }
+#w-rpm-bar .rpm-steer { display: none; }
+#w-rpm-bar .rpm-steer.on { display: inline; }
+#w-rpm-bar .rpm-steer-dot {
+  fill: var(--c-steer-dot, #e10600);
+  stroke: rgba(0, 0, 0, 0.55);
+  stroke-width: 1.2;
+  transition: transform 90ms linear;
+}
+#w-rpm-bar .rpm-readout {
+  position: absolute;
+  left: 50%;
+  top: 50.5%;
+  transform: translateX(-50%);
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  line-height: 1;
+  pointer-events: none;
+}
+#w-rpm-bar .rpm-val {
+  color: var(--c-rpm-value, var(--c-value, var(--white)));
+  min-width: 5ch;
+  font-size: calc(max(8px, 1.65cqw) * var(--fs-value, 1));
+  text-align: center;
+  letter-spacing: 0.01em;
+}
+#w-rpm-bar .rpm-unit {
+  margin-top: 0.78cqw;
+  color: var(--c-rpm-unit, #898989);
+  font-size: calc(max(6px, 1.25cqw) * var(--fs-label, 1));
+  letter-spacing: 0.03em;
+}
+
+/* ========== 3b. LIVE-ZEIT (GT7-Kapsel) & POSITION ========== */
+#w-livetime {
+  background: var(--panel-bg);
+  min-width: 245px; /* breite Anzeigeschrift: Platz fuer 9:59.999 */
+}
+#w-livetime > .label { text-align: center; margin-top: var(--label-mt, 0px); margin-bottom: var(--label-mb, 0px); }
+#w-livetime .lt-live {
+  font-size: calc(34px * var(--fs-value, 1));
+  letter-spacing: 0.02em;
+  font-variant-numeric: tabular-nums;
+  min-width: 5.2ch;
+  text-align: center;
+}
+#w-position { text-align: center; }
+#w-position .pos-val {
+  color: var(--c-position, var(--c-value, var(--white)));
+  font-size: calc(40px * var(--fs-value, 1));
+  line-height: 1;
+  font-variant-numeric: tabular-nums;
+}
+#w-position .pos-total {
+  font-size: calc(40px * var(--fs-value, 1));
+  line-height: 1;
+  color: var(--c-position-total, var(--grey));
+}
+/* ========== 3c. FAHRZEUGKLASSE (Paket C) ========== */
+#w-car-class {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 8px;
+  padding: 5px 10px;
+  white-space: nowrap;
+}
+#w-car-class .cc-val {
+  color: var(--c-car-class, var(--c-value, var(--white)));
+  font-size: calc(15px * var(--fs-value, 1));
+  line-height: 1;
+  letter-spacing: 0.02em;
+}
+/* Ohne gemeldete Klasse bleibt das Feld im Stream unsichtbar; im Editor steht ein Platzhalter. */
+body:not(.editor-mode) #w-car-class.no-data { opacity: 0; }
+
+/* ========== 3d. MILCHGLAS ========== */
+#w-milk { padding: 0; background: transparent; }
+#w-milk .milk-stage { position: absolute; inset: 0; }
+#w-milk .milk-stage canvas { display: block; width: 100%; height: 100%; }
+
+/* ========== 4. LAPTIMES ========== */
+#w-laptimes .lt-row {
+  display: flex;
+  align-items: baseline;
+  gap: calc(24px + var(--head-gap, 0px));
+  margin-bottom: calc(4px + var(--row-gap, 0px));
+}
+#w-laptimes .lt-header .num {
+  font-size: calc(20px * var(--fs-value, 1));
+}
+#w-laptimes .lt-times {
+  display: flex;
+  gap: 20px;
+}
+#w-laptimes .lt-times .lt-item { text-align: left; }
+#w-laptimes .lt-item > .label { margin-top: var(--label-mt, 0px); margin-bottom: var(--label-mb, 0px); }
+#w-laptimes .lt-best .num { color: var(--c-best, var(--green)); font-size: calc(22px * var(--fs-value, 1)); }
+#w-laptimes .lt-last .num { color: var(--c-last, var(--grey)); font-size: calc(18px * var(--fs-value, 1)); }
+
+/* ========== 5. PEDALS ========== */
+#w-pedals {
+  display: flex;
+  gap: 8px;
+  align-items: stretch;          /* Balken wachsen mit der Panelhoehe */
+  justify-content: space-evenly;
+}
+#w-pedals .pedal-col {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 4px;
+}
+#w-pedals .pedal-track {
+  width: calc(12px * var(--lw, 1));
+  height: 100px;
+  background: var(--c-bar-track, rgba(255,255,255,0.06));
+  border-radius: 0;
+  overflow: hidden;
+  position: relative;
+}
+#w-pedals .pedal-fill {
+  position: absolute;
+  bottom: 0;
+  width: 100%;
+  border-radius: 0;
+  transition: height 0.05s linear;
+}
+#w-pedals .pedal-gas .pedal-fill { background: var(--c-gas, var(--white)); }
+#w-pedals .pedal-brake .pedal-fill { background: var(--c-brake, var(--red)); }
+
+/* ========== 6. FUEL ========== */
+#w-fuel .fuel-track {
+  width: 100%;
+  height: calc(6px * var(--lw, 1));
+  background: var(--c-bar-track, rgba(255,255,255,0.08));
+  border-radius: 0;
+  overflow: hidden;
+}
+#w-fuel .fuel-fill {
+  height: 100%;
+  border-radius: 0;
+  background: var(--c-fuel, var(--white));
+  transition: width 0.3s linear;
+}
+#w-fuel .fuel-fill.low {
+  background: var(--c-fuel-low, var(--c-fuel, var(--white)));
+  animation: fuelPulse 1s ease-in-out infinite;
+}
+#w-fuel .fuel-fill.critical {
+  background: var(--c-fuel-critical, var(--c-fuel, var(--white)));
+  animation: fuelPulse 0.5s ease-in-out infinite;
+}
+@keyframes fuelPulse {
+  0%, 100% { opacity: 1; }
+  50%      { opacity: 0.4; }
+}
+#w-fuel .fuel-info {
+  display: flex;
+  justify-content: space-between;
+  width: 100%;
+  margin-top: 4px;
+}
+#w-fuel .fuel-pct { font-size: calc(16px * var(--fs-value, 1)); }
+
+/* ========== 7. TYRES ========== */
+/* Schwarze Panel-Flaeche; die Reifen behalten ihre Temperaturfarben. */
+#w-tyres {
+  background: var(--panel-bg);
+  border: none;
+  padding: 0;
+}
+#w-tyres .tyre-grid {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  /* Fahrzeug-Anmutung: breiterer Spurabstand, kompakter Radstand */
+  column-gap: 14px;
+  row-gap: 8px;
+}
+#w-tyres .tyre-cell {
+  /* Reifenform nach img/reifenform.svg: 31 x 61.5, Radius 12 (skaliert).
+     Die Form selbst 25% kleiner, die Zelle (und damit die Abstaende der
+     Reifen zueinander) bleibt unveraendert. */
+  width: 32px;
+  height: 63px;
+  border-radius: 12px;
+  transform: scale(0.75);
+  transform-origin: center;
+  /* Grundzustand ohne Telemetrie: kaltes Weiss (Skalen-Startfarbe) */
+  background-color: var(--c-tyre-cold, #f2f2f2);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  font-family: var(--font-num);
+  font-size: calc(14px * var(--fs-value, 1));
+  font-weight: 500;
+  color: #fff !important;
+  font-variant-numeric: tabular-nums;
+  transition: background-color 0.3s;
+}
+#w-tyres .tyre-header {
+  text-align: center;
+  margin-bottom: 6px;
+}
+
+/* ========== 8. SESSION STATS ========== */
+#w-session-stats .ss-header {
+  font-family: var(--font-label);
+  font-size: calc(11px * var(--fs-label, 1));
+  font-weight: 500;
+  letter-spacing: 0.18em;
+  text-transform: uppercase;
+  color: var(--c-stats-title, var(--white));
+  margin-bottom: 10px;
+  padding-bottom: 8px;
+  text-align: left;
+  border-bottom: calc(1px * var(--lw, 1)) solid var(--c-divider, rgba(255,255,255,0.10));
+}
+#w-session-stats .ss-row {
+  display: flex;
+  justify-content: space-between;
+  align-items: baseline;
+  padding: 3px 0;
+  border-bottom: calc(1px * var(--lw, 1)) solid var(--c-divider-soft, rgba(255,255,255,0.04));
+}
+#w-session-stats .ss-row:last-child { border-bottom: none; }
+#w-session-stats .ss-val { font-size: calc(16px * var(--fs-value, 1)); }
+
+/* ========== 9. ALERT AREA ========== */
+#w-alert-area {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  pointer-events: none;
+}
+body.editor-mode #w-alert-area {
+  pointer-events: auto;
+}
+.alert-editor-preview {
+  display: none;
+}
+body.editor-mode .alert-editor-preview {
+  font-family: var(--font-gt7);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  padding: 10px 28px;
+  color: rgba(255,255,255,0.55);
+  background: var(--panel-bg);
+  border-radius: var(--widget-radius-local, var(--widget-radius));
+  font-size: calc(18px * var(--fs-value, 1));
+  letter-spacing: 0.08em;
+}
+body.editor-mode #w-alert-area:has(.alert-item) .alert-editor-preview {
+  opacity: 0;
+}
+.alert-item {
+  position: absolute;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  width: 100%;
+  text-align: center;
+  opacity: 0;
+}
+.alert-item.active {
+  opacity: 1;
+}
+
+/* -- Best-Lap Alert -- */
+.anim-bestlap .alert-inner {
+  font-family: var(--font-gt7);
+  font-size: calc(36px * var(--fs-value, 1));
+  font-weight: 500;
+  color: var(--c-alert-best, var(--green));
+  background: var(--panel-bg);
+  padding: 10px 28px;
+  border-radius: 2px;
+  text-shadow: none;
+  font-variant-numeric: tabular-nums;
+  animation: alertSlideIn 0.2s ease-out forwards;
+}
+/* -- Spin Alert -- */
+.anim-spin .alert-inner {
+  font-family: var(--font-gt7);
+  font-size: calc(24px * var(--fs-value, 1));
+  font-weight: 500;
+  color: var(--c-alert-spin, #FF9100);
+  background: var(--panel-bg);
+  padding: 8px 24px;
+  border-radius: 2px;
+  text-shadow: none;
+  animation: alertSlideIn 0.2s ease-out forwards;
+}
+/* -- Crash Alert -- */
+.anim-crash .alert-inner {
+  font-family: var(--font-gt7);
+  font-size: calc(20px * var(--fs-value, 1));
+  font-weight: 500;
+  color: var(--c-alert-crash, var(--red));
+  background: var(--panel-bg);
+  padding: 8px 24px;
+  border-radius: 2px;
+  text-shadow: none;
+  animation: alertSlideIn 0.2s ease-out forwards;
+}
+#w-alert-area .alert-inner {
+  border-radius: var(--widget-radius-local, var(--widget-radius));
+  overflow: hidden;
+  /* Die Anzeigeschrift ist breit: sehr lange Texte sauber kappen */
+  max-width: 100%;
+  box-sizing: border-box;
+  white-space: nowrap;
+  text-overflow: ellipsis;
+  /* Vertikale Optik: Metriken der Anzeigeschrift (Ascent 0.67em / Descent 0.33em)
+     setzen den Text ~0.16em zu hoch in die Zeile. Ausgleich ueber
+     asymmetrisches Padding (skaliert mit der Schriftgroesse). */
+  line-height: 1;
+  padding-top: 0.47em;
+  padding-bottom: 0.21em;
+}
+/* -- Alert fade out -- */
+.alert-item.fade-out {
+  animation: alertFadeOut 0.35s ease-in forwards;
+}
+
+@keyframes alertSlideIn {
+  0%   { opacity: 0; transform: translateX(-30px); }
+  100% { opacity: 1; transform: translateX(0); }
+}
+@keyframes alertFadeOut {
+  0%   { opacity: 1; }
+  100% { opacity: 0; transform: translateX(30px); }
+}
+
+/* ========== 10. STATUS DOT ========== */
+#w-status-dot {
+  display: none;
+}
+#w-status-dot.show {
+  display: flex;
+}
+#w-status-dot .status-pill {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  background: var(--panel-bg);
+  border: calc(1px * var(--lw, 1)) solid var(--c-status-off-border, rgba(225, 6, 0, 0.3));
+  border-radius: 2px;
+  padding: 4px 12px;
+}
+#w-status-dot .status-circle {
+  width: 8px;
+  height: 8px;
+  border-radius: 50%;
+  background: var(--c-status-off, var(--red));
+  animation: statusPulse 2s ease-in-out infinite;
+}
+#w-status-dot .status-text {
+  white-space: nowrap;           /* „KEIN SIGNAL VON DER PS5“ brach in schmalen Feldern zweizeilig aus dem Rahmen */
+  font-family: var(--font-label);
+  font-size: calc(10px * var(--fs-label, 1));
+  font-weight: 500;
+  letter-spacing: 0.1em;
+  text-transform: uppercase;
+  color: var(--c-status-off, var(--red));
+}
+@keyframes statusPulse {
+  0%, 100% { opacity: 1; }
+  50%      { opacity: 0.5; }
+}
+
+/* ========== EDITOR TOOLBAR ========== */
+#editor-toolbar {
+  display: none;
+  position: fixed;
+  top: 0; left: 0; right: 0;
+  height: 52px;
+  background: rgba(26, 26, 28, 0.96);
+  border-bottom: 1px solid rgba(255,255,255,0.06);
+  z-index: 10000;
+  align-items: center;
+  padding: 0 20px;
+  gap: 8px;
+  font-family: var(--font-label);
+  font-size: 13px;
+  color: var(--white);
+}
+body.editor-mode #editor-toolbar { display: flex; }
+
+#widget-panel {
+  position: fixed;
+  top: 52px;
+  left: 8px;
+  z-index: 10001;
+  background: rgba(26, 26, 28, 0.96);
+  border: 1px solid rgba(255,255,255,0.06);
+  border-radius: 2px;
+  padding: 12px 16px;
+  font-family: var(--font-label);
+  font-size: 13px;
+  color: #eee;
+  box-shadow: 0 4px 16px rgba(0,0,0,0.4);
+  min-width: 220px;
+}
+#widget-panel .wp-title {
+  font-weight: 500;
+  font-size: 11px;
+  letter-spacing: 0.12em;
+  text-transform: uppercase;
+  color: #999;
+  margin-bottom: 8px;
+}
+#widget-panel label {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  padding: 4px 0;
+  cursor: pointer;
+}
+#widget-panel .wp-hint {
+  margin-top: 10px;
+  font-size: 11px;
+  color: #777;
+  line-height: 1.5;
+}
+
+#editor-toolbar .tb-title {
+  font-weight: 500;
+  font-size: 14px;
+  letter-spacing: 0.05em;
+  margin-right: 12px;
+  color: var(--accent);
+}
+#editor-toolbar button {
+  padding: 5px 14px;
+  border: 1px solid rgba(255,255,255,0.10);
+  background: rgba(255,255,255,0.04);
+  color: var(--white);
+  border-radius: 2px;
+  cursor: pointer;
+  font-family: var(--font-label);
+  font-size: 12px;
+  transition: background 0.15s;
+  white-space: nowrap;
+}
+#editor-toolbar button:hover {
+  background: rgba(255,255,255,0.12);
+}
+#editor-toolbar .tb-sep {
+  width: 1px;
+  height: 28px;
+  background: rgba(255,255,255,0.1);
+  margin: 0 6px;
+}
+#editor-toolbar .tb-radius {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  padding: 0 4px;
+  color: var(--grey);
+  font-size: 11px;
+  white-space: nowrap;
+}
+#editor-toolbar .tb-radius input {
+  width: 76px;
+  accent-color: var(--accent);
+  cursor: pointer;
+}
+#editor-toolbar .tb-radius output {
+  min-width: 32px;
+  color: var(--white);
+  font-variant-numeric: tabular-nums;
+}
+#editor-toolbar .ws-indicator {
+  margin-left: 12px;
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  font-size: 11px;
+}
+#editor-toolbar .ws-dot {
+  width: 8px;
+  height: 8px;
+  border-radius: 50%;
+  background: var(--red);
+  transition: background 0.3s;
+}
+#editor-toolbar .ws-dot.connected {
+  background: var(--green);
+}
+
+/* ========== EDITOR SCALE CONTROLS ========== */
+.editor-controls {
+  display: none;
+  position: absolute;
+  /* INNERHALB des Widgets, damit sie beim Hover erreichbar bleiben */
+  top: 2px;
+  right: 2px;
+  gap: 2px;
+  z-index: 10001;
+}
+body.editor-mode .widget:hover .editor-controls,
+body.editor-mode .widget.dragging .editor-controls {
+  display: flex;
+}
+.editor-controls button {
+  width: 22px;
+  height: 22px;
+  border: 1px solid rgba(255,255,255,0.10);
+  background: rgba(26,26,28,0.92);
+  color: var(--white);
+  border-radius: 1px;
+  cursor: pointer;
+  font-size: 14px;
+  line-height: 1;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+}
+.editor-controls button:hover { background: rgba(60,60,64,0.9); }
+/* Figur wechseln (Glas Milch ↔ Wackeldackel): Textknopf statt Quadrat */
+.editor-controls button.figure-toggle { width: auto; padding: 0 7px; font-size: 11px; letter-spacing: .02em; white-space: nowrap; }
+
+/* Mehrfachauswahl: Markierung + Auswahlkasten */
+body.editor-mode .widget.selected {
+  outline: 2px solid var(--accent);
+  outline-offset: 1px;
+}
+.marquee {
+  position: absolute;
+  border: 1px dashed var(--accent);
+  background: rgba(225, 6, 0, 0.08);
+  z-index: 9998;
+  pointer-events: none;
+}
+
+/* Intelligente Hilfslinien beim Ziehen (Blender-Style, nur Editor) */
+.snap-guide {
+  display: none;
+  position: absolute;
+  background: var(--accent);
+  z-index: 10005;
+  pointer-events: none;
+}
+.snap-guide-v { top: 0; bottom: 0; width: 1px; }
+.snap-guide-h { left: 0; right: 0; height: 1px; }
+body.editor-mode .snap-guide.active { display: block; }
+
+/* RPM-Breite: Ziehgriffe an linker/rechter Kante (nur Editor) */
+/* Generische Resize-Griffe: 4 Kanten + 4 Ecken an jedem Widget */
+.wresize { display: none; }
+body.editor-mode .wresize {
+  display: block;
+  position: absolute;
+  z-index: 30;
+}
+body.editor-mode .wresize:hover { background: rgba(225, 6, 0, 0.35); }
+body.editor-mode .wresize-e  { right: -5px;  top: 10px; bottom: 10px; width: 10px;  cursor: ew-resize; }
+body.editor-mode .wresize-w  { left: -5px;   top: 10px; bottom: 10px; width: 10px;  cursor: ew-resize; }
+body.editor-mode .wresize-s  { bottom: -5px; left: 10px; right: 10px; height: 10px; cursor: ns-resize; }
+body.editor-mode .wresize-n  { top: -5px;    left: 10px; right: 10px; height: 10px; cursor: ns-resize; }
+body.editor-mode .wresize-se { right: -6px;  bottom: -6px; width: 14px; height: 14px; cursor: nwse-resize; }
+body.editor-mode .wresize-ne { right: -6px;  top: -6px;    width: 14px; height: 14px; cursor: nesw-resize; }
+body.editor-mode .wresize-sw { left: -6px;   bottom: -6px; width: 14px; height: 14px; cursor: nesw-resize; }
+body.editor-mode .wresize-nw { left: -6px;   top: -6px;    width: 14px; height: 14px; cursor: nwse-resize; }
+/* +/- Buttons bleiben ueber dem ne-Griff klickbar */
+body.editor-mode .editor-controls { z-index: 40; }
+
+.rpm-resize { display: none; }
+body.editor-mode .rpm-resize {
+  display: block;
+  position: absolute;
+  top: 0;
+  bottom: 0;
+  width: 12px;
+  cursor: ew-resize;
+  z-index: 10002;
+}
+body.editor-mode .rpm-resize-l { left: -6px; }
+body.editor-mode .rpm-resize-r { right: -6px; }
+body.editor-mode .rpm-resize:hover {
+  background: linear-gradient(to right, transparent, rgba(225,6,0,0.35), transparent);
+}
