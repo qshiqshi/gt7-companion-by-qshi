@@ -27,10 +27,10 @@ Comments in files that were taken over unchanged are still German.
 |---|---|---|
 | `index.html`, `static/css/overlay.css`, `static/css/editor.css` | `static/overlay.html` | the single page was cut into a page, two stylesheets and ES modules; licensed typeface replaced by Michroma; personal artwork and everything about chat, clips, voice and training removed |
 | `static/js/layout.js`, `widgets.js`, `editor.js`, `figure.js` | script of `static/overlay.html` | moved, not rewritten; fixed 1920×1080 numbers became the stage size; widgets are only hidden outside a race in an OBS source |
-| `static/js/early.js`, `modes.js`, `net.js`, `stage.js`, `stage-fit.js`, `viewer.js`, `i18n.js`, `main.js` | – | new (modes, connection with reconnect, scaling the stage into any screen, dashboard hint and menu) |
+| `static/js/early.js`, `modes.js`, `net.js`, `stage.js`, `stage-fit.js`, `layout-pick.js`, `viewer.js`, `i18n-classic.js`, `i18n.js`, `main.js`, `pages/`, `static/i18n/en.js`, `connect.html`, `settings.html` | – | new (modes, connection with reconnect, scaling the stage into any screen, choosing a layout, dashboard hint and menu, English, units, pairing and settings pages) |
 | `static/overlay-style.js` | `static/overlay-style.js` | none |
 | `static/telemetry-charts.js` | same name | charts draw in layout pixels, so they keep their proportions on a scaled stage |
-| `static/overlay-telemetry.js`, `overlay-telemetry.css` | same names | preview-only parts removed |
+| `static/overlay-telemetry.js`, `overlay-telemetry.css` | same names | preview-only parts removed; tyre temperature in the chosen unit |
 | `static/overlay-reel.css` | same name | display typeface through the `--font-gt7` variable |
 | `static/milkglass/`, `static/wackeldackel/` | `static/` (same names) | none |
 | `static/img/RPM.svg` | `img/RPM.svg` | none |

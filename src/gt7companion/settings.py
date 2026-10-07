@@ -19,6 +19,8 @@ DEFAULTS: dict = {
     "packet": "C",           # heartbeat letter A, B or C; C carries the most data
     "telemetry_hz": 12,      # updates per second that are sent to the screens
     "lan": False,            # other devices in the home network may open the dashboard
+    "language": "auto",      # "de", "en" or "auto": the language of each device
+    "units": "metric",       # "metric" (km/h, °C) or "imperial" (mph, °F)
 }
 
 
@@ -54,8 +56,16 @@ def _flag(value) -> bool:
     return value
 
 
+def _one_of(*allowed):
+    def check(value):
+        if value not in allowed:
+            raise ValueError("must be one of: " + ", ".join(allowed))
+        return value
+    return check
+
+
 _CHECKS = {"source": _source, "ps5_ip": _ps5_ip, "packet": _packet, "telemetry_hz": _telemetry_hz,
-           "lan": _flag}
+           "lan": _flag, "language": _one_of("auto", "de", "en"), "units": _one_of("metric", "imperial")}
 
 
 class Settings:

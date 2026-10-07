@@ -32,7 +32,7 @@
     ['tcs','asm','handbrake'].forEach((key, i) => document.getElementById('ov-' + key).classList.toggle('active', !!d[['tcs_active','asm_active','handbrake'][i]]));
     for (let i = 0; i < 4; i++) {
       const tyre = document.getElementById(['tyre-vl','tyre-vr','tyre-hl','tyre-hr'][i]);
-      if (tyre) { tyre.dataset.temp = charts.finite(d.tyre_temp?.[i]) ? Math.round(d.tyre_temp[i]) + '°' : '—'; tyre.setAttribute('aria-label', ['Vorne links','Vorne rechts','Hinten links','Hinten rechts'][i] + ' ' + tyre.dataset.temp); }
+      if (tyre) { tyre.dataset.temp = charts.finite(d.tyre_temp?.[i]) ? Math.round(window.GT7I18n ? window.GT7I18n.temperature(d.tyre_temp[i]) : d.tyre_temp[i]) + '°' : '—'; tyre.setAttribute('aria-label', ['Vorne links','Vorne rechts','Hinten links','Hinten rechts'][i] + ' ' + tyre.dataset.temp); }
       const slip = d.wheel_slip?.[i], travel = d.suspension_mm?.[i];
       text('ov-slip-' + i, charts.finite(slip) ? Math.round((slip - 1) * 100) + ' %' : '—');
       text('ov-travel-label-' + i, charts.finite(travel) ? Math.round(travel) + ' mm' : '—');

@@ -5,6 +5,9 @@
 <meta name="viewport" content="width=device-width, initial-scale=1">
 <title>Einstellungen – Gran Turismo 7 Companion by qshi</title>
 <meta name="theme-color" content="#0b0b0e">
+<script src="/api/prefs.js"></script>
+<script src="/static/i18n/en.js"></script>
+<script src="/static/js/i18n-classic.js"></script>
 <link rel="icon" type="image/png" sizes="32x32" href="/static/icons/favicon-32.png">
 <link rel="stylesheet" href="/static/css/pages.css">
 </head>
@@ -58,6 +61,26 @@
         </span>
       </label>
       <p class="note warn" id="restart" hidden>Starte das Programm neu, damit die geänderte Freigabe gilt.</p>
+    </section>
+
+    <section class="card">
+      <h2>Sprache und Einheiten</h2>
+      <label class="field">
+        <span>Sprache</span>
+        <select id="language">
+          <option value="auto">Wie das Gerät (Deutsch oder Englisch)</option>
+          <option value="de" data-no-i18n>Deutsch</option>
+          <option value="en" data-no-i18n>English</option>
+        </select>
+      </label>
+      <label class="field">
+        <span>Einheiten</span>
+        <select id="units">
+          <option value="metric">km/h und °C</option>
+          <option value="imperial">mph und °F</option>
+        </select>
+        <small>Gilt für alle Bildschirme, sobald sie neu geladen werden.</small>
+      </label>
     </section>
 
     <div class="row">

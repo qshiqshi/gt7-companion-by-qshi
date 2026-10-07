@@ -27,7 +27,7 @@ class SettingsTests(Folder):
         settings = Settings(path)
         settings.update({"source": "live", "ps5_ip": " 192.168.1.30 ", "packet": "a", "telemetry_hz": 500})
         self.assertEqual(Settings(path).as_dict(),
-                         {"source": "live", "ps5_ip": "192.168.1.30", "packet": "A", "telemetry_hz": 60, "lan": False})
+                         {**DEFAULTS, "source": "live", "ps5_ip": "192.168.1.30", "packet": "A", "telemetry_hz": 60})
         for bad in ({"source": "tv"}, {"ps5_ip": "not an address"}, {"packet": "Z"},
                     {"telemetry_hz": "fast"}, {"unknown": 1}, {"source": "demo", "packet": 7}, {"lan": "yes"}):
             with self.subTest(bad=bad), self.assertRaises(ValueError):

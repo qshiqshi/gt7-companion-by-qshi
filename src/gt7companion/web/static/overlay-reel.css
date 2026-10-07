@@ -62,5 +62,4 @@ body.look-reel #w-rpm-bar:not(.rpm-idle-color) .rpm-ticks-style-idle { opacity: 
 /* Kurven füllen den Kasten statt fester Canvas-Höhe: kleiner gezogene Widgets (z. B. Gas & Bremse 270×150) laufen
    nicht mehr unten aus dem Kasten. height:0 + flex-basis 0 verhindert eine Rückkopplung mit der Canvas-Auflösung. */
 body.look-reel .telemetry-widget { display: flex; flex-direction: column; }
-body.look-reel.editor-mode .telemetry-widget.hidden-widget { display: flex !important; }
 body.look-reel .telemetry-widget canvas { flex: 1 1 0; min-height: 0; height: 0; }

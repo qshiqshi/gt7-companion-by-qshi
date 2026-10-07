@@ -3,6 +3,7 @@
 import { IS_EDITOR, IS_OBS } from './modes.js';
 import { onTopic } from './net.js';
 import { currentLayout } from './layout.js';
+import { speed, speedUnit, t } from './i18n.js';
 
 /* ================================================================
    FORMAT HELPERS
@@ -130,7 +131,7 @@ onTopic('telemetry', function(d) {
 
   /* Speed */
   var speedEl = document.querySelector('#w-speed .speed-val');
-  if (speedEl) speedEl.textContent = Math.round(d.speed_kmh || 0);
+  if (speedEl) speedEl.textContent = Math.round(speed(d.speed_kmh || 0));
 
   /* Gear */
   var gearEl = document.querySelector('#w-gear .gear-current');
@@ -224,12 +225,21 @@ onTopic('telemetry', function(d) {
   if (ssCrashes) ssCrashes.textContent = st.crashes || 0;
 });
 
+/* Einheit am Tacho */
+(function() {
+  var unit = document.querySelector('#w-speed .speed-unit');
+  if (unit) unit.textContent = speedUnit;
+})();
+
 /* Titel der Session-Statistik: frei wählbar im Layout (widgets['session-stats'].config.title). */
 window.addEventListener('gt7:layout', function(event) {
   var entry = event.detail && event.detail.widgets && event.detail.widgets['session-stats'];
   var title = entry && entry.config && typeof entry.config.title === 'string' ? entry.config.title.trim() : '';
   var header = document.querySelector('#w-session-stats .ss-header');
-  if (header) header.textContent = title ? title.slice(0, 40) : 'SESSION';
+  if (header) {
+    header.textContent = title ? title.slice(0, 40) : 'SESSION';
+    header.toggleAttribute('data-no-i18n', !!title);        /* eigener Titel bleibt, wie er ist */
+  }
 });
 
 /* ================================================================
@@ -476,13 +486,13 @@ onTopic('event', function(data, raw) {
 
   switch (etype) {
     case 'best_lap':
-      enqueueAlert('best_lap', 'NEUE BESTZEIT ' + (d.time || fmtLap(d.lap_time_ms)));
+      enqueueAlert('best_lap', t('NEUE BESTZEIT {time}', { time: d.time || fmtLap(d.lap_time_ms) }));
       break;
     case 'spin':
-      enqueueAlert('spin', 'Dreher Nr. ' + (d.total_spins || '?'));
+      enqueueAlert('spin', t('Dreher Nr. {n}', { n: d.total_spins || '?' }));
       break;
     case 'crash':
-      enqueueAlert('crash', 'Einschlag');
+      enqueueAlert('crash', t('Einschlag'));
       break;
   }
 });

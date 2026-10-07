@@ -17,7 +17,6 @@ body.editor-mode .widget { outline-color:rgba(157,168,186,.23); }
 .widget .label { color:var(--c-label, #b5bac5); }
 .widget.hidden-widget { display:none !important; }
 /* Im Editor bleiben ausgeblendete Widgets als Geist sichtbar (anklickbar, Alt+Klick blendet wieder ein) */
-body.editor-mode .widget.hidden-widget { display:block !important; opacity:.25; }
 #w-tyres .tyre-grid { padding:8px 3px; gap:16px 40px; grid-template-columns:34px 34px; }
 #w-tyres .tyre-cell { position:relative; width:22px; height:42px; transform:none; border-radius:7px; }
 /* Untergrund je Reifen (Paket C): Ring um die Reifenform, Farbe aus --c-surface-*. Ohne Daten unsichtbar und ohne

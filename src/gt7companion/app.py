@@ -177,6 +177,12 @@ def create_app(settings: Settings | None = None, *, layouts: LayoutStore | None 
                              "lan": bool(app.state.lan), "screens": manager.count,
                              **companion.status()}, headers=_NO_STORE)
 
+    @app.get("/api/prefs.js")
+    async def prefs():
+        """Language and units as a script, so a page knows them before it shows anything."""
+        body = "window.GT7_PREFS = " + json.dumps({"language": settings["language"], "units": settings["units"]}) + ";\n"
+        return Response(body, media_type="text/javascript", headers=_NO_STORE)
+
     @app.get("/api/layouts")
     async def list_layouts():
         return JSONResponse({"default": DEFAULT_LAYOUT, "layouts": companion.layouts.describe()},

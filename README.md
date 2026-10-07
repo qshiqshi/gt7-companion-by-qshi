@@ -35,6 +35,12 @@ Then open <http://127.0.0.1:8707/>.
 | `--port 8707` | port of the web pages |
 | `--ps5 IP` | address of the console; without it the console is searched |
 
+## Language and units
+
+German and English; each device uses its own language unless you choose one under *Settings*.
+Speed in km/h or mph, temperatures in °C or °F. `?lang=en` or `?units=imperial` in the address
+override the setting for one screen (handy for an OBS source).
+
 ## Other devices
 
 Start with `--lan` (or switch it on under *Settings*), then open

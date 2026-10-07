@@ -37,6 +37,7 @@
     for (const [key, value] of Object.entries(overrides || {})) if (key in ink && key !== 'reel' && value) ink[key] = value;
     refresh();
   }
+  const tr = text => (window.GT7I18n ? window.GT7I18n.t(text) : text);     // Texte auf der Zeichenfläche
   const finite = v => typeof v === 'number' && Number.isFinite(v);
   const clamp = (v, a, b) => Math.min(b, Math.max(a, v));
   function fit(canvas) {
@@ -115,7 +116,7 @@
         c.strokeStyle = ink.blue; c.lineWidth = 1; c.setLineDash([3,4]); c.beginPath(); c.moveTo(x(this.marker), top); c.lineTo(x(this.marker), top + ph); c.stroke(); c.setLineDash([]);
       }
       const populated = this.series.some(s => s.points?.length > 1);
-      if (!populated) { c.fillStyle = ink.text; c.textAlign = 'center'; c.fillText(o.empty || 'Warte auf Fahrdaten', w / 2, h / 2); }
+      if (!populated) { c.fillStyle = ink.text; c.textAlign = 'center'; c.fillText(o.empty || tr('Warte auf Fahrdaten'), w / 2, h / 2); }
       if (this.cursor !== null && populated) {
         const xx = clamp(this.cursor, left, w - right), target = xmin + (xx - left) / pw * (xmax - xmin);
         c.strokeStyle = '#cdd2db'; c.lineWidth = 1; c.setLineDash([3, 4]); c.beginPath(); c.moveTo(xx, top); c.lineTo(xx, h - bottom); c.stroke(); c.setLineDash([]);
@@ -183,7 +184,7 @@
     draw() {
       const ink = inkFor(this.canvas);
       const { ctx: c, w, h, ks, lw } = fit(this.canvas), points = this.best?.points?.length ? this.best.points : this.current?.points;
-      if (!points?.length) { c.fillStyle = ink.text; c.textAlign = 'center'; c.fillText('Streckenlinie wird aufgebaut', w / 2, h / 2 - 7 * ks); c.fillText('während deiner Fahrt', w / 2, h / 2 + 10 * ks); return; }
+      if (!points?.length) { c.fillStyle = ink.text; c.textAlign = 'center'; c.fillText(tr('Streckenlinie wird aufgebaut'), w / 2, h / 2 - 7 * ks); c.fillText(tr('während deiner Fahrt'), w / 2, h / 2 + 10 * ks); return; }
       const valid = points.filter(p => finite(p.x) && finite(p.z)); if (!valid.length) return;
       const xs = valid.map(p => p.x), zs = valid.map(p => p.z), minx = Math.min(...xs), maxx = Math.max(...xs), minz = Math.min(...zs), maxz = Math.max(...zs);
       const scale = Math.min((w - 40) / Math.max(1, maxx - minx), (h - 40) / Math.max(1, maxz - minz));
@@ -275,7 +276,7 @@
       const a = this.frame?.acceleration_g;
       if (a && finite(a.lateral) && finite(a.longitudinal)) {
         c.fillStyle = ink.forcesDot || ink.line; c.beginPath(); c.arc(cx + clamp(a.lateral / 3, -1, 1) * r, cy - clamp(a.longitudinal / 3, -1, 1) * r, 5, 0, Math.PI * 2); c.fill();
-      } else { c.fillStyle = ink.text; c.fillText('Keine gültige Messung', cx, cy + 5); }
+      } else { c.fillStyle = ink.text; c.fillText(tr('Keine gültige Messung'), cx, cy + 5); }
     }
   }
   window.GT7Charts = { Plot, Pedals, Track, Forces, ink, finite, clamp, setTheme, themes, setCanvasStyle, refresh, inkFor };

@@ -12,7 +12,7 @@ async function showOwner() {
   byId('pin-title').textContent = info.lan ? t('connect.pair.2', '2. Zum Bearbeiten koppeln') : t('connect.pair', 'Zum Bearbeiten koppeln');
   byId('pin').textContent = info.pin;
   byId('devices').textContent = info.devices === 1 ? t('connect.devices.one', '1 Gerät gekoppelt')
-    : t('connect.devices', '{n} Geräte gekoppelt').replace('{n}', info.devices);
+    : t('{n} Geräte gekoppelt', { n: info.devices });
   if (!info.lan && info.lan_setting) {
     byId('btn-lan-on').hidden = true;
     byId('lan-on-result').textContent = t('connect.restart', 'Eingeschaltet. Starte das Programm neu, damit es gilt.');

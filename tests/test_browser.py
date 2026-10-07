@@ -87,6 +87,7 @@ class BrowserCase(unittest.TestCase):
         The pages forbid ``eval`` (Content-Security-Policy), so conditions to wait
         for are always given as functions: ``"() => …"``."""
         self.close_pages()                            # one page at a time: 3D in software is slow
+        context_options.setdefault("locale", "de-DE")            # the pages follow the device's language
         context = self.browser.new_context(viewport={"width": size[0], "height": size[1]}, **context_options)
         page = context.new_page()
         problems = []
@@ -277,6 +278,49 @@ class BrowserCase(unittest.TestCase):
         page.wait_for_function("() => document.getElementById('result').textContent.includes('192.168')")
         self._open[-1][1].clear()                    # the refused request shows up as a console error
         self.assertEqual(page.evaluate("fetch('/api/settings').then(r => r.json()).then(d => d.packet)"), "B")
+
+    def test_english_and_miles_per_hour(self):
+        german = self.open(size=(1280, 720), locale="de-DE")
+        self.assertEqual(german.evaluate("document.documentElement.lang"), "de")
+        self.assertEqual(german.evaluate("document.querySelector('#w-fuel .label').textContent"), "SPRIT")
+        self.assertEqual(german.evaluate("document.querySelector('#w-speed .speed-unit').textContent"), "KM/H")
+        english = self.open("?units=imperial", size=(1280, 720), locale="en-US")       # language of the device
+        self.assertEqual(english.evaluate("document.documentElement.lang"), "en")
+        self.assertEqual(english.evaluate("document.querySelector('#w-fuel .label').textContent"), "FUEL")
+        self.assertEqual(english.evaluate("document.querySelector('#w-laptimes .label').textContent"), "LAP")
+        self.assertEqual(english.evaluate("document.querySelector('#w-input-trace h2').textContent"), "Throttle & brake")
+        self.assertEqual(english.evaluate("document.getElementById('btn-fullscreen').textContent"), "Full screen")
+        self.assertEqual(english.evaluate("document.querySelector('#w-speed .speed-unit').textContent"), "MPH")
+        english.wait_for_function("() => Number(document.querySelector('#w-speed .speed-val').textContent) > 10")
+        ratio = english.evaluate("""() => new Promise(resolve => window.addEventListener('gt7:telemetry', event =>
+            requestAnimationFrame(() => resolve(Number(document.querySelector('#w-speed .speed-val').textContent)
+                                                / event.detail.speed_kmh)), { once: true }))""")
+        self.assertAlmostEqual(ratio, 0.6214, delta=0.02)
+        english.evaluate("fetch('/api/test/spin', { method: 'POST' })")
+        english.wait_for_function("() => /Spin no\\. 1/.test(document.getElementById('w-alert-area').textContent)")
+        forced = self.open("?lang=de", size=(1280, 720), locale="en-US")               # the address wins
+        self.assertEqual(forced.evaluate("document.querySelector('#w-fuel .label').textContent"), "SPRIT")
+
+    def test_editor_and_plain_pages_in_english(self):
+        page = self.open("?edit=1&layout=overlay-16x9&lang=en", size=(1600, 900), figure=False)
+        page.wait_for_function("() => document.querySelectorAll('#canvas .wresize').length > 50", timeout=10000)
+        self.assertEqual(page.evaluate("document.getElementById('btn-save').textContent"), "Save layout")
+        self.assertEqual(page.evaluate("document.getElementById('btn-reset').textContent"), "Reset")
+        page.wait_for_function("() => document.getElementById('btn-source').textContent === 'Data: demo lap'")
+        page.click("#btn-widgets")
+        self.assertIn("Throttle and brake trace", page.evaluate("document.getElementById('widget-panel-list').textContent"))
+        self.assertEqual(page.evaluate("document.querySelector('#w-speed .st-brush').getAttribute('aria-label')"),
+                         "Edit style: Speed")
+        left = page.evaluate("""() => [...document.querySelectorAll('#editor-toolbar *, #widget-panel *')]
+            .flatMap(el => [...el.childNodes]).filter(n => n.nodeType === 3 && /[äöüß]/i.test(n.nodeValue))
+            .map(n => n.nodeValue.trim())""")
+        self.assertEqual(left, [])
+        for path, title, text in (("connect?lang=en", "Connect devices", "Pair a device for editing"),
+                                  ("settings?lang=en", "Settings", "Where does the data come from?")):
+            plain = self.open_plain(path)
+            plain.wait_for_function("(text) => document.body.textContent.includes(text)", arg=text)
+            self.assertEqual(plain.evaluate("document.querySelector('h1').textContent"), title)
+            self.assertTrue(plain.title().startswith(title))
 
     def test_obs_source_is_transparent_and_bare(self):
         page = self.open("?obs=1", size=(1920, 1080))
