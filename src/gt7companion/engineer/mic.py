@@ -23,6 +23,7 @@ class Microphone:
         except (ImportError, OSError):
             self._sd = None
         self._stream = None
+        self._listening = None               # the continuous stream for the wake word
         self._parts: list[bytes] = []
         self._size = 0
         self._lock = threading.Lock()
@@ -56,6 +57,33 @@ class Microphone:
             self._stream = None
             return False
         return True
+
+    def listen(self, deliver) -> bool:
+        """Deliver the microphone continuously, 40 ms at a time, to ``deliver(pcm)``
+        (called from the audio thread). ``False`` if there is no microphone."""
+        if self._sd is None:
+            return False
+        if self._listening is not None:
+            return True
+        try:
+            self._listening = self._sd.RawInputStream(
+                samplerate=IN_RATE, channels=1, dtype="int16", blocksize=IN_RATE // 25,
+                callback=lambda data, frames, time_info, status: deliver(bytes(data)))
+            self._listening.start()
+        except Exception as problem:
+            log.warning("The microphone cannot be used: %s", problem)
+            self._listening = None
+            return False
+        return True
+
+    def stop_listening(self) -> None:
+        stream, self._listening = self._listening, None
+        if stream is not None:
+            try:
+                stream.stop()
+                stream.close()
+            except Exception:
+                log.debug("Closing the microphone failed", exc_info=True)
 
     def stop(self) -> bytes:
         """End recording and hand over what was said (16 kHz mono, 16 bit)."""

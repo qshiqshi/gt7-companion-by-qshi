@@ -97,6 +97,13 @@
           <small>Ausschalten, wenn die Stimme nur im Browser zu hören sein soll (Knopf „Ton an“ im Dashboard, oder die OBS-Quelle).</small>
         </span>
       </label>
+      <label class="check">
+        <input id="box_wake" type="checkbox">
+        <span>Auf „Hey Box“ hören
+          <small>Dann kannst du einfach fragen: „Hey Box, wie viel Sprit habe ich noch?“ Das Mikrofon dieses Computers hört dafür dauernd mit – die Sprache wird aber auf dem Computer selbst erkannt. Erst eine Frage, die mit „Hey Box“ beginnt, geht an Google.</small>
+        </span>
+      </label>
+      <p class="note warn" id="box-wake-missing" hidden>Für „Hey Box“ fehlt auf diesem Computer die Spracherkennung. Installiere das Zusatzpaket (siehe Anleitung) und starte das Programm neu.</p>
       <div id="box-key" hidden>
         <label class="field">
           <span>Gemini-API-Schlüssel</span>

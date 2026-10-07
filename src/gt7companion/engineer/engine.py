@@ -20,6 +20,7 @@ from . import live
 from .mic import Microphone
 from .speaker import Speaker
 from .texts import SPEECH_CODE, Texts
+from .wake import WakeListener, make_transcriber
 
 log = logging.getLogger("box")
 
@@ -41,12 +42,16 @@ class _Item:
 
 class Engineer:
     def __init__(self, settings: Settings, keys: KeyStore, *, speaker: Speaker | None = None,
-                 microphone: Microphone | None = None, url: str = live.URL, device_language: str = "en",
-                 on_change=None, clock=time.monotonic) -> None:
+                 microphone: Microphone | None = None, transcriber=None, url: str = live.URL,
+                 device_language: str = "en", on_change=None, clock=time.monotonic) -> None:
         self.settings, self.keys = settings, keys
         self.speaker = speaker or Speaker()
         self.microphone = microphone or Microphone()
         self.session_status = dict              # callable() -> dict: facts the voice may look up
+        self.transcriber = transcriber if transcriber is not None else make_transcriber()
+        self.wake = (WakeListener(self.microphone, self.transcriber, language=self.language, on_question=self.ask,
+                                  blocked=lambda: self.speaking or self.listening or not self._queue.empty())
+                     if self.transcriber is not None else None)
         self.listening = False                  # the talk button is held
         self._listen_timer: asyncio.TimerHandle | None = None
         self._url, self._device_language, self._clock = url, device_language, clock
@@ -81,7 +86,20 @@ class Engineer:
         self.texts = self._make_texts()
         self.error = None
         await self._close_session()
+        await self._sync_wake()
         self._changed()
+
+    def wake_wanted(self) -> bool:
+        return bool(self.enabled and self.keys.has_key and self.settings["box_wake"])
+
+    async def _sync_wake(self) -> None:
+        """Listen for the wake word exactly while it is switched on and usable."""
+        if self.wake is None or self._task is None:
+            return
+        if self.wake_wanted():
+            await self.wake.start()
+        else:
+            await self.wake.stop()
 
     def new_session(self) -> None:
         self.said = self.skipped = self.tokens = 0
@@ -105,6 +123,7 @@ class Engineer:
                 "said": self.said, "skipped": self.skipped, "tokens": self.tokens,
                 "per_minute": self.settings["box_per_minute"], "per_session": self.settings["box_per_session"],
                 "speaker": self.speaker.available, "microphone": self.microphone.available,
+                "wake": bool(self.wake and self.wake.running), "wake_possible": self.wake is not None,
                 "language": self.language()}
 
     def _changed(self) -> None:
@@ -152,21 +171,31 @@ class Engineer:
         self.listening = False
         question = self.microphone.stop()
         if len(question) >= live.IN_RATE * 2 * 0.3:           # shorter than 0.3 s was a slip of the finger
-            try:
-                self._queue.put_nowait(_Item(URGENT, next(self._seq), "", self._clock(), audio=question))
-            except asyncio.QueueFull:
-                pass
+            self.ask(question)
         self._changed()
         return False
+
+    def ask(self, question: bytes) -> bool:
+        """Queue a spoken question (16 kHz mono, 16 bit)."""
+        if not question or not self.enabled or not self.keys.has_key:
+            return False
+        try:
+            self._queue.put_nowait(_Item(URGENT, next(self._seq), "", self._clock(), audio=question))
+        except asyncio.QueueFull:
+            return False
+        return True
 
     async def start(self) -> None:
         if self._task is None:
             self._task = asyncio.create_task(self._run())
+        await self._sync_wake()
 
     async def stop(self) -> None:
         if self.listening:
             self.listening = False
             self.microphone.stop()
+        if self.wake is not None:
+            await self.wake.stop()
         task, self._task = self._task, None
         if task is not None:
             task.cancel()

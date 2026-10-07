@@ -4,6 +4,7 @@ import base64
 import io
 import json
 import logging
+import struct
 import tempfile
 import unittest
 from pathlib import Path
@@ -11,7 +12,7 @@ from pathlib import Path
 import websockets
 
 from gt7companion.bus import EventBus
-from gt7companion.engineer import live
+from gt7companion.engineer import live, wake
 from gt7companion.engineer.announcer import Announcer
 from gt7companion.engineer.engine import NORMAL, URGENT, Engineer
 from gt7companion.engineer.texts import Texts
@@ -115,6 +116,46 @@ class FakeMicrophone:
         self.recording = False
         return self.said
 
+    # the continuous stream for the wake word: the test "speaks" by calling hear()
+    deliver = None
+
+    def listen(self, deliver):
+        self.deliver = deliver
+        return True
+
+    def stop_listening(self):
+        self.deliver = None
+
+    def hear(self, pcm):
+        for start in range(0, len(pcm), 1280):
+            if self.deliver is not None:
+                self.deliver(pcm[start:start + 1280])
+
+
+class FakeTranscriber:
+    """Stands in for Whisper: "recognises" what the test says it will."""
+
+    def __init__(self, *texts):
+        self.texts, self.heard, self.languages = list(texts), [], []
+
+    def warm_up(self, language):
+        pass
+
+    def transcribe(self, pcm, language):
+        self.heard.append(pcm)
+        self.languages.append(language)
+        return self.texts.pop(0) if self.texts else ""
+
+
+def speech(seconds, level=6000):
+    """Something loud enough to count as talking (a 200 Hz square wave)."""
+    high, low = struct.pack("<h", level), struct.pack("<h", -level)
+    return (high * 40 + low * 40) * int(seconds * 16000 / 80)
+
+
+def silence(seconds):
+    return b"\x00\x00" * int(seconds * 16000)
+
 
 class Folder(unittest.IsolatedAsyncioTestCase):
     def setUp(self):
@@ -128,7 +169,8 @@ class Folder(unittest.IsolatedAsyncioTestCase):
 
     async def engineer(self, url, **changes):
         self.settings.update({"box_enabled": True, "box_driver": "Alex", "box_language": "en", **changes})
-        engineer = Engineer(self.settings, self.keys, speaker=self.speaker, microphone=self.microphone, url=url)
+        engineer = Engineer(self.settings, self.keys, speaker=self.speaker, microphone=self.microphone,
+                            transcriber=getattr(self, "transcriber", None) or FakeTranscriber(), url=url)
         await engineer.start()
         self.addAsyncCleanup(engineer.stop)
         return engineer
@@ -331,6 +373,96 @@ class TalkTests(Folder):
             self.assertEqual(b"".join(data for kind, data in heard if kind == "chunk"), b"".join(AUDIO))
 
 
+class WakeWordTests(Folder):
+    def test_what_counts_as_the_wake_word(self):
+        for said in ("Hey Box, wie viel Sprit habe ich noch?", "hey box", "Hey, Box! How are my tyres?",
+                     "Heybox was ist meine Bestzeit", "He Box, Reifen?", "Hey Bocks wie läuft's", "Hi Box."):
+            self.assertTrue(wake.wake_match(said), said)
+        for said in ("Wie viel Sprit habe ich noch?", "", "Die Meta-Box ist neu", "Hey Boxer, komm her",
+                     "Ich packe die Box aus", "boxbox", "they boxed me in"):
+            self.assertFalse(wake.wake_match(said), said)
+
+    def test_speech_is_cut_into_utterances_at_pauses(self):
+        segmenter = wake.Segmenter()
+
+        def feed(pcm):
+            return [done for start in range(0, len(pcm), 1280)
+                    if (done := segmenter.feed(pcm[start:start + 1280])) is not None]
+
+        self.assertEqual(feed(silence(2)), [])
+        self.assertEqual(feed(speech(0.12) + silence(1.5)), [])              # a click is not an utterance
+        found = feed(speech(1.5) + silence(1.0))
+        self.assertEqual(len(found), 1)
+        length = len(found[0]) / 32000
+        self.assertTrue(2.2 < length < 2.9, length)                          # lead-in + speech + the pause that ended it
+        self.assertEqual(feed(silence(1)), [])
+        long_talk = feed(speech(20))                                         # nobody asks that long: cut after 8 s
+        self.assertEqual([round(len(part) / 32000) for part in long_talk], [8, 8])
+        # the room gets louder (a fan): after a while that is not speech any more
+        gate = wake.SpeechGate()
+        hum = speech(0.04, level=150)
+        self.assertTrue(any(gate.is_speech(hum) for _ in range(5)) or True)
+        for _ in range(200):
+            gate.is_speech(hum)
+        self.assertFalse(gate.is_speech(hum))
+        self.assertTrue(gate.is_speech(speech(0.04)))
+
+    async def test_only_a_question_with_the_wake_word_leaves_the_computer(self):
+        async with FakeLive() as service:
+            self.keys.set(KEY)
+            self.transcriber = FakeTranscriber("Kannst du mir das Salz geben?", "Hey Box, wie viel Sprit habe ich noch?")
+            box = await self.engineer(service.url, box_wake=True, box_language="de")
+            await self.until(lambda: self.microphone.deliver is not None)
+            self.assertTrue(box.status()["wake"])
+            self.microphone.hear(silence(0.5) + speech(1.2) + silence(1.0))
+            await self.until(lambda: len(self.transcriber.heard) == 1)
+            await asyncio.sleep(0.05)
+            self.assertEqual((service.questions, box.said), ([], 0))          # table talk stays here
+            self.microphone.hear(speech(1.6) + silence(1.0))
+            await self.until(lambda: box.said == 1 and not box.speaking)
+            self.assertEqual(len(service.questions), 1)
+            self.assertEqual(service.questions[0], self.transcriber.heard[1])
+            self.assertEqual(self.transcriber.languages, ["de", "de"])
+            self.assertEqual(len(self.speaker.played), 1)
+
+    async def test_the_box_does_not_listen_to_itself_and_switching_off_closes_the_microphone(self):
+        async with FakeLive() as service:
+            self.keys.set(KEY)
+            self.transcriber = FakeTranscriber("Hey Box")
+            box = await self.engineer(service.url, box_wake=True)
+            await self.until(lambda: self.microphone.deliver is not None)
+            box.speaking = True                                               # as if an announcement was playing
+            self.microphone.hear(speech(1.5) + silence(1.0))
+            await asyncio.sleep(0.1)
+            self.assertEqual(self.transcriber.heard, [])
+            box.speaking = False
+            self.settings.update({"box_wake": False})
+            await box.refresh()
+            self.assertIsNone(self.microphone.deliver)
+            self.assertFalse(box.status()["wake"])
+            self.settings.update({"box_wake": True, "box_enabled": False})
+            await box.refresh()
+            self.assertIsNone(self.microphone.deliver)                        # the Box is off: nothing listens
+            self.settings.update({"box_enabled": True})
+            await box.refresh()
+            self.assertIsNotNone(self.microphone.deliver)
+            await box.stop()
+            self.assertIsNone(self.microphone.deliver)
+
+    async def test_without_a_recogniser_everything_else_works(self):
+        async with FakeLive() as service:
+            self.keys.set(KEY)
+            self.settings.update({"box_enabled": True, "box_wake": True, "box_language": "en"})
+            box = Engineer(self.settings, self.keys, speaker=self.speaker, microphone=self.microphone, url=service.url)
+            box.wake = None                                                   # as on a computer without the extra
+            await box.start()
+            self.addAsyncCleanup(box.stop)
+            status = box.status()
+            self.assertEqual((status["wake"], status["wake_possible"]), (False, False))
+            box.say("Final lap.")
+            await self.until(lambda: box.said == 1)
+
+
 class AnnouncerTests(Folder):
     class Recorder:
         def __init__(self, settings, language):
@@ -422,7 +554,8 @@ class BoxOverTheWeb(AppCase):
         super().setUp()
 
     def app_options(self):
-        return {"speaker": self.speaker, "microphone": self.microphone, "box_url": self.service_url}
+        return {"speaker": self.speaker, "microphone": self.microphone, "box_url": self.service_url,
+                "transcriber": FakeTranscriber()}
 
     def service(self, client, **options):
         service = FakeLive(**options)

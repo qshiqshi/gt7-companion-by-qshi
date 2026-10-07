@@ -29,7 +29,9 @@ analysis = Analysis(
            (str(SOURCE / "gt7companion" / "data"), "gt7companion/data"),
            (str(ROOT / "LICENSE"), "."), (str(ROOT / "THIRD_PARTY_NOTICES.md"), ".")],
     hiddenimports=hidden,
-    excludes=["tkinter", "numpy", "playwright", "fontTools", "PyInstaller"],
+    # "Hey Box" (speech recognition) is far too large to bundle; it works when started from source.
+    excludes=["tkinter", "numpy", "playwright", "fontTools", "PyInstaller", "mlx", "mlx_whisper", "torch",
+              "faster_whisper", "numba", "scipy"],
 )
 archive = PYZ(analysis.pure)
 program = EXE(archive, analysis.scripts, [], exclude_binaries=True, name="gt7companion",

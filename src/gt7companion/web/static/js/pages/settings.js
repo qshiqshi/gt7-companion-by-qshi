@@ -8,7 +8,7 @@ function form() {
   return { source: byId('source').value, ps5_ip: byId('ps5_ip').value.trim(),
            packet: byId('packet').value, lan: byId('lan').checked,
            language: byId('language').value, units: byId('units').value,
-           box_enabled: byId('box_enabled').checked, box_speaker: byId('box_speaker').checked, box_driver: byId('box_driver').value.trim(),
+           box_enabled: byId('box_enabled').checked, box_speaker: byId('box_speaker').checked, box_wake: byId('box_wake').checked, box_driver: byId('box_driver').value.trim(),
            box_language: byId('box_language').value, box_voice: byId('box_voice').value.trim(),
            box_model: byId('box_model').value.trim(),
            box_announce: [...document.querySelectorAll('[data-kind]')].filter(box => box.checked).map(box => box.dataset.kind),
@@ -32,6 +32,7 @@ function show(values) {
   byId('units').value = values.units;
   byId('box_enabled').checked = !!values.box_enabled;
   byId('box_speaker').checked = !!values.box_speaker;
+  byId('box_wake').checked = !!values.box_wake;
   byId('box_driver').value = values.box_driver || '';
   byId('box_language').value = values.box_language;
   byId('box_voice').value = values.box_voice;
@@ -80,6 +81,9 @@ function showBox(box) {
   state.textContent = text;
   state.className = kind;
   state.hidden = !text;
+  byId('box-wake-missing').hidden = box.wake_possible && box.microphone;
+  if (box.wake) text += ' ' + t('Sie hört auf „Hey Box“.');
+  state.textContent = text;
   byId('box-key').hidden = role !== 'owner';
   byId('box-key-elsewhere').hidden = role === 'owner';
   byId('box-key-input').placeholder = box.has_key ? t('Ein Schlüssel ist gespeichert') : t('Schlüssel einfügen');

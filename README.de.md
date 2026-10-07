@@ -33,7 +33,13 @@ Rechner, für ein Tablet neben dem Rig oder als Browser-Quelle in OBS.
 
 ## Start
 
-Benötigt Python 3.12 oder neuer.
+**Neu dabei? Die Anleitung Schritt für Schritt: [docs/INSTALL.de.md](docs/INSTALL.de.md)** (Mac und
+Windows; Doppelklick auf `start-mac.command` bzw. `start-windows.bat`).
+
+> **Frühe Fassung.** Geprüft mit automatischen Tests und mit einem Nachbau der Konsole und des
+> Sprachdienstes. Der Weg unter Windows ist ungetestet.
+
+Von Hand – benötigt Python 3.12 oder neuer:
 
 ```sh
 python -m venv .venv
@@ -108,6 +114,11 @@ Studio), den du unter *Einstellungen* am Rechner mit dem Programm einträgst.
   Knopf auf einem Tablet gehalten wird. Die Box schlägt Sprit, Reifen, Runden und Zeiten nach,
   bevor sie antwortet. Für einen eigenen Knopf: `POST /api/box/talk` mit `{"on": true}` und
   `{"on": false}`.
+- „Hey Box“: unter *Einstellungen* einschalten und einfach fragen: „Hey Box, wie viel Sprit
+  habe ich noch?“ Das Mikrofon des Rechners hört dann dauernd mit, die Sprache wird aber auf dem
+  Rechner selbst erkannt (Whisper); nur eine Frage, die mit „Hey Box“ beginnt, wird
+  weitergegeben. Braucht den Zusatz `pip install -e ".[wake]"`; die Spracherkennung lädt ihr
+  Modell (rund 500 MB) einmalig herunter.
 - Was an Google geht: der Text jeder Ansage (zum Beispiel „Neue Bestzeit: 1:39,9“), der Name,
   den du gewählt hast, deine gesprochenen Fragen und – wenn du fragst – die aktuellen Werte
   der Fahrt. Für dich als Inhaber des Schlüssels gelten Googles Bedingungen für die Gemini API;

@@ -124,6 +124,11 @@ window.GT7_TEXTS_EN = {
   "BOX HÖRT ZU": "BOX LISTENING",
   "Funk-Anzeige (Box)": "Radio display (Box)",
 
+  "Auf „Hey Box“ hören": "Listen for “Hey Box”",
+  "Dann kannst du einfach fragen: „Hey Box, wie viel Sprit habe ich noch?“ Das Mikrofon dieses Computers hört dafür dauernd mit – die Sprache wird aber auf dem Computer selbst erkannt. Erst eine Frage, die mit „Hey Box“ beginnt, geht an Google.": "Then you can simply ask: “Hey Box, how much fuel is left?” For that the microphone of this computer listens all the time – but speech is recognised on the computer itself. Only a question that begins with “Hey Box” goes to Google.",
+  "Für „Hey Box“ fehlt auf diesem Computer die Spracherkennung. Installiere das Zusatzpaket (siehe Anleitung) und starte das Programm neu.": "This computer has no speech recognition for “Hey Box”. Install the extra package (see the guide) and restart the program.",
+  "Sie hört auf „Hey Box“.": "It is listening for “Hey Box”.",
+
   "Styling": "Styling",
   "Flächen": "Panels",
   "Farbe": "Colour",

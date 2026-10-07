@@ -92,7 +92,7 @@ class Companion:
 def create_app(settings: Settings | None = None, *, layouts: LayoutStore | None = None,
                source: str | None = None, lan: bool = False, port: int = 8707,
                ports: tuple[int, int] | None = None, keys: KeyStore | None = None,
-               box_url: str | None = None, speaker=None, microphone=None) -> FastAPI:
+               box_url: str | None = None, speaker=None, microphone=None, transcriber=None) -> FastAPI:
     """Build the application.
 
     ``source`` overrides the stored setting for this run ("demo" or "live");
@@ -117,7 +117,8 @@ def create_app(settings: Settings | None = None, *, layouts: LayoutStore | None 
         system_language = "de" if (locale.getlocale()[0] or "").lower().startswith("de") else "en"
     except ValueError:
         system_language = "en"
-    engineer = Engineer(settings, keys or KeyStore(), speaker=speaker, microphone=microphone, on_change=box_changed,
+    engineer = Engineer(settings, keys or KeyStore(), speaker=speaker, microphone=microphone,
+                        transcriber=transcriber, on_change=box_changed,
                         device_language=system_language, **({"url": box_url} if box_url else {}))
     announcer = Announcer(bus, engineer)
     engineer.session_status = hub.facts

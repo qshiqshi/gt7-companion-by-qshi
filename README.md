@@ -32,7 +32,13 @@ computer, for a tablet next to your rig, or as a browser source in OBS.
 
 ## Start
 
-Requires Python 3.12 or newer.
+**New to this? Follow the step-by-step guide: [docs/INSTALL.md](docs/INSTALL.md)** (Mac and
+Windows; double-click `start-mac.command` or `start-windows.bat`).
+
+> **Early version.** Checked with automated tests and a stand-in for the console and for the
+> voice service. The Windows path is untested.
+
+By hand – requires Python 3.12 or newer:
 
 ```sh
 python -m venv .venv
@@ -102,6 +108,10 @@ entered under *Settings* on the computer running the program.
   The microphone of the computer is used, also when the button is held on a tablet. The Box
   looks up fuel, tyres, laps and times before it answers. For a button of your own:
   `POST /api/box/talk` with `{"on": true}` and `{"on": false}`.
+- "Hey Box": switch it on under *Settings* and simply ask, "Hey Box, how much fuel is left?".
+  The computer's microphone then listens all the time, but speech is recognised on the
+  computer itself (Whisper); only a question that begins with "Hey Box" is sent on. Needs the
+  extra `pip install -e ".[wake]"`; the recogniser downloads its model (about 500 MB) once.
 - What is sent to Google: the text of each message (for example "New best lap: 1:39.9"), the
   name you chose, your spoken questions, and – when you ask – the current values of the drive.
   Google's terms for the Gemini API apply to you as the holder of the key; check whether they

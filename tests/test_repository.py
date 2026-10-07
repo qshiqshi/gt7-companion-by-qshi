@@ -35,6 +35,18 @@ class Repository(unittest.TestCase):
             else:
                 self.assertIn(target, tracked)
 
+    def test_start_files_and_guides_are_there(self):
+        names = set(git("ls-files").splitlines())
+        for name in ("start-mac.command", "start-windows.bat", "docs/INSTALL.md", "docs/INSTALL.de.md",
+                     "README.md", "README.de.md", "LICENSE", "THIRD_PARTY_NOTICES.md"):
+            self.assertIn(name, names)
+        mode = git("ls-files", "--stage", "start-mac.command").split()[0]
+        self.assertEqual(mode, "100755")                       # a double-click must be able to run it
+        for guide in ("docs/INSTALL.md", "docs/INSTALL.de.md"):
+            text = (ROOT / guide).read_text(encoding="utf-8")
+            for needed in ("start-mac.command", "start-windows.bat", "python.org", "?obs=1", ".[wake]"):
+                self.assertIn(needed, text, guide)
+
     def test_nothing_private_is_tracked(self):
         names = git("ls-files").splitlines()
         for name in names:

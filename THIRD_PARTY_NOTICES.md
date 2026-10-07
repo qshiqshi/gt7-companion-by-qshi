@@ -29,6 +29,7 @@ were modelled for this project by the scripts in `tools/blender/`; the rev band
 | pystray (optional, app) | LGPL-3.0 |
 | Pillow (optional, app) | MIT-CMU (HPND) |
 | sounddevice (optional, Box) and PortAudio | MIT |
+| mlx-whisper or faster-whisper (optional, "Hey Box") and the Whisper model by OpenAI | MIT |
 
 ## How the telemetry is read
 
