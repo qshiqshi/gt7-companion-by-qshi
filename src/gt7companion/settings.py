@@ -4,6 +4,7 @@ Secrets (the Gemini API key) are *not* stored here; see ``keystore.py``.
 """
 from __future__ import annotations
 
+import copy
 import ipaddress
 import json
 import logging
@@ -21,6 +22,15 @@ DEFAULTS: dict = {
     "lan": False,            # other devices in the home network may open the dashboard
     "language": "auto",      # "de", "en" or "auto": the language of each device
     "units": "metric",       # "metric" (km/h, °C) or "imperial" (mph, °F)
+    # The Box (race engineer on the radio); the API key itself is in keystore.py
+    "box_enabled": False,
+    "box_driver": "",        # how the Box addresses the driver
+    "box_language": "auto",  # "de", "en" or "auto": like the pages on this computer
+    "box_voice": "Orus",
+    "box_model": "gemini-2.5-flash-native-audio-latest",
+    "box_announce": ["best_lap", "fuel", "race"],   # kinds of messages, see engineer/announcer.py
+    "box_per_minute": 4,     # at most this many messages a minute …
+    "box_per_session": 150,  # … and in one session (each one costs money on the user's key)
 }
 
 
@@ -64,7 +74,40 @@ def _one_of(*allowed):
     return check
 
 
-_CHECKS = {"source": _source, "ps5_ip": _ps5_ip, "packet": _packet, "telemetry_hz": _telemetry_hz,
+def _text(limit: int, pattern: str | None = None):
+    import re
+
+    def check(value):
+        if not isinstance(value, str) or len(value.strip()) > limit:
+            raise ValueError("text is too long")
+        value = value.strip()
+        if any(not ch.isprintable() for ch in value) or (pattern and value and not re.fullmatch(pattern, value)):
+            raise ValueError("text contains characters that are not allowed")
+        return value
+    return check
+
+
+def _number(low: int, high: int):
+    def check(value):
+        if isinstance(value, bool) or not isinstance(value, (int, float)) or value != int(value):
+            raise ValueError("must be a whole number")
+        return int(max(low, min(high, value)))
+    return check
+
+
+_BOX_KINDS = ("best_lap", "lap_time", "fuel", "race", "incidents", "tyres")
+
+
+def _kinds(value):
+    if not isinstance(value, list) or any(kind not in _BOX_KINDS for kind in value):
+        raise ValueError("unknown kind of message")
+    return [kind for kind in _BOX_KINDS if kind in value]
+
+
+_CHECKS = {"box_enabled": _flag, "box_driver": _text(40), "box_language": _one_of("auto", "de", "en"),
+           "box_voice": _text(40, r"[A-Za-z][A-Za-z0-9 _-]*"), "box_model": _text(80, r"[A-Za-z0-9][A-Za-z0-9._-]*"),
+           "box_announce": _kinds, "box_per_minute": _number(1, 20), "box_per_session": _number(1, 2000),
+           "source": _source, "ps5_ip": _ps5_ip, "packet": _packet, "telemetry_hz": _telemetry_hz,
            "lan": _flag, "language": _one_of("auto", "de", "en"), "units": _one_of("metric", "imperial")}
 
 
@@ -73,7 +116,7 @@ class Settings:
 
     def __init__(self, path: Path | None = None) -> None:
         self.path = path if path is not None else user_dir() / "settings.json"
-        self._values: dict = dict(DEFAULTS)
+        self._values: dict = copy.deepcopy(DEFAULTS)
         self._unknown: dict = {}             # keys of a newer version stay in the file
         self._load()
 
@@ -101,7 +144,7 @@ class Settings:
         return self._values[key]
 
     def as_dict(self) -> dict:
-        return dict(self._values)
+        return copy.deepcopy(self._values)
 
     def update(self, changes: dict, *, save: bool = True) -> dict:
         """Check and apply ``changes``; nothing is applied if one value is invalid."""

@@ -8,7 +8,9 @@ from __future__ import annotations
 import base64
 import hashlib
 import io
+import asyncio
 import json
+import locale
 import logging
 import re
 from contextlib import asynccontextmanager
@@ -21,6 +23,9 @@ from fastapi.staticfiles import StaticFiles
 from . import APP_NAME, __version__
 from .bus import EventBus
 from .detectors import DetectorSuite
+from .engineer.announcer import KINDS as BOX_KINDS, Announcer
+from .engineer.engine import Engineer
+from .keystore import KeyStore
 from .hub import Hub
 from .layouts import DEFAULT_LAYOUT, MAX_BYTES, LayoutError, LayoutStore
 from .netinfo import local_addresses
@@ -78,6 +83,7 @@ class Companion:
     hub: Hub
     sources: Sources
     pairing: Pairing
+    engineer: Engineer
 
     def status(self) -> dict:
         return self.hub.status()
@@ -85,7 +91,8 @@ class Companion:
 
 def create_app(settings: Settings | None = None, *, layouts: LayoutStore | None = None,
                source: str | None = None, lan: bool = False, port: int = 8707,
-               ports: tuple[int, int] | None = None) -> FastAPI:
+               ports: tuple[int, int] | None = None, keys: KeyStore | None = None,
+               box_url: str | None = None, speaker=None) -> FastAPI:
     """Build the application.
 
     ``source`` overrides the stored setting for this run ("demo" or "live");
@@ -99,23 +106,42 @@ def create_app(settings: Settings | None = None, *, layouts: LayoutStore | None 
     hub = Hub(bus, manager, telemetry_hz=settings["telemetry_hz"])
     detectors = DetectorSuite(bus)                 # laps, spins, impacts → messages on the bus
 
+    def box_changed() -> None:
+        """Tell the pages about the Box (state, counters – never the key)."""
+        try:
+            asyncio.get_running_loop().create_task(manager.broadcast("box", engineer.status()))
+        except RuntimeError:
+            pass                                    # no loop yet: nobody is listening anyway
+
+    try:
+        system_language = "de" if (locale.getlocale()[0] or "").lower().startswith("de") else "en"
+    except ValueError:
+        system_language = "en"
+    engineer = Engineer(settings, keys or KeyStore(), speaker=speaker, on_change=box_changed,
+                        device_language=system_language, **({"url": box_url} if box_url else {}))
+    announcer = Announcer(bus, engineer)
+
     def new_session(kind: str) -> None:
         detectors.reset()
         hub.reset(first_lap_complete=kind == "demo")
+        announcer.reset()
+        engineer.new_session()
 
     companion = Companion(settings=settings, layouts=layouts or LayoutStore(), bus=bus,
-                          manager=manager, hub=hub, pairing=Pairing(),
+                          manager=manager, hub=hub, pairing=Pairing(), engineer=engineer,
                           sources=Sources(bus, settings, on_switch=new_session,
                                           **({"ports": ports} if ports else {})))
     hub.status_info = companion.sources.status
 
     @asynccontextmanager
     async def lifespan(app: FastAPI):
+        await engineer.start()
         await companion.sources.start(source)
         try:
             yield
         finally:
             await companion.sources.stop()
+            await engineer.stop()
 
     app = FastAPI(title=APP_NAME, version=__version__, lifespan=lifespan,
                   docs_url=None, redoc_url=None, openapi_url=None)
@@ -297,7 +323,46 @@ def create_app(settings: Settings | None = None, *, layouts: LayoutStore | None 
         if any(before[key] != settings[key] for key in ("source", "ps5_ip", "packet")):
             await companion.sources.use(settings["source"])       # applies at once
             await hub.announce_status()
+        if any(before[key] != settings[key] for key in before if key.startswith("box_")):
+            await engineer.refresh()
         return JSONResponse(settings_view(), headers=_NO_STORE)
+
+    # ------------------------------------------------------------------ the Box
+    def box_view() -> dict:
+        return {**engineer.status(), "kinds": list(BOX_KINDS)}
+
+    @app.get("/api/box")
+    async def get_box(request: Request):
+        require_edit(request)
+        return JSONResponse(box_view(), headers=_NO_STORE)
+
+    @app.post("/api/box/key")
+    async def set_box_key(request: Request):
+        """Store or remove the API key. Only on the computer itself; the key is never sent back."""
+        require_owner(request)
+        try:
+            key = (await request.json()).get("key")
+            if key:
+                engineer.keys.set(key)
+            else:
+                engineer.keys.clear()
+        except (ValueError, AttributeError):
+            raise HTTPException(status_code=400, detail="This does not look like an API key.") from None
+        await engineer.refresh()
+        return JSONResponse(box_view(), headers=_NO_STORE)
+
+    @app.post("/api/box/check")
+    async def check_box(request: Request):
+        """Try the key and the chosen voice model without speaking (costs nothing)."""
+        require_owner(request)
+        return JSONResponse({**(await engineer.check()), **box_view()}, headers=_NO_STORE)
+
+    @app.post("/api/box/test")
+    async def test_box(request: Request):
+        """Let the Box say one sample message."""
+        require_edit(request)
+        queued = engineer.say(engineer.texts.line("test"), forced=True)
+        return JSONResponse({"ok": queued, **box_view()}, headers=_NO_STORE)
 
     @app.post("/api/source")
     async def set_source(request: Request):
@@ -368,6 +433,7 @@ def create_app(settings: Settings | None = None, *, layouts: LayoutStore | None 
             await manager.send(ws, "hello", {"role": role, "version": __version__, "layout": name})
             await manager.send(ws, "layout", companion.layouts.get(name), name=name)
             await manager.send(ws, "status", companion.status())
+            await manager.send(ws, "box", engineer.status())
             if hub.latest is not None:
                 await manager.send(ws, "telemetry", hub.latest)
             while True:

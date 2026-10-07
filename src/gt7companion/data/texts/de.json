@@ -1,0 +1,21 @@
+{
+  "best_lap": ["Neue Bestzeit: {time}.", "{time}. Das ist deine schnellste Runde.", "Bestzeit, {time}. Weiter so."],
+  "first_lap": ["Erste Zeit steht: {time}.", "Runde {lap}: {time}. Das ist die Marke."],
+  "lap_slower": ["Runde {lap}: {time}. {delta} über deiner Bestzeit.", "{time}. Dir fehlen {delta}."],
+  "lap_equal": ["Runde {lap}: {time}. Genau auf deiner Bestzeit.", "{time}. Konstant."],
+  "fuel_low": ["Sprit reicht noch für etwa {laps} Runden.", "Noch rund {laps} Runden Sprit."],
+  "fuel_critical": ["Sprit ist fast leer. Komm in die Box.", "Tank fast leer. Box, Box."],
+  "pit_call": ["Sprit für etwa {laps} Runden. Plane den Stopp.", "Noch {laps} Runden Sprit. Denk an die Box."],
+  "race_start": ["Los geht's. Sauber durch die erste Kurve.", "Start. Kopf oben, Reifen warm fahren."],
+  "final_lap": ["Letzte Runde. Bring es nach Hause.", "Letzte Runde. Keine Fehler jetzt."],
+  "race_end": ["Zielflagge. Gute Arbeit.", "Das war's. Rennen beendet."],
+  "spin": ["Dreher. Sammle dich und weiter.", "Das Heck war weg. Ruhig bleiben."],
+  "crash": ["Einschlag. Prüf, ob das Auto noch geradeaus läuft.", "Das war ein Treffer. Alles in Ordnung?"],
+  "offtrack": ["Du warst neben der Strecke. Reifen sauber fahren.", "Neben der Strecke. Vorsicht mit schmutzigen Reifen."],
+  "tyre_hot": ["Reifen {tyre} wird zu heiß, {temp} Grad.", "{temp} Grad am Reifen {tyre}. Schon ihn etwas."],
+  "test": ["Funkprobe. Die Box ist auf Empfang, {driver}.", "Hier ist die Box. Ich höre dich gut, {driver}."],
+  "tyre_names": {"FL": "vorne links", "FR": "vorne rechts", "RL": "hinten links", "RR": "hinten rechts"},
+  "units": {"seconds": "{n} Sekunden", "tenths": "{n} Zehntel", "one_tenth": "ein Zehntel"},
+  "read_aloud": "Lies den folgenden Funkspruch laut vor, Wort für Wort, nichts hinzufügen oder weglassen. Zügiges Sprechtempo:\n\n{text}",
+  "fallback_driver": "Fahrer"
+}

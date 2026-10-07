@@ -18,6 +18,9 @@ Comments in files that were taken over unchanged are still German.
 | `hub.py` | parts of `server/director.py` (frame handling, lap clock, status) | new, small; steady 12 Hz rhythm instead of a restarted interval |
 | `detectors.py` | `server/detectors.py` | thresholds live in the module instead of a config file; hints are codes instead of German sentences; tyre positions FL/FR/RL/RR; `reset()` |
 | `livetrace.py` | output shape of `live_trace()` in `server/analysis_routes.py` | new, without numpy |
+| `engineer/live.py` | protocol handling in `server/voice2.py` (setup, text turn, audio parts) | new and much smaller; the key travels in a header instead of the address; errors get names the user can act on |
+| `engineer/engine.py`, `announcer.py`, `speaker.py`, `texts.py` | ideas from `server/voice2.py` and `server/director.py` (queue with priorities, pauses per kind of message) | new |
+| `data/texts/*.json`, `data/prompts/*.md` | – | newly written in German and English (the private project's radio lines and persona were not taken over) |
 | `app.py` | pattern of `tools/overlay_preview.py` | new |
 | everything else | – | new |
 

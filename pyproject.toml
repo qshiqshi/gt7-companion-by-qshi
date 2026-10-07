@@ -21,6 +21,7 @@ dependencies = [
 ]
 
 [project.optional-dependencies]
+box = ["sounddevice>=0.4"]          # the Box on this computer's loudspeakers
 dev = ["httpx2>=2"]
 
 [project.scripts]

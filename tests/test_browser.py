@@ -19,6 +19,7 @@ except ImportError:                                   # pragma: no cover - optio
 import uvicorn
 
 from gt7companion.app import create_app
+from gt7companion.keystore import KeyStore
 from gt7companion.layouts import LayoutStore
 from gt7companion.settings import Settings
 
@@ -42,7 +43,8 @@ class BrowserCase(unittest.TestCase):
     def setUpClass(cls):
         cls.folder = tempfile.TemporaryDirectory()
         home = Path(cls.folder.name)
-        app = create_app(Settings(home / "settings.json"), layouts=LayoutStore(home / "layouts"), source="demo")
+        app = create_app(Settings(home / "settings.json"), layouts=LayoutStore(home / "layouts"), source="demo",
+                         keys=KeyStore(home / "secrets.json"))
         cls.port = free_port()
         cls.server = uvicorn.Server(uvicorn.Config(app, host="127.0.0.1", port=cls.port, log_level="error"))
         cls.thread = threading.Thread(target=cls.server.run, daemon=True)
@@ -321,6 +323,40 @@ class BrowserCase(unittest.TestCase):
             plain.wait_for_function("(text) => document.body.textContent.includes(text)", arg=text)
             self.assertEqual(plain.evaluate("document.querySelector('h1').textContent"), title)
             self.assertTrue(plain.title().startswith(title))
+
+    def test_box_key_is_entered_on_the_page_and_never_shown_again(self):
+        key = "browser-test-key-7c1e93"
+        page = self.open_plain("settings")
+        page.wait_for_selector("#form", state="visible")
+        self.assertEqual(page.evaluate("document.getElementById('box-state').textContent"), "")     # the Box is off
+        self.assertFalse(page.evaluate("document.getElementById('box-key').hidden"))
+        self.assertTrue(page.evaluate("document.getElementById('box-test').disabled"))
+        self.assertEqual(page.evaluate("[...document.querySelectorAll('[data-kind]')].filter(b => b.checked).map(b => b.dataset.kind).join()"),
+                         "best_lap,fuel,race")
+        page.check("#box_enabled")
+        page.fill("#box_driver", "Alex")
+        page.click("#form button[type=submit]")
+        page.wait_for_function("() => document.getElementById('box-state').textContent.includes('kein Schlüssel')")
+        page.fill("#box-key-input", key)
+        page.click("#box-key-save")
+        page.wait_for_function("() => document.getElementById('box-state').textContent.includes('bereit')")
+        self.assertEqual(page.evaluate("document.getElementById('box-key-input').value"), "")
+        self.assertEqual(page.evaluate("document.getElementById('box-key-input').type"), "password")
+        self.assertFalse(page.evaluate("document.getElementById('box-test').disabled"))
+        page.reload()
+        page.wait_for_selector("#form", state="visible")
+        page.wait_for_function("() => document.getElementById('box-key-input').placeholder.includes('gespeichert')")
+        self.assertNotIn(key, page.content())
+        self.assertNotIn(key, page.evaluate("fetch('/api/box').then(r => r.text())"))
+        self.assertEqual(page.evaluate("document.getElementById('box_driver').value"), "Alex")
+        # another device may choose what is announced, but never touches the key
+        other = self.open_plain("settings", extra_http_headers={"X-Forwarded-For": "192.168.1.50"})
+        other.wait_for_selector("#locked", state="visible")
+        self._open[-1][1].clear()
+        page = self.open_plain("settings")
+        page.wait_for_selector("#form", state="visible")
+        page.click("#box-key-clear")
+        page.wait_for_function("() => document.getElementById('box-state').textContent.includes('kein Schlüssel')")
 
     def test_obs_source_is_transparent_and_bare(self):
         page = self.open("?obs=1", size=(1920, 1080))

@@ -56,3 +56,11 @@ label.check small { display: block; color: #9aa1ad; font-size: 14px; }
 .pin { font: 600 44px/1 ui-monospace, "SF Mono", Menlo, Consolas, monospace; letter-spacing: 0.14em; }
 input.pin-input { max-width: 260px; font: 600 28px/1 ui-monospace, "SF Mono", Menlo, Consolas, monospace; letter-spacing: 0.2em; text-align: center; min-height: 56px; }
 @media (max-width: 520px) { .address { grid-template-columns: 1fr; } }
+
+/* settings: the Box */
+fieldset.kinds { margin: 0 0 16px; padding: 0; border: 0; }
+fieldset.kinds legend { margin-bottom: 10px; font-weight: 500; }
+fieldset.kinds label.check { margin-bottom: 10px; }
+details { margin-bottom: 16px; }
+details summary { cursor: pointer; margin-bottom: 12px; color: #b5bac5; }
+input[type="password"] { width: 100%; min-height: 44px; padding: 0 12px; border: 1px solid #3a3e48; border-radius: 8px; background: #0e0f13; color: #f2f2f2; font: inherit; }

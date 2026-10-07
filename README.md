@@ -48,6 +48,21 @@ Start with `--lan` (or switch it on under *Settings*), then open
 tablet. Everyone in the home network may watch. To edit layouts or settings on another
 device, that device is paired once with the PIN shown on the same page.
 
+## The Box (optional)
+
+A race engineer on the radio: a voice calls out best laps, fuel and the course of the race.
+It is spoken by Google's Gemini Live API with **your own API key** (from Google AI Studio),
+entered under *Settings* on the computer running the program.
+
+- Every message is billed to your key. The default is "only what matters" (best lap, fuel,
+  start and finish), with a limit per minute and per session; a counter shows the use.
+- What is sent to Google: the text of each message (for example "New best lap: 1:39.9") and
+  the name you chose. No telemetry, no audio.
+- The key is stored only on your computer (`secrets.json`, readable by you alone) and is never
+  shown again, sent to a page or written to a log.
+- For sound on the computer's loudspeakers install the extra: `pip install -e ".[box]"`.
+- Without a key everything else works as usual.
+
 ## Development
 
 ```sh

@@ -83,6 +83,75 @@
       </label>
     </section>
 
+    <section class="card" id="box">
+      <h2>Die Box – Renningenieur am Funk</h2>
+      <p class="muted">Eine Stimme sagt Bestzeiten, Sprit und Rennverlauf an. Dafür brauchst du einen eigenen Schlüssel für die Gemini-API von Google; jede Ansage wird über deinen Schlüssel abgerechnet. Ohne Schlüssel läuft alles andere wie gewohnt.</p>
+      <p class="note" id="box-state" role="status" hidden></p>
+      <label class="check">
+        <input id="box_enabled" type="checkbox">
+        <span>Ansagen einschalten</span>
+      </label>
+      <div id="box-key" hidden>
+        <label class="field">
+          <span>Gemini-API-Schlüssel</span>
+          <input id="box-key-input" type="password" autocomplete="off" spellcheck="false" placeholder="Schlüssel einfügen">
+          <small id="box-key-hint">Den Schlüssel bekommst du in Google AI Studio. Er wird nur auf diesem Computer gespeichert und nie wieder angezeigt.</small>
+        </label>
+        <div class="row">
+          <button id="box-key-save" type="button">Schlüssel speichern</button>
+          <button id="box-key-check" type="button">Prüfen</button>
+          <button id="box-key-clear" type="button">Schlüssel entfernen</button>
+        </div>
+      </div>
+      <p class="muted" id="box-key-elsewhere" hidden>Der Schlüssel lässt sich nur am Computer mit dem Programm eintragen.</p>
+      <label class="field">
+        <span>Wie soll die Box dich nennen?</span>
+        <input id="box_driver" type="text" maxlength="40" autocomplete="off">
+      </label>
+      <label class="field">
+        <span>Sprache der Box</span>
+        <select id="box_language">
+          <option value="auto">Wie dieser Computer</option>
+          <option value="de" data-no-i18n>Deutsch</option>
+          <option value="en" data-no-i18n>English</option>
+        </select>
+      </label>
+      <fieldset class="kinds">
+        <legend>Was soll angesagt werden?</legend>
+        <label class="check"><input type="checkbox" data-kind="best_lap"><span>Neue Bestzeit</span></label>
+        <label class="check"><input type="checkbox" data-kind="lap_time"><span>Jede Rundenzeit</span></label>
+        <label class="check"><input type="checkbox" data-kind="fuel"><span>Sprit und Boxenstopp</span></label>
+        <label class="check"><input type="checkbox" data-kind="race"><span>Start, letzte Runde, Ziel</span></label>
+        <label class="check"><input type="checkbox" data-kind="incidents"><span>Dreher, Einschläge, neben der Strecke</span></label>
+        <label class="check"><input type="checkbox" data-kind="tyres"><span>Heiße Reifen</span></label>
+      </fieldset>
+      <label class="field">
+        <span>Höchstens so viele Ansagen pro Minute</span>
+        <input id="box_per_minute" type="text" inputmode="numeric" maxlength="2">
+      </label>
+      <label class="field">
+        <span>Höchstens so viele Ansagen pro Sitzung</span>
+        <input id="box_per_session" type="text" inputmode="numeric" maxlength="4">
+        <small id="box-usage"></small>
+      </label>
+      <details>
+        <summary>Stimme und Modell</summary>
+        <label class="field">
+          <span>Stimme</span>
+          <input id="box_voice" type="text" maxlength="40" autocomplete="off" spellcheck="false">
+        </label>
+        <label class="field">
+          <span>Modell</span>
+          <input id="box_model" type="text" maxlength="80" autocomplete="off" spellcheck="false">
+          <small>Nur ändern, wenn Google das Modell umbenennt oder die Prüfung „Modell nicht verfügbar“ meldet.</small>
+        </label>
+      </details>
+      <div class="row">
+        <button id="box-test" type="button">Probeansage</button>
+        <span class="muted" id="box-test-result" role="status"></span>
+      </div>
+    </section>
+
     <div class="row">
       <button class="primary" type="submit">Speichern</button>
       <span class="muted" id="result" role="status"></span>

@@ -1,0 +1,21 @@
+{
+  "best_lap": ["New best lap: {time}.", "{time}. That is your fastest lap.", "Best lap, {time}. Keep it up."],
+  "first_lap": ["First time is on the board: {time}.", "Lap {lap}: {time}. That is the mark."],
+  "lap_slower": ["Lap {lap}: {time}. {delta} off your best.", "{time}. You are missing {delta}."],
+  "lap_equal": ["Lap {lap}: {time}. Right on your best.", "{time}. Consistent."],
+  "fuel_low": ["Fuel for about {laps} more laps.", "Roughly {laps} laps of fuel left."],
+  "fuel_critical": ["Fuel is almost gone. Come into the pits.", "Tank nearly empty. Box, box."],
+  "pit_call": ["Fuel for about {laps} laps. Plan your stop.", "{laps} laps of fuel left. Think about the pits."],
+  "race_start": ["Here we go. Keep it clean through the first corner.", "Start. Heads up, get the tyres warm."],
+  "final_lap": ["Final lap. Bring it home.", "Final lap. No mistakes now."],
+  "race_end": ["Chequered flag. Good work.", "That is it. Race over."],
+  "spin": ["Spin. Gather it up and carry on.", "The rear let go. Stay calm."],
+  "crash": ["Impact. Check that the car still runs straight.", "That was a hit. Everything all right?"],
+  "offtrack": ["You were off the track. Clean your tyres.", "Off track. Careful with dirty tyres."],
+  "tyre_hot": ["The {tyre} tyre is getting too hot, {temp} degrees.", "{temp} degrees on the {tyre} tyre. Go easy on it."],
+  "test": ["Radio check. The pit wall is listening, {driver}.", "This is the pit wall. I hear you well, {driver}."],
+  "tyre_names": {"FL": "front left", "FR": "front right", "RL": "rear left", "RR": "rear right"},
+  "units": {"seconds": "{n} seconds", "tenths": "{n} tenths", "one_tenth": "one tenth"},
+  "read_aloud": "Read the following radio message aloud, word for word, adding and omitting nothing. Brisk pace:\n\n{text}",
+  "fallback_driver": "driver"
+}

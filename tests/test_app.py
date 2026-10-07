@@ -8,6 +8,7 @@ from fastapi.testclient import TestClient
 from starlette.websockets import WebSocketDisconnect
 
 from gt7companion.app import create_app
+from gt7companion.keystore import KeyStore
 from gt7companion.layouts import DEFAULT_LAYOUT, LayoutStore
 from gt7companion.settings import Settings
 
@@ -25,10 +26,15 @@ class AppCase(unittest.TestCase):
         folder = tempfile.TemporaryDirectory()
         self.addCleanup(folder.cleanup)
         self.home = Path(folder.name)
-        self.app = create_app(Settings(self.home / "settings.json"),
-                              layouts=LayoutStore(self.home / "layouts"), source=self.source)
+        self.keys = KeyStore(self.home / "secrets.json")
+        self.app = create_app(Settings(self.home / "settings.json"), keys=self.keys,
+                              layouts=LayoutStore(self.home / "layouts"), source=self.source, **self.app_options())
 
         self._first = None
+
+    def app_options(self) -> dict:
+        """More arguments for the application (subclasses)."""
+        return {}
 
     def client(self, who=OWNER, base=BASE, **options):
         """A browser on the given device. All of them talk to the one running application."""

@@ -11,6 +11,7 @@ from fastapi.testclient import TestClient
 from gt7companion import telemetry
 from gt7companion.app import create_app
 from gt7companion.bus import EventBus
+from gt7companion.keystore import KeyStore
 from gt7companion.layouts import LayoutStore
 from gt7companion.settings import Settings
 from gt7companion.sources import Sources
@@ -155,7 +156,7 @@ class SourceApi(unittest.TestCase):
         self.listen = free_udp_port()
         self.settings = Settings(self.home / "settings.json")
         app = create_app(self.settings, layouts=LayoutStore(self.home / "layouts"), source="demo",
-                         ports=(self.listen, free_udp_port()))
+                         ports=(self.listen, free_udp_port()), keys=KeyStore(self.home / "secrets.json"))
         self.client = TestClient(app, base_url="http://127.0.0.1:8707", client=("127.0.0.1", 50000))
         self.client.__enter__()
         self.addCleanup(self.client.__exit__, None, None, None)
