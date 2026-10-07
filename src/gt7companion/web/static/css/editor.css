@@ -77,3 +77,4 @@ body.editor-mode .widget.style-editing { outline:2px solid #83b7fa !important; o
 #editor-toolbar .tb-link { margin-left:auto; padding:7px 12px; border:1px solid #41454e; border-radius:5px; background:#25282f; color:#e5e7ec; text-decoration:none; white-space:nowrap; }
 #editor-toolbar .tb-link:hover { background:#343944; }
 #editor-toolbar #layout-select-edit { height:32px; padding:0 8px; border:1px solid #41454e; border-radius:5px; background:#25282f; color:#e5e7ec; font:inherit; max-width:230px; }
+#editor-toolbar .tb-link.tb-next { margin-left:0; }

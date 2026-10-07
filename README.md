@@ -31,9 +31,16 @@ Then open <http://127.0.0.1:8707/>.
 |---|---|
 | `--demo` | play the recorded demo lap in a loop (default) |
 | `--live` | listen to the PlayStation in the home network |
-| `--lan` | let other devices in the home network open the dashboard (read-only) |
+| `--lan` / `--no-lan` | let other devices in the home network open the dashboard (default: as chosen in the settings) |
 | `--port 8707` | port of the web pages |
 | `--ps5 IP` | address of the console; without it the console is searched |
+
+## Other devices
+
+Start with `--lan` (or switch it on under *Settings*), then open
+<http://127.0.0.1:8707/connect> on the computer: it shows the address as a QR code for your
+tablet. Everyone in the home network may watch. To edit layouts or settings on another
+device, that device is paired once with the PIN shown on the same page.
 
 ## Development
 

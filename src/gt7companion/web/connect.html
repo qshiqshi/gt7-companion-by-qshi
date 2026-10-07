@@ -1,0 +1,82 @@
+<!DOCTYPE html>
+<html lang="de">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Geräte verbinden – Gran Turismo 7 Companion by qshi</title>
+<meta name="theme-color" content="#0b0b0e">
+<link rel="icon" type="image/png" sizes="32x32" href="/static/icons/favicon-32.png">
+<link rel="stylesheet" href="/static/css/pages.css">
+</head>
+<body>
+<main>
+  <header class="top">
+    <span class="brand">GT7 Companion by qshi</span>
+    <nav>
+      <a class="button" href="/">Zum Dashboard</a>
+      <a class="button" href="/settings" id="link-settings" hidden>Einstellungen</a>
+    </nav>
+  </header>
+
+  <!-- on the computer the program runs on -->
+  <div id="owner" hidden>
+    <h1>Geräte verbinden</h1>
+    <p class="lead">Tablet, Handy oder zweiter Rechner zeigen das Dashboard im Browser – ohne App.</p>
+
+    <section class="card" id="lan-off" hidden>
+      <h2>Zugriff im Heimnetz ist aus</h2>
+      <p>Im Moment erreicht nur dieser Computer das Dashboard. Schalte den Zugriff für Geräte in deinem Heimnetz ein und starte das Programm danach neu.</p>
+      <div class="row">
+        <button class="primary" id="btn-lan-on" type="button">Im Heimnetz freigeben</button>
+        <span class="muted" id="lan-on-result"></span>
+      </div>
+    </section>
+
+    <section class="card" id="lan-on" hidden>
+      <h2>1. Adresse öffnen</h2>
+      <p>Das Gerät muss im selben WLAN sein wie dieser Computer. QR-Code mit der Kamera scannen oder die Adresse im Browser eintippen.</p>
+      <div id="addresses"></div>
+      <p class="muted">Ansehen kann jeder in deinem Heimnetz. Zum Bearbeiten braucht ein Gerät die PIN.</p>
+    </section>
+
+    <section class="card">
+      <h2 id="pin-title">2. Zum Bearbeiten koppeln</h2>
+      <p>Wer auf einem anderen Gerät Layouts oder Einstellungen ändern will, tippt dort auf „Bearbeiten“ und gibt diese PIN ein.</p>
+      <p class="pin" id="pin">······</p>
+      <div class="row">
+        <button id="btn-new-pin" type="button">Neue PIN und alle Geräte entkoppeln</button>
+        <span class="muted" id="devices"></span>
+      </div>
+    </section>
+  </div>
+
+  <!-- on another device -->
+  <div id="guest" hidden>
+    <h1>Dieses Gerät koppeln</h1>
+    <p class="lead">Ansehen geht ohne PIN. Zum Bearbeiten gib die PIN ein, die der Computer mit dem Programm unter „Geräte verbinden“ zeigt.</p>
+    <section class="card">
+      <form id="pair-form">
+        <label class="field">
+          <span>PIN</span>
+          <input class="pin-input" id="pin-input" type="tel" inputmode="numeric" autocomplete="one-time-code" maxlength="6" pattern="[0-9]{6}" required>
+        </label>
+        <p class="note error" id="pair-error" role="alert" hidden></p>
+        <button class="primary" type="submit">Koppeln</button>
+      </form>
+    </section>
+  </div>
+
+  <div id="paired" hidden>
+    <h1>Dieses Gerät ist gekoppelt</h1>
+    <p class="lead">Du kannst auf diesem Gerät Layouts und Einstellungen ändern.</p>
+    <div class="row">
+      <a class="button" id="link-next" href="/?edit=1">Layout bearbeiten</a>
+      <button id="btn-unpair" type="button">Kopplung aufheben</button>
+    </div>
+  </div>
+
+  <p class="note error" id="offline" hidden>Das Programm ist nicht erreichbar.</p>
+</main>
+<script type="module" src="/static/js/pages/connect.js"></script>
+</body>
+</html>

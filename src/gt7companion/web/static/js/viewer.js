@@ -43,7 +43,11 @@ if (IS_VIEW && wait && menu) {
     render();
   });
   onTopic('status', function(d) { status = Object.assign({}, status, d || {}); render(); });
-  onTopic('hello', function() { edit.hidden = role !== 'owner'; });
+  /* Everyone gets the button: a device that is not paired yet is asked for the PIN first. */
+  onTopic('hello', function() {
+    edit.hidden = false;
+    edit.href = (role === 'owner' || role === 'editor') ? urlFor('edit') : '/connect?next=' + encodeURIComponent(urlFor('edit'));
+  });
   window.addEventListener('gt7:telemetry', function() {
     const waiting = !wait.hidden;
     lastFrameAt = Date.now();

@@ -20,8 +20,9 @@ def build_parser() -> argparse.ArgumentParser:
                         help="play the recorded demo lap in a loop (no console needed)")
     source.add_argument("--live", action="store_const", const="live", dest="source",
                         help="listen to the PlayStation in the home network")
-    parser.add_argument("--lan", action="store_true",
-                        help="let other devices in the home network open the dashboard (read-only)")
+    parser.add_argument("--lan", action=argparse.BooleanOptionalAction, default=None,
+                        help="let other devices in the home network open the dashboard "
+                             "(default: as chosen in the settings)")
     parser.add_argument("--port", type=int, default=DEFAULT_PORT,
                         help=f"port of the web pages (default {DEFAULT_PORT})")
     parser.add_argument("--ps5", metavar="IP", help="address of the console; without it the console is searched")
@@ -47,16 +48,6 @@ def main(argv: list[str] | None = None) -> int:
     logging.basicConfig(level=logging.DEBUG if args.verbose else logging.INFO,
                         format="%(asctime)s %(levelname)-7s %(name)s: %(message)s", datefmt="%H:%M:%S")
 
-    host = "0.0.0.0" if args.lan else "127.0.0.1"
-    if not port_is_free(host, args.port):
-        print(f"Port {args.port} is already in use – is the program running already? "
-              f"Choose another one with --port.", file=sys.stderr)
-        return 1
-
-    import uvicorn
-
-    from .app import create_app
-    from .netinfo import local_addresses
     from .settings import Settings
 
     settings = Settings()
@@ -67,17 +58,30 @@ def main(argv: list[str] | None = None) -> int:
             print(f"Not a valid address: {args.ps5}", file=sys.stderr)
             return 2
     source = args.source or settings["source"]
+    lan = settings["lan"] if args.lan is None else args.lan
+
+    host = "0.0.0.0" if lan else "127.0.0.1"
+    if not port_is_free(host, args.port):
+        print(f"Port {args.port} is already in use – is the program running already? "
+              f"Choose another one with --port.", file=sys.stderr)
+        return 1
+
+    import uvicorn
+
+    from .app import create_app
+    from .netinfo import local_addresses
 
     print(f"{APP_NAME} {__version__}")
-    print(f"  Dashboard:  http://127.0.0.1:{args.port}/")
-    if args.lan:
+    print(f"  On this computer:      http://127.0.0.1:{args.port}/")
+    if lan:
         for address in local_addresses():
             print(f"  In your home network:  http://{address}:{args.port}/")
-    print("  Source:     " + ("demo lap (no console needed)" if source == "demo"
-                              else "PlayStation in the home network"))
-    print("  Stop with Ctrl+C.")
+    print(f"  Connect other devices: http://127.0.0.1:{args.port}/connect")
+    print("  Source:                " + ("demo lap (no console needed)" if source == "demo"
+                                         else "PlayStation in the home network"))
+    print("  Stop with Ctrl+C.", flush=True)
 
-    app = create_app(settings, source=source, lan=args.lan)
+    app = create_app(settings, source=source, lan=lan, port=args.port)
     uvicorn.run(app, host=host, port=args.port, log_level="debug" if args.verbose else "warning",
                 ws_max_size=256 * 1024, access_log=False)
     return 0

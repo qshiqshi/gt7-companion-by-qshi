@@ -1,8 +1,9 @@
 """Who may do what.
 
 Watching the dashboard is open to everyone in the home network. Changing
-anything (layouts, settings) is only possible on the computer the program
-runs on – other devices need the PIN (see ``pairing`` further down the road).
+anything (layouts, settings) is possible right away on the computer the
+program runs on; another device has to be paired once with the PIN that this
+computer shows. Secrets (the API key) can only be set on the computer itself.
 
 Two more rules keep web pages from the internet out, even though the program
 only listens inside the home network:
@@ -14,13 +15,20 @@ only listens inside the home network:
 """
 from __future__ import annotations
 
+import hashlib
+import hmac
 import ipaddress
+import secrets
+import time
 from urllib.parse import urlsplit
 
 from starlette.requests import HTTPConnection
 
 OWNER = "owner"        # the computer the program runs on: may change everything
+EDITOR = "editor"      # another device that was paired with the PIN: may edit layouts and settings
 VIEWER = "viewer"      # any other device: may watch
+
+COOKIE = "gt7c_pair"   # carries the token of a paired device
 
 # Names that only exist inside a home network (never in the public DNS).
 _LOCAL_SUFFIXES = (".local", ".localhost", ".lan", ".home", ".home.arpa", ".internal",
@@ -71,12 +79,94 @@ def same_origin(connection: HTTPConnection) -> bool:
             and parts.netloc.lower() == connection.headers.get("host", "").strip().lower())
 
 
-def role_of(connection: HTTPConnection) -> str:
-    """``owner`` for the computer itself, ``viewer`` for every other device."""
+def role_of(connection: HTTPConnection, pairing: "Pairing | None" = None) -> str:
+    """``owner`` for the computer itself, ``editor`` for a paired device, else ``viewer``."""
     client = connection.client
-    if client is None or not is_loopback(client.host):
-        return VIEWER
     # Behind a reverse proxy every request looks local; then nobody is the owner.
-    if any(header in connection.headers for header in _FORWARDING_HEADERS):
-        return VIEWER
-    return OWNER
+    proxied = any(header in connection.headers for header in _FORWARDING_HEADERS)
+    if client is not None and is_loopback(client.host) and not proxied:
+        return OWNER
+    if pairing is not None and pairing.knows(connection.cookies.get(COOKIE)):
+        return EDITOR
+    return VIEWER
+
+
+def may_edit(role: str) -> bool:
+    return role in (OWNER, EDITOR)
+
+
+class TooManyAttempts(Exception):
+    """This device has to wait before it may try a PIN again."""
+
+
+class Pairing:
+    """The PIN shown on this computer and the devices that entered it.
+
+    A device that enters the PIN gets a random token (as a cookie); only its
+    hash is kept, and only in memory: after a restart devices pair again with
+    the new PIN. Wrong PINs are counted per device and overall, so six digits
+    cannot be guessed by trying.
+    """
+
+    DIGITS = 6
+    WINDOW_S = 300.0           # wrong tries are remembered this long
+    PER_DEVICE = 5             # wrong tries per device in that time
+    OVERALL = 30               # wrong tries of all devices before the PIN is replaced
+    MAX_DEVICES = 20
+
+    def __init__(self, *, clock=time.monotonic) -> None:
+        self._clock = clock
+        self._tokens: dict[str, float] = {}            # sha256(token) -> paired at
+        self._misses: dict[str, list[float]] = {}      # device address -> times of wrong tries
+        self._missed_overall = 0
+        self.pin = self._new_pin()
+
+    def _new_pin(self) -> str:
+        self._missed_overall = 0
+        return f"{secrets.randbelow(10 ** self.DIGITS):0{self.DIGITS}d}"
+
+    @staticmethod
+    def _hash(token: str) -> str:
+        return hashlib.sha256(token.encode("utf-8", "replace")).hexdigest()
+
+    def knows(self, token: str | None) -> bool:
+        return bool(token) and self._hash(token) in self._tokens
+
+    def enter(self, pin: object, device: str) -> str | None:
+        """Try a PIN for the device at this address. Returns the token for the
+        device, ``None`` for a wrong PIN; raises :class:`TooManyAttempts`."""
+        now = self._clock()
+        misses = [t for t in self._misses.get(device, []) if now - t < self.WINDOW_S]
+        if len(misses) >= self.PER_DEVICE:
+            self._misses[device] = misses
+            raise TooManyAttempts
+        if isinstance(pin, str) and hmac.compare_digest(pin.strip().encode(), self.pin.encode()):
+            self._misses.pop(device, None)
+            token = secrets.token_urlsafe(32)
+            if len(self._tokens) >= self.MAX_DEVICES:
+                self._tokens.pop(min(self._tokens, key=self._tokens.get))
+            self._tokens[self._hash(token)] = now
+            return token
+        misses.append(now)
+        self._misses[device] = misses
+        if len(self._misses) > 500:                    # forget devices that stopped trying
+            self._misses = {d: ts for d, ts in self._misses.items() if ts and now - ts[-1] < self.WINDOW_S}
+        self._missed_overall += 1
+        if self._missed_overall >= self.OVERALL:
+            self.pin = self._new_pin()                 # somebody is guessing: the old PIN is void
+        return None
+
+    def forget(self, token: str | None) -> None:
+        if token:
+            self._tokens.pop(self._hash(token), None)
+
+    def reset(self) -> str:
+        """New PIN, and every paired device has to pair again."""
+        self._tokens.clear()
+        self._misses.clear()
+        self.pin = self._new_pin()
+        return self.pin
+
+    @property
+    def devices(self) -> int:
+        return len(self._tokens)

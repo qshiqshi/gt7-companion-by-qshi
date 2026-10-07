@@ -18,6 +18,7 @@ DEFAULTS: dict = {
     "ps5_ip": "",            # empty: the console is searched in the home network
     "packet": "C",           # heartbeat letter A, B or C; C carries the most data
     "telemetry_hz": 12,      # updates per second that are sent to the screens
+    "lan": False,            # other devices in the home network may open the dashboard
 }
 
 
@@ -47,7 +48,14 @@ def _telemetry_hz(value) -> int:
     return int(max(1, min(60, value)))
 
 
-_CHECKS = {"source": _source, "ps5_ip": _ps5_ip, "packet": _packet, "telemetry_hz": _telemetry_hz}
+def _flag(value) -> bool:
+    if not isinstance(value, bool):
+        raise ValueError("must be true or false")
+    return value
+
+
+_CHECKS = {"source": _source, "ps5_ip": _ps5_ip, "packet": _packet, "telemetry_hz": _telemetry_hz,
+           "lan": _flag}
 
 
 class Settings:

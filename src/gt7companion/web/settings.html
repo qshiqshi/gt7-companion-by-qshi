@@ -1,0 +1,72 @@
+<!DOCTYPE html>
+<html lang="de">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Einstellungen – Gran Turismo 7 Companion by qshi</title>
+<meta name="theme-color" content="#0b0b0e">
+<link rel="icon" type="image/png" sizes="32x32" href="/static/icons/favicon-32.png">
+<link rel="stylesheet" href="/static/css/pages.css">
+</head>
+<body>
+<main>
+  <header class="top">
+    <span class="brand">GT7 Companion by qshi</span>
+    <nav>
+      <a class="button" href="/">Zum Dashboard</a>
+      <a class="button" href="/connect">Geräte verbinden</a>
+    </nav>
+  </header>
+  <h1>Einstellungen</h1>
+  <p class="lead">Änderungen gelten sofort, wenn nichts anderes dabeisteht.</p>
+
+  <p class="note error" id="locked" hidden>Auf diesem Gerät lassen sich die Einstellungen erst nach dem Koppeln ändern. <a class="button" href="/connect?next=/settings">Koppeln</a></p>
+
+  <form id="form" hidden>
+    <section class="card">
+      <h2>Woher kommen die Daten?</h2>
+      <label class="field">
+        <span>Quelle</span>
+        <select id="source">
+          <option value="demo">Demo-Runde (ohne PlayStation)</option>
+          <option value="live">PlayStation im Heimnetz</option>
+        </select>
+      </label>
+      <p class="note" id="source-state" role="status" hidden></p>
+      <label class="field">
+        <span>Adresse der PlayStation</span>
+        <input id="ps5_ip" type="text" inputmode="decimal" placeholder="wird automatisch gesucht" autocomplete="off" spellcheck="false">
+        <small>Leer lassen: Die Konsole wird im Heimnetz gesucht und die Adresse hier eingetragen. Zu finden auch auf der PlayStation unter Einstellungen → Netzwerk → Verbindungsstatus.</small>
+      </label>
+      <label class="field">
+        <span>Umfang der Daten</span>
+        <select id="packet">
+          <option value="C">Alles (mit Untergrund, Lenkung, Fahrzeugklasse)</option>
+          <option value="B">Mittel (mit Lenkung)</option>
+          <option value="A">Grunddaten</option>
+        </select>
+        <small>Nur ändern, wenn mit „Alles“ keine Daten ankommen.</small>
+      </label>
+    </section>
+
+    <section class="card">
+      <h2>Andere Geräte</h2>
+      <label class="check">
+        <input id="lan" type="checkbox">
+        <span>Dashboard im Heimnetz freigeben
+          <small>Tablets und andere Geräte in deinem WLAN können das Dashboard dann öffnen. Gilt nach einem Neustart des Programms.</small>
+        </span>
+      </label>
+      <p class="note warn" id="restart" hidden>Starte das Programm neu, damit die geänderte Freigabe gilt.</p>
+    </section>
+
+    <div class="row">
+      <button class="primary" type="submit">Speichern</button>
+      <span class="muted" id="result" role="status"></span>
+    </div>
+  </form>
+  <p class="note error" id="offline" hidden>Das Programm ist nicht erreichbar.</p>
+</main>
+<script type="module" src="/static/js/pages/settings.js"></script>
+</body>
+</html>

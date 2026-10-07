@@ -17,6 +17,7 @@ dependencies = [
     "pycryptodome>=3.20",
     "platformdirs>=4",
     "ifaddr>=0.2",
+    "segno>=1.6",
 ]
 
 [project.optional-dependencies]

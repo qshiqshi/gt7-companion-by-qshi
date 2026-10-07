@@ -22,9 +22,9 @@ await import('./viewer.js');
 if (IS_EDITOR) {
   await loadScript('/static/vendor/interact.min.js');      // dragging; only the editor needs it
   await import('./editor.js');
-  /* Only the computer the program runs on may edit; everyone else gets the dashboard. */
+  /* Editing needs this computer or a paired device; everyone else is sent to pairing. */
   onTopic('hello', function(d) {
-    if (d && d.role !== 'owner') location.replace(urlFor('view'));
+    if (d && d.role !== 'owner' && d.role !== 'editor') location.replace('/connect?next=' + encodeURIComponent(urlFor('edit')));
   });
 }
 

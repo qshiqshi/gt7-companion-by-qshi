@@ -5,13 +5,17 @@ import time, so tests can create as many independent apps as they like.
 """
 from __future__ import annotations
 
+import base64
+import hashlib
+import io
 import json
 import logging
+import re
 from contextlib import asynccontextmanager
 from dataclasses import dataclass
 
 from fastapi import FastAPI, HTTPException, Request, WebSocket, WebSocketDisconnect
-from fastapi.responses import FileResponse, JSONResponse, PlainTextResponse
+from fastapi.responses import FileResponse, JSONResponse, PlainTextResponse, Response
 from fastapi.staticfiles import StaticFiles
 
 from . import APP_NAME, __version__
@@ -19,8 +23,9 @@ from .bus import EventBus
 from .detectors import DetectorSuite
 from .hub import Hub
 from .layouts import DEFAULT_LAYOUT, MAX_BYTES, LayoutError, LayoutStore
+from .netinfo import local_addresses
 from .paths import WEB
-from .security import OWNER, host_allowed, role_of, same_origin
+from .security import COOKIE, OWNER, Pairing, TooManyAttempts, host_allowed, may_edit, role_of, same_origin
 from .settings import Settings
 from .sources import Sources
 from .ws_manager import ConnectionManager
@@ -37,6 +42,30 @@ TEST_MESSAGES: dict[str, dict] = {
     "surface_sweep": {},               # every surface colour runs once around the car
 }
 _NO_STORE = {"Cache-Control": "no-store"}
+_PAGES = {"/": "index.html", "/connect": "connect.html", "/settings": "settings.html"}
+
+
+def _content_security_policy() -> str:
+    """Pages may only load what the program itself serves. The one inline script
+    (the import map for three.js) is allowed by its hash."""
+    hashes = []
+    for name in _PAGES.values():
+        try:
+            text = (WEB / name).read_text(encoding="utf-8")
+        except OSError:
+            continue
+        for inline in re.findall(r'<script type="importmap">(.*?)</script>', text, flags=re.S):
+            digest = base64.b64encode(hashlib.sha256(inline.encode("utf-8")).digest()).decode("ascii")
+            hashes.append(f"'sha256-{digest}'")
+    return "; ".join([
+        "default-src 'self'",
+        "script-src 'self' " + " ".join(sorted(set(hashes))),
+        "style-src 'self' 'unsafe-inline'",          # widgets are positioned through style attributes
+        "img-src 'self' data: blob:",
+        "connect-src 'self' ws: wss:",
+        "worker-src 'self' blob:",
+        "object-src 'none'", "base-uri 'none'", "form-action 'self'", "frame-ancestors 'self'",
+    ])
 
 
 @dataclass
@@ -48,18 +77,21 @@ class Companion:
     manager: ConnectionManager
     hub: Hub
     sources: Sources
+    pairing: Pairing
 
     def status(self) -> dict:
         return self.hub.status()
 
 
 def create_app(settings: Settings | None = None, *, layouts: LayoutStore | None = None,
-               source: str | None = None, lan: bool = False,
+               source: str | None = None, lan: bool = False, port: int = 8707,
                ports: tuple[int, int] | None = None) -> FastAPI:
     """Build the application.
 
     ``source`` overrides the stored setting for this run ("demo" or "live");
-    ``lan`` only tells the pages whether other devices can reach them.
+    ``lan`` and ``port`` tell the pages how other devices reach them (the
+    caller does the actual listening); ``ports`` are the UDP ports of the
+    console and only differ in tests.
     """
     settings = settings or Settings()
     bus = EventBus()
@@ -72,7 +104,7 @@ def create_app(settings: Settings | None = None, *, layouts: LayoutStore | None 
         hub.reset(first_lap_complete=kind == "demo")
 
     companion = Companion(settings=settings, layouts=layouts or LayoutStore(), bus=bus,
-                          manager=manager, hub=hub,
+                          manager=manager, hub=hub, pairing=Pairing(),
                           sources=Sources(bus, settings, on_switch=new_session,
                                           **({"ports": ports} if ports else {})))
     hub.status_info = companion.sources.status
@@ -89,6 +121,10 @@ def create_app(settings: Settings | None = None, *, layouts: LayoutStore | None 
                   docs_url=None, redoc_url=None, openapi_url=None)
     app.state.companion = companion
     app.state.lan = lan
+    app.state.port = port
+    pairing = companion.pairing
+    security_headers = {"Content-Security-Policy": _content_security_policy(),
+                        "X-Content-Type-Options": "nosniff", "Referrer-Policy": "no-referrer"}
 
     @app.middleware("http")
     async def guard(request: Request, call_next):
@@ -100,11 +136,20 @@ def create_app(settings: Settings | None = None, *, layouts: LayoutStore | None 
         if request.url.path.startswith("/static/"):
             # Files change with every update; the browser may keep them but must ask first.
             response.headers["Cache-Control"] = "no-cache"
+        for header, value in security_headers.items():
+            response.headers.setdefault(header, value)
         return response
 
+    def who(connection) -> str:
+        return role_of(connection, pairing)
+
     def require_owner(request: Request) -> None:
-        if role_of(request) != OWNER:
+        if who(request) != OWNER:
             raise HTTPException(status_code=403, detail="Only possible on the computer running the program.")
+
+    def require_edit(request: Request) -> None:
+        if not may_edit(who(request)):
+            raise HTTPException(status_code=403, detail="This device has to be paired first.")
 
     def layout_name(name: str | None) -> str:
         name = name or DEFAULT_LAYOUT
@@ -117,10 +162,18 @@ def create_app(settings: Settings | None = None, *, layouts: LayoutStore | None 
     async def index():
         return FileResponse(WEB / "index.html", headers=_NO_STORE)
 
+    @app.get("/connect")
+    async def connect_page():
+        return FileResponse(WEB / "connect.html", headers=_NO_STORE)
+
+    @app.get("/settings")
+    async def settings_page():
+        return FileResponse(WEB / "settings.html", headers=_NO_STORE)
+
     # -------------------------------------------------------------------- api
     @app.get("/api/status")
     async def status(request: Request):
-        return JSONResponse({"app": APP_NAME, "version": __version__, "role": role_of(request),
+        return JSONResponse({"app": APP_NAME, "version": __version__, "role": who(request),
                              "lan": bool(app.state.lan), "screens": manager.count,
                              **companion.status()}, headers=_NO_STORE)
 
@@ -132,7 +185,7 @@ def create_app(settings: Settings | None = None, *, layouts: LayoutStore | None 
     @app.post("/api/layouts")
     async def create_layout(request: Request):
         """A new layout of the user's own, as a copy of an existing one."""
-        require_owner(request)
+        require_edit(request)
         try:
             body = await request.json()
             name, source = body.get("name"), body.get("copy_of") or DEFAULT_LAYOUT
@@ -145,7 +198,7 @@ def create_app(settings: Settings | None = None, *, layouts: LayoutStore | None 
 
     @app.delete("/api/layouts/{name}")
     async def delete_layout(name: str, request: Request):
-        require_owner(request)
+        require_edit(request)
         try:
             companion.layouts.delete(name)
         except KeyError:
@@ -158,10 +211,92 @@ def create_app(settings: Settings | None = None, *, layouts: LayoutStore | None 
     async def get_layout(name: str | None = None):
         return JSONResponse(companion.layouts.get(layout_name(name)), headers=_NO_STORE)
 
+    # -------------------------------------------------- other devices: connect and pair
+    def reach() -> dict:
+        addresses = local_addresses() if app.state.lan else []
+        return {"lan": bool(app.state.lan), "lan_setting": settings["lan"], "port": app.state.port,
+                "addresses": addresses, "urls": [f"http://{address}:{app.state.port}/" for address in addresses]}
+
+    @app.get("/api/connect")
+    async def connect_info(request: Request):
+        """How other devices reach the dashboard, and the PIN to pair them (shown on this computer only)."""
+        require_owner(request)
+        return JSONResponse({**reach(), "pin": pairing.pin, "devices": pairing.devices}, headers=_NO_STORE)
+
+    @app.get("/api/connect/qr.svg")
+    async def connect_qr(request: Request, address: str):
+        require_owner(request)
+        if address not in local_addresses():
+            raise HTTPException(status_code=404, detail="Not an address of this computer.")
+        import segno
+
+        picture = io.BytesIO()
+        segno.make(f"http://{address}:{app.state.port}/", error="m").save(
+            picture, kind="svg", scale=8, border=2, dark="#000000", light="#ffffff", xmldecl=False)
+        return Response(picture.getvalue(), media_type="image/svg+xml", headers=_NO_STORE)
+
+    @app.post("/api/pair")
+    async def pair(request: Request):
+        """A device enters the PIN and may edit from then on."""
+        try:
+            pin = (await request.json()).get("pin")
+        except (ValueError, AttributeError):
+            raise HTTPException(status_code=400, detail="A PIN is needed.") from None
+        device = request.client.host if request.client else "unknown"
+        try:
+            token = pairing.enter(pin, device)
+        except TooManyAttempts:
+            raise HTTPException(status_code=429, detail="Too many wrong PINs. Wait a few minutes.") from None
+        if token is None:
+            raise HTTPException(status_code=403, detail="Wrong PIN.")
+        response = JSONResponse({"ok": True, "role": "editor"}, headers=_NO_STORE)
+        response.set_cookie(COOKIE, token, max_age=30 * 24 * 3600, httponly=True, samesite="strict", path="/")
+        return response
+
+    @app.post("/api/unpair")
+    async def unpair(request: Request):
+        pairing.forget(request.cookies.get(COOKIE))
+        response = JSONResponse({"ok": True}, headers=_NO_STORE)
+        response.delete_cookie(COOKIE, path="/")
+        return response
+
+    @app.post("/api/pairing/reset")
+    async def reset_pairing(request: Request):
+        """New PIN; every paired device has to pair again."""
+        require_owner(request)
+        pairing.reset()
+        return JSONResponse({"ok": True, "pin": pairing.pin, "devices": 0}, headers=_NO_STORE)
+
+    # ----------------------------------------------------------------- settings
+    def settings_view() -> dict:
+        return {**settings.as_dict(), "restart_required": settings["lan"] != bool(app.state.lan),
+                **{key: value for key, value in companion.status().items() if key != "telemetry_connected"}}
+
+    @app.get("/api/settings")
+    async def get_settings(request: Request):
+        require_edit(request)
+        return JSONResponse(settings_view(), headers=_NO_STORE)
+
+    @app.post("/api/settings")
+    async def post_settings(request: Request):
+        require_edit(request)
+        try:
+            changes = await request.json()
+            if not isinstance(changes, dict):
+                raise ValueError("settings must be an object")
+            before = settings.as_dict()
+            settings.update(changes)
+        except (ValueError, TypeError) as error:
+            raise HTTPException(status_code=400, detail=str(error) or "Invalid settings.") from None
+        if any(before[key] != settings[key] for key in ("source", "ps5_ip", "packet")):
+            await companion.sources.use(settings["source"])       # applies at once
+            await hub.announce_status()
+        return JSONResponse(settings_view(), headers=_NO_STORE)
+
     @app.post("/api/source")
     async def set_source(request: Request):
         """Switch between the demo lap and the real console; the choice is remembered."""
-        require_owner(request)
+        require_edit(request)
         try:
             wanted = (await request.json()).get("source")
             settings.update({"source": wanted})
@@ -179,7 +314,7 @@ def create_app(settings: Settings | None = None, *, layouts: LayoutStore | None 
     @app.post("/api/test/{kind}")
     async def test_message(kind: str, request: Request):
         """Show a sample message on all screens (for arranging and checking a layout)."""
-        require_owner(request)
+        require_edit(request)
         if kind not in TEST_MESSAGES:
             raise HTTPException(status_code=404, detail="No such test.")
         await hub.show(kind, TEST_MESSAGES[kind])
@@ -187,7 +322,7 @@ def create_app(settings: Settings | None = None, *, layouts: LayoutStore | None 
 
     @app.post("/api/layout")
     async def post_layout(request: Request, name: str | None = None):
-        require_owner(request)
+        require_edit(request)
         name = layout_name(name)
         body = await request.body()
         if len(body) > MAX_BYTES:
@@ -202,7 +337,7 @@ def create_app(settings: Settings | None = None, *, layouts: LayoutStore | None 
 
     @app.post("/api/layout/reset")
     async def reset_layout(request: Request, name: str | None = None):
-        require_owner(request)
+        require_edit(request)
         name = layout_name(name)
         try:
             layout = companion.layouts.reset(name)
@@ -218,7 +353,7 @@ def create_app(settings: Settings | None = None, *, layouts: LayoutStore | None 
         if not host_allowed(ws) or not same_origin(ws):
             await ws.close(code=1008)
             return
-        role = role_of(ws)
+        role = who(ws)
         name = ws.query_params.get("layout") or DEFAULT_LAYOUT
         if not companion.layouts.exists(name):
             name = DEFAULT_LAYOUT
@@ -242,11 +377,11 @@ def create_app(settings: Settings | None = None, *, layouts: LayoutStore | None 
                 topic = incoming.get("topic")
                 if topic == "ping":
                     await manager.send(ws, "pong", {})
-                elif topic == "test_event" and role == OWNER:
+                elif topic == "test_event" and may_edit(who(ws)):
                     kind = incoming.get("type")
                     if kind in TEST_MESSAGES:
                         await hub.show(kind, TEST_MESSAGES[kind])
-                elif topic == "layout_save" and role == OWNER:
+                elif topic == "layout_save" and may_edit(who(ws)):
                     try:
                         layout = companion.layouts.save(name, incoming.get("data"))
                     except LayoutError as error:
