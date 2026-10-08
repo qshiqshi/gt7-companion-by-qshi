@@ -35,9 +35,17 @@ interface (`tests/test_live.py`), the voice service by a small server speaking i
   live connection, `security.py` decides who may do what.
 - `src/gt7companion/web/` is the page, without a build step: ES modules in `static/js/`.
   Widgets sit on a stage of fixed size that is scaled as a whole (`stage.js`).
-- `src/gt7companion/engineer/` is the Box.
+- `src/gt7companion/engineer/` is the Box: `engine.py` queues and speaks, `live.py` is the
+  conversation with Gemini, `local.py` the Box on a Mac alone. For the latter a small Swift
+  program does what only Swift can reach (`native/box-helper`, built by
+  `python tools/build_box_helper.py`); tests use a stand-in for it (`tests/fake_box_helper.py`).
+- `launcher.py` and `window.py` are the app: the window, the symbol, the menus.
+  `packaging/build.py` packs it (see the notes in that file).
 - Layout presets are written by `tools/make_presets.py`, the two typefaces by the scripts in
-  `tools/fonts/`, the 3D models by the scripts in `tools/blender/`.
+  `tools/fonts/`, the 3D models by the scripts in `tools/blender/`, the app icon by
+  `tools/make_app_icon.py`.
+- No console at hand? `python tools/fake_console.py` stands in for one on this computer and
+  sends the demo lap as real packets.
 
 ## Texts
 

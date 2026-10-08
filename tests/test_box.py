@@ -4,6 +4,7 @@ import base64
 import io
 import json
 import logging
+import os
 import struct
 import tempfile
 import unittest
@@ -192,7 +193,8 @@ class KeyStoreTests(unittest.TestCase):
             self.assertFalse(path.exists())
             store.set(f"  {KEY}\n")
             self.assertTrue(store.has_key)
-            self.assertEqual(path.stat().st_mode & 0o777, 0o600)
+            if os.name == "posix":                        # Windows has no such file modes; the user folder is private there
+                self.assertEqual(path.stat().st_mode & 0o777, 0o600)
             self.assertEqual(KeyStore(path).reveal(), KEY)
             self.assertNotIn(KEY, repr(store) + str(store) + repr(vars(type(store))))
             for bad in ("", "   ", None, 5, "two words", "x" * 300, "line\nbreak", ["k"]):
@@ -601,7 +603,8 @@ class BoxOverTheWeb(AppCase):
         seen.append(repr(self.app.state.companion.engineer.keys) + repr(self.app.state.companion.engineer.status()))
         self.assertNotIn(KEY, "\n".join(seen))
         self.assertIn(KEY, (self.home / "secrets.json").read_text())           # only here
-        self.assertEqual((self.home / "secrets.json").stat().st_mode & 0o777, 0o600)
+        if os.name == "posix":
+            self.assertEqual((self.home / "secrets.json").stat().st_mode & 0o777, 0o600)
         cleared = client.post("/api/box/key", json={"key": ""})
         self.assertEqual((cleared.json()["has_key"], cleared.json()["state"]), (False, "no_key"))
         self.assertFalse((self.home / "secrets.json").exists())

@@ -1,6 +1,7 @@
 """Settings, layouts on disk, network helpers, access rules – everything without the web app."""
 import ipaddress
 import json
+import os
 import tempfile
 import unittest
 from pathlib import Path
@@ -52,7 +53,8 @@ class SettingsTests(Folder):
         write_atomic(target, '{"a": 1}', private=True)
         self.assertEqual(target.read_text(), '{"a": 1}')
         self.assertEqual([p.name for p in target.parent.iterdir()], ["secret.json"])
-        self.assertEqual(target.stat().st_mode & 0o777, 0o600)
+        if os.name == "posix":                            # Windows has no such file modes
+            self.assertEqual(target.stat().st_mode & 0o777, 0o600)
 
 
 class LayoutTests(Folder):

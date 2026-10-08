@@ -3,7 +3,8 @@
     python packaging/build.py              needs uv (https://docs.astral.sh/uv/)
 
 macOS      dist/GT7 Companion by qshi.app
-Windows    dist/gt7companion/           the program in a folder
+Windows    dist/gt7companion/           the program in a folder, and the same as
+           dist/GT7-Companion-by-qshi-windows-x64.zip to pass on
 
 The build has an environment of its own in build/venv-<system>, with a Python that uv
 downloads (python-build-standalone). Unlike the Python of Homebrew, which is built for
@@ -40,6 +41,7 @@ PYTHON = {"mac": "3.13", "windows": "cpython-3.13-windows-x86_64-none"}.get(SYST
 MINIMUM_MACOS = "14.0"                   # the oldest macOS the app claims to run on (LSMinimumSystemVersion)
 PRODUCT = "GT7 Companion by qshi"        # name of the app and the disk image, as in gt7companion.launcher
 DISK_IMAGE = "GT7-Companion-by-qshi-mac-arm64.dmg"     # no spaces: the name survives a download link
+WINDOWS_ZIP = "GT7-Companion-by-qshi-windows-x64.zip"
 BOX_HELPER = "gt7c-box"                  # the Box on the Mac alone; built for macOS 26, the app runs without it before
 ENTITLEMENTS = ROOT / "packaging" / "entitlements.plist"
 _MACH_O = {b"\xcf\xfa\xed\xfe", b"\xfe\xed\xfa\xcf", b"\xca\xfe\xba\xbe", b"\xca\xfe\xba\xbf"}
@@ -157,6 +159,19 @@ def disk_image(app: Path, identity: str | None) -> Path:
     return image
 
 
+def windows_zip(folder: Path) -> Path:
+    """The program folder as one file to pass on; unpacked it is a folder with the program inside."""
+    import zipfile
+
+    target = DIST / WINDOWS_ZIP
+    target.unlink(missing_ok=True)
+    with zipfile.ZipFile(target, "w", zipfile.ZIP_DEFLATED, compresslevel=9) as archive:
+        for path in sorted(folder.rglob("*")):
+            if path.is_file():
+                archive.write(path, (Path(PRODUCT) / path.relative_to(folder)).as_posix())
+    return target
+
+
 def main(argv: list[str] | None = None) -> int:
     parser = argparse.ArgumentParser(description=__doc__.split("\n\n")[0])
     parser.add_argument("--here", action="store_true", help="use the Python that runs this script")
@@ -210,6 +225,8 @@ def main(argv: list[str] | None = None) -> int:
             if args.notarize:
                 notarize(image, args.notarize)
             print(f"\n{image.relative_to(ROOT)}")
+    elif SYSTEM == "windows":
+        print(f"\n{windows_zip(DIST / 'gt7companion').relative_to(ROOT)}")
     else:
         print(f"\n{(DIST / 'gt7companion').relative_to(ROOT)}")
     return 0
