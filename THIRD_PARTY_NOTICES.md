@@ -28,8 +28,17 @@ were modelled for this project by the scripts in `tools/blender/`; the rev band
 | segno | BSD-3-Clause |
 | pystray (optional, app) | LGPL-3.0 |
 | Pillow (optional, app) | MIT-CMU (HPND) |
+| pywebview (optional, window) | BSD-3-Clause |
+| Bottle, proxy_tools, typing_extensions (with pywebview) | MIT / MIT / PSF-2.0 |
+| PyObjC (macOS, with pywebview and pystray) | MIT |
+| Python.NET, clr-loader, cffi, pycparser (Windows, with pywebview) | MIT / MIT / MIT / BSD-3-Clause |
 | sounddevice (optional, Box) and PortAudio | MIT |
 | mlx-whisper or faster-whisper (optional, "Hey Box") and the Whisper model by OpenAI | MIT |
+
+Packaged builds also contain the Python runtime (PSF-2.0) as built by the project
+python-build-standalone, together with the libraries it is linked with (among them OpenSSL,
+Apache-2.0, and SQLite, public domain), and the start-up code of PyInstaller (GPL-2.0-or-later
+with an exception that allows any licence for the packaged program).
 
 ## How the telemetry is read
 

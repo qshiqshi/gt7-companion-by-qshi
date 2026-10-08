@@ -10,17 +10,17 @@ import hashlib
 import io
 import asyncio
 import json
-import locale
 import logging
 import re
 from contextlib import asynccontextmanager
 from dataclasses import dataclass
+from typing import Callable
 
 from fastapi import FastAPI, HTTPException, Request, WebSocket, WebSocketDisconnect
 from fastapi.responses import FileResponse, JSONResponse, PlainTextResponse, Response
 from fastapi.staticfiles import StaticFiles
 
-from . import APP_NAME, __version__
+from . import APP_NAME, __version__, system
 from .bus import EventBus
 from .detectors import DetectorSuite
 from .engineer.announcer import KINDS as BOX_KINDS, Announcer
@@ -92,13 +92,15 @@ class Companion:
 def create_app(settings: Settings | None = None, *, layouts: LayoutStore | None = None,
                source: str | None = None, lan: bool = False, port: int = 8707,
                ports: tuple[int, int] | None = None, keys: KeyStore | None = None,
-               box_url: str | None = None, speaker=None, microphone=None, transcriber=None) -> FastAPI:
+               box_url: str | None = None, speaker=None, microphone=None, transcriber=None,
+               show_window: Callable[[], bool] | None = None) -> FastAPI:
     """Build the application.
 
     ``source`` overrides the stored setting for this run ("demo" or "live");
     ``lan`` and ``port`` tell the pages how other devices reach them (the
     caller does the actual listening); ``ports`` are the UDP ports of the
-    console and only differ in tests.
+    console and only differ in tests; ``show_window`` brings the window of
+    the program to the front and tells whether there is one.
     """
     settings = settings or Settings()
     bus = EventBus()
@@ -113,13 +115,9 @@ def create_app(settings: Settings | None = None, *, layouts: LayoutStore | None 
         except RuntimeError:
             pass                                    # no loop yet: nobody is listening anyway
 
-    try:
-        system_language = "de" if (locale.getlocale()[0] or "").lower().startswith("de") else "en"
-    except ValueError:
-        system_language = "en"
     engineer = Engineer(settings, keys or KeyStore(), speaker=speaker, microphone=microphone,
                         transcriber=transcriber, on_change=box_changed,
-                        device_language=system_language, **({"url": box_url} if box_url else {}))
+                        device_language=system.language(), **({"url": box_url} if box_url else {}))
     announcer = Announcer(bus, engineer)
     engineer.session_status = hub.facts
 
@@ -217,6 +215,13 @@ def create_app(settings: Settings | None = None, *, layouts: LayoutStore | None 
         return JSONResponse({"app": APP_NAME, "version": __version__, "role": who(request),
                              "lan": bool(app.state.lan), "screens": manager.count,
                              **companion.status()}, headers=_NO_STORE)
+
+    @app.post("/api/app/show")
+    async def show_app(request: Request):
+        """A second start of the program asks the running one to show its window."""
+        require_owner(request)
+        shown = bool(show_window is not None and show_window())
+        return JSONResponse({"app": APP_NAME, "window": shown}, headers=_NO_STORE)
 
     @app.get("/api/prefs.js")
     async def prefs():

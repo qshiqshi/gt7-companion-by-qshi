@@ -7,6 +7,7 @@ from pathlib import Path
 from fastapi.testclient import TestClient
 from starlette.websockets import WebSocketDisconnect
 
+from gt7companion import APP_NAME
 from gt7companion.app import create_app
 from gt7companion.keystore import KeyStore
 from gt7companion.layouts import DEFAULT_LAYOUT, LayoutStore
@@ -292,6 +293,27 @@ class WhoMayWrite(AppCase):
                 pass
         with client.websocket_connect(live, headers={"Origin": BASE}) as ws:
             self.assertEqual(ws.receive_json()["topic"], "hello")
+
+
+class ProgramWindow(AppCase):
+    def app_options(self) -> dict:
+        self.shown = []
+        return {"show_window": lambda: self.shown.append("shown") or True}
+
+    def test_only_this_computer_may_bring_the_window_to_the_front(self):
+        tablet = self.client(TABLET, base="http://192.168.1.20:8707")
+        self.assertEqual(tablet.post("/api/app/show").status_code, 403)
+        self.assertEqual(self.client().post("/api/app/show", headers={"Origin": "https://evil.example"}).status_code,
+                         403)
+        self.assertEqual(self.shown, [])
+        reply = self.client().post("/api/app/show")
+        self.assertEqual((reply.status_code, reply.json()), (200, {"app": APP_NAME, "window": True}))
+        self.assertEqual(self.shown, ["shown"])
+
+
+class ProgramWithoutWindow(AppCase):
+    def test_a_program_without_a_window_says_so(self):
+        self.assertEqual(self.client().post("/api/app/show").json(), {"app": APP_NAME, "window": False})
 
 
 if __name__ == "__main__":

@@ -4,6 +4,7 @@ import { t } from './i18n.js';
 import { IS_VIEW, layoutLabel, layoutName, layouts, switchLayout, urlFor } from './modes.js';
 import { onTopic, role, wsConnected, wsSend } from './net.js';
 import { setSound, soundOn, wantsSound } from './audio.js';
+import { screenKeeper } from './awake.js';
 
 const wait = document.getElementById('wait');
 const menu = document.getElementById('view-menu');
@@ -16,6 +17,7 @@ if (IS_VIEW && wait && menu) {
   let status = {};
   let lastFrameAt = 0;
   let everConnected = false;
+  const keepAwake = screenKeeper(navigator, document);     // the screen stays on while the console sends data
 
   function render() {
     const fresh = Date.now() - lastFrameAt < 4000;
@@ -37,6 +39,7 @@ if (IS_VIEW && wait && menu) {
     title.textContent = head;
     text.textContent = body;
     wait.hidden = !head;
+    keepAwake(wsConnected && fresh && status.source === 'live');
   }
 
   onTopic('_ws_status', function(d) {
