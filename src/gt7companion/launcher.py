@@ -157,10 +157,22 @@ def _icon_image():
     size = 64
     image = Image.new("RGBA", (size, size), (0, 0, 0, 0))
     draw = ImageDraw.Draw(image)
+    if sys.platform != "darwin":
+        # A task bar may be light or dark: the light drawing gets a dark tile of its own.
+        # (macOS recolours the drawing itself, see _follow_menu_bar.)
+        draw.rounded_rectangle((0, 0, size - 1, size - 1), radius=14, fill=(16, 16, 20, 255))
     draw.arc((6, 10, 58, 62), start=200, end=340, fill=(242, 242, 242, 255), width=7)
     draw.arc((6, 10, 58, 62), start=200, end=245, fill=(225, 6, 0, 255), width=7)
     draw.ellipse((26, 38, 38, 50), fill=(242, 242, 242, 255))
     return image
+
+
+def _follow_menu_bar(icon) -> None:
+    """macOS: let the system colour the symbol, dark on a light menu bar and light on a dark one."""
+    if sys.platform == "darwin":
+        image = getattr(icon, "_icon_image", None)       # pystray keeps the picture it handed to the menu bar here
+        if image is not None:
+            image.setTemplate_(True)
 
 
 def _tray_icon(entries: list[Entry | None]):
@@ -189,8 +201,13 @@ def run_with_tray(server: Server, *, open_browser: bool = True) -> int:
                            notify=lambda message: icon.notify(message, APP_NAME)))
     if open_browser:
         threading.Timer(0.5, webbrowser.open, args=(server.url,)).start()
+
+    def show(icon) -> None:
+        icon.visible = True
+        _follow_menu_bar(icon)
+
     try:
-        icon.run()                       # blocks in the main thread, as the operating systems require
+        icon.run(setup=show)             # blocks in the main thread, as the operating systems require
     finally:
         server.stop()
     return 0
@@ -223,6 +240,7 @@ def run_with_window(server: Server, *, show: bool = True) -> int:
         if sys.platform == "darwin":
             icon.run_detached(setup=lambda _icon: None)       # one loop for both: the window's, in this thread
             icon.visible = True
+            _follow_menu_bar(icon)
         else:
             icon.run_detached()                               # pystray brings a thread of its own
     except ImportError:
