@@ -2,8 +2,27 @@
 
 *English: [INSTALL.md](INSTALL.md)*
 
-Du brauchst einen Mac oder Windows-PC im selben Heimnetz wie deine PlayStation und etwa zehn
-Minuten. Außerhalb des Programmordners wird nichts installiert (außer Python selbst).
+Du brauchst einen Mac oder Windows-PC im selben Heimnetz wie deine PlayStation.
+
+## Mac: die App (der kurze Weg)
+
+Für Macs mit Apple-Chip und macOS 14 oder neuer gibt es das Programm als fertige App – ohne
+Python, ohne Terminal:
+
+1. [GT7-Companion-by-qshi-mac-arm64.dmg](https://github.com/qshiqshi/gt7-companion-by-qshi/releases/latest/download/GT7-Companion-by-qshi-mac-arm64.dmg) laden und öffnen.
+2. Die App in den Ordner „Programme“ ziehen und von dort starten.
+3. Ein Fenster zeigt das Dashboard mit einer Demo-Runde. Weiter geht es bei
+   [4. PlayStation verbinden](#4-playstation-verbinden).
+
+Das Fenster zu schließen beendet die App nicht: Tablets und OBS bekommen weiter ihre Daten. Ein
+Klick auf das Symbol im Dock oder oben rechts in der Menüleiste holt das Fenster zurück; beendet
+wird mit ⌘Q oder über das Symbol → **Beenden**.
+
+## Windows, oder aus dem Quelltext
+
+Die Schritte 1 bis 3 sind für Windows und für alle, die das Programm lieber aus dem Quelltext
+starten. Sie dauern etwa zehn Minuten; außerhalb des Programmordners wird nichts installiert
+(außer Python selbst).
 
 > Die Mac-Schritte sind auf einem Mac mit Apple-Chip durchgelaufen. **Die Windows-Schritte
 > sind ungetestet** – sie sollten funktionieren, aber noch niemand hat sie an einem echten
@@ -83,35 +102,51 @@ http://127.0.0.1:8707/?obs=1
 
 ## 7. Die Box – Renningenieur am Funk (wer mag)
 
+**In der Mac-App (ab macOS 26)** braucht die Box nichts weiter: Symbol → **Einstellungen** →
+*Die Box*: **Ansagen einschalten** ankreuzen, **Speichern**, dann **Probeansage**. Stimme,
+Spracherkennung und Antworten kommen vom Mac selbst – ohne Internet, ohne Schlüssel, ohne
+Kosten.
+
+**Überall sonst – oder wenn du es so wählst – spricht Gemini von Google:**
+
 1. In Google AI Studio (<https://aistudio.google.com/>) einen API-Schlüssel holen. Die Nutzung
    kostet Geld; Google rechnet über dein Konto ab.
-2. Symbol → **Einstellungen** → *Die Box*: **Ansagen einschalten** ankreuzen, den Schlüssel
-   einfügen, **Schlüssel speichern**, dann **Prüfen** und **Probeansage**.
+2. Symbol → **Einstellungen** → *Die Box*: **Ansagen einschalten** ankreuzen, unter *Wer
+   spricht?* **Gemini von Google** wählen, **Speichern**. Dann den Schlüssel einfügen,
+   **Schlüssel speichern**, **Prüfen** und **Probeansage**.
 
 <img src="images/de/settings-box.png" width="360" alt="Box">
 
+### Fragen stellen
+
+Im Menü des Dashboards den Knopf **Sprechen** gedrückt halten, fragen („Wie viel Sprit habe ich
+noch?“) und loslassen. Beim ersten Mal fragt der Rechner, ob das Programm das Mikrofon benutzen
+darf. In der Mac-App muss dafür Apple Intelligence eingeschaltet sein (Systemeinstellungen →
+Apple Intelligence & Siri); die Ansagen funktionieren auch ohne.
+
 ### „Hey Box“ (wer mag)
 
-Damit du ohne Knopfdruck fragen kannst, braucht der Rechner eine Spracherkennung. Einmalig
-installieren:
+Damit du ohne Knopfdruck fragen kannst: in den Einstellungen **Auf „Hey Box“ hören** ankreuzen.
 
-- **Mac:** Terminal öffnen, `cd ` tippen, den Programmordner ins Fenster ziehen, Return
-  drücken, dann ausführen: `.venv/bin/python -m pip install -e ".[wake]"`
-- **Windows:** den Programmordner öffnen, in die Adresszeile klicken, `cmd` tippen, Enter
-  drücken, dann ausführen: `.venv\Scripts\python.exe -m pip install -e ".[wake]"`
-
-Programm neu starten und in den Einstellungen **Auf „Hey Box“ hören** ankreuzen. Beim ersten
-Mal lädt die Spracherkennung ihr Modell (rund 500 MB).
+- **Mac-App:** mehr braucht es nicht, der Mac erkennt die Sprache selbst.
+- **Aus dem Quelltext** braucht der Rechner eine Spracherkennung. Einmalig installieren und das
+  Programm neu starten; beim ersten Mal lädt sie ihr Modell (rund 500 MB):
+  - **Mac:** Terminal öffnen, `cd ` tippen, den Programmordner ins Fenster ziehen, Return
+    drücken, dann ausführen: `.venv/bin/python -m pip install -e ".[wake]"`
+  - **Windows:** den Programmordner öffnen, in die Adresszeile klicken, `cmd` tippen, Enter
+    drücken, dann ausführen: `.venv\Scripts\python.exe -m pip install -e ".[wake]"`
 
 ## Aktualisieren
 
-Die ZIP-Datei neu laden und den Ordner ersetzen (oder `git pull`). Deine Einstellungen und
-eigenen Layouts liegen nicht in diesem Ordner; sie bleiben erhalten. Meldet die Startdatei
-nach einer Aktualisierung ein Problem: den Ordner `.venv` im Programmordner löschen und neu
-starten.
+- **Mac-App:** die neue Fassung laden und die App in „Programme“ ersetzen.
+- **Aus dem Quelltext:** die ZIP-Datei neu laden und den Ordner ersetzen (oder `git pull`).
+  Meldet die Startdatei danach ein Problem: den Ordner `.venv` im Programmordner löschen und
+  neu starten.
+
+Deine Einstellungen und eigenen Layouts liegen nicht im Programm; sie bleiben erhalten.
 
 ## Entfernen
 
-Programm beenden und seinen Ordner löschen. Deine Einstellungen liegen unter
+Programm beenden und seinen Ordner löschen (die Mac-App: in den Papierkorb). Deine Einstellungen liegen unter
 `~/Library/Application Support/gt7-companion-by-qshi` (Mac) bzw.
 `%LOCALAPPDATA%\gt7-companion-by-qshi` (Windows); wer mag, löscht auch diesen Ordner.

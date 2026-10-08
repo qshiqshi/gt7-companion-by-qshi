@@ -1,11 +1,13 @@
 """Take the pictures for README and install guide from the running program itself.
 
     python tools/screenshots.py            (needs Playwright; GT7C_CHROMIUM may name a Chromium to use)
+    python tools/screenshots.py plain      only connect and settings: done in seconds, no waiting for a lap
 
 Starts the program with the demo lap in a temporary folder, waits until the second lap
 (so lap times and the track line are there) and photographs the pages in German and
-English into docs/images/de and docs/images/en. Nothing here is real: the address, the
-PIN and the API key in the pictures are made up.
+English into docs/images/de and docs/images/en. Nothing here is real: the address and the
+PIN in the pictures are made up, and the Box is shown as on a Mac that speaks by itself –
+with a stand-in for its helper program (tests/fake_box_helper.py), so this runs anywhere.
 """
 from __future__ import annotations
 
@@ -26,6 +28,7 @@ ROOT = Path(__file__).resolve().parents[1]
 sys.path.insert(0, str(ROOT / "src"))
 
 import gt7companion.app as app_module                      # noqa: E402
+from gt7companion.engineer.helper import Helper            # noqa: E402
 from gt7companion.keystore import KeyStore                 # noqa: E402
 from gt7companion.layouts import LayoutStore               # noqa: E402
 from gt7companion.settings import Settings                 # noqa: E402
@@ -71,11 +74,11 @@ def main() -> int:
             return 1
     home = Path(tempfile.mkdtemp())
     keys = KeyStore(home / "secrets.json")
-    keys.set("made-up-key-for-the-pictures")
+    helper = Helper([sys.executable, str(ROOT / "tests" / "fake_box_helper.py")])
     app_module.local_addresses = lambda: ["192.168.1.20"]
     app = app_module.create_app(Settings(home / "settings.json"), layouts=LayoutStore(home / "layouts"), keys=keys,
                                 source="demo", lan=True, port=PORT, speaker=Loudspeaker(), microphone=Microphone(),
-                                transcriber=Recogniser())
+                                transcriber=Recogniser(), helper=helper)
     app.state.companion.pairing.pin = "482913"
     server = uvicorn.Server(uvicorn.Config(app, host="127.0.0.1", port=PORT, log_level="error"))
     threading.Thread(target=server.run, daemon=True).start()
@@ -109,7 +112,7 @@ def main() -> int:
             return page
 
         for language in ("de", "en"):
-            call("/api/settings", {"language": language})
+            call("/api/settings", {"language": language, "box_language": language})
             # pages that do not need a finished lap
             page = page_for(language, 860, 900)
             page.goto(f"http://127.0.0.1:{PORT}/connect")
@@ -124,6 +127,11 @@ def main() -> int:
             print(f"{language}/settings-box.png")
             page.context.close()
 
+        if "plain" in sys.argv[1:]:
+            browser.close()
+            server.should_exit = True
+            helper.close()
+            return 0
         print("waiting for the second demo lap …")
         while call("/api/trace")["best"] is None:
             time.sleep(2)
@@ -167,6 +175,7 @@ def main() -> int:
 
         browser.close()
     server.should_exit = True
+    helper.close()
     return 0
 
 

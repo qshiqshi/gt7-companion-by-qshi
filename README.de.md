@@ -30,7 +30,8 @@ Rechner, für ein Tablet neben dem Rig oder als Browser-Quelle in OBS.
   Bearbeiten auf einem anderen Gerät braucht eine PIN.
 - **Deutsch und Englisch**, km/h oder mph, °C oder °F.
 - **Die Box** (wer mag): ein Renningenieur am Funk, der Bestzeiten und Sprit ansagt und Fragen
-  beantwortet – mit deinem eigenen Schlüssel für Google Gemini.
+  beantwortet – auf einem Mac ganz ohne Dienst und Schlüssel, sonst mit deinem eigenen Schlüssel
+  für Google Gemini.
 - **Eine Demo-Runde** ist eingebaut; du kannst alles ohne Konsole ausprobieren.
 
 <p>
@@ -53,11 +54,19 @@ Untergrund-Daten).*
 
 ## Start
 
-**Neu dabei? Die Anleitung Schritt für Schritt: [docs/INSTALL.de.md](docs/INSTALL.de.md)** (Mac und
-Windows; Doppelklick auf `start-mac.command` bzw. `start-windows.bat`).
+**Mac mit Apple-Chip (macOS 14 oder neuer): die App.** [GT7-Companion-by-qshi-mac-arm64.dmg](https://github.com/qshiqshi/gt7-companion-by-qshi/releases/latest/download/GT7-Companion-by-qshi-mac-arm64.dmg)
+laden, öffnen, die App in „Programme“ ziehen und starten. Sie zeigt das Dashboard in einem
+eigenen Fenster, mit einem Symbol im Dock und in der Menüleiste. Das Fenster zu schließen
+beendet sie nicht – Tablets und OBS bekommen weiter ihre Daten; beendet wird mit ⌘Q oder über
+das Symbol.
 
-> **Frühe Fassung.** Geprüft mit automatischen Tests und mit einem Nachbau der Konsole und des
-> Sprachdienstes. Der Weg unter Windows ist ungetestet.
+**Windows und alle anderen: aus dem Quelltext.** Die Anleitung Schritt für Schritt steht in
+[docs/INSTALL.de.md](docs/INSTALL.de.md) (Doppelklick auf `start-windows.bat` bzw.
+`start-mac.command`).
+
+> **Frühe Fassung.** Geprüft mit automatischen Tests, mit einem Nachbau der Konsole und des
+> Sprachdienstes und – die App und die Box auf dem Mac – auf einem Mac mit macOS 27. Der Weg
+> unter Windows ist ungetestet.
 
 Von Hand – benötigt Python 3.12 oder neuer:
 
@@ -66,6 +75,8 @@ python -m venv .venv
 .venv/bin/pip install -e ".[app]"          # Windows: .venv\Scripts\pip install -e ".[app]"
 .venv/bin/python -m gt7companion.launcher  # Symbol in der Menüleiste / im Tray, öffnet das Dashboard
 ```
+
+Mit `".[app,window]"` zeigt auch dieser Start das Dashboard in einem eigenen Fenster.
 
 Ohne Symbol: `python -m gt7companion` und <http://127.0.0.1:8707/> öffnen.
 
@@ -77,8 +88,8 @@ Ohne Symbol: `python -m gt7companion` und <http://127.0.0.1:8707/> öffnen.
 | `--port 8707` | Port der Webseiten |
 | `--ps5 IP` | Adresse der Konsole; ohne Angabe wird sie gesucht |
 
-Ein Programm, das ohne installiertes Python läuft, baut `python packaging/build.py`
-(Hinweise in der Datei; das Ergebnis ist nicht signiert).
+Die App selbst baut `python packaging/build.py` (braucht [uv](https://docs.astral.sh/uv/);
+Hinweise in der Datei, auch zum Signieren).
 
 ## Deine PlayStation
 
@@ -101,7 +112,8 @@ Rechner *Geräte verbinden* öffnen: Dort steht die Adresse als QR-Code. Ansehen
 deinem Heimnetz. Wer auf einem anderen Gerät Layouts oder Einstellungen ändern will, tippt dort
 auf *Bearbeiten* und gibt die PIN von derselben Seite ein.
 
-Tablets schalten den Bildschirm ab: Bildschirmsperre ausschalten oder den Kiosk-Modus des
+Am Rechner selbst bleibt der Bildschirm an, solange die Konsole Daten schickt. Tablets schalten
+ihn ab (dort verbieten es die Browser): Bildschirmsperre ausschalten oder den Kiosk-Modus des
 Geräts nutzen (auf dem iPad „Geführter Zugriff“). Zum Home-Bildschirm hinzugefügt, erscheint
 die Seite ohne die Leisten des Browsers.
 
@@ -123,35 +135,58 @@ keine festlegst. Tempo in km/h oder mph, Temperaturen in °C oder °F.
 
 <img src="docs/images/de/settings-box.png" width="360" align="right" alt="Einstellungen der Box">
 
-Ein Renningenieur am Funk: Eine Stimme sagt Bestzeiten, Sprit und Rennverlauf an. Gesprochen
-wird sie von Googles Gemini Live API mit **deinem eigenen API-Schlüssel** (aus Google AI
-Studio), den du unter *Einstellungen* am Rechner mit dem Programm einträgst.
+Ein Renningenieur am Funk: Eine Stimme sagt Bestzeiten, Sprit und Rennverlauf an und beantwortet
+Fragen. Unter *Einstellungen* → „Wer spricht?“ gibt es zwei Wege:
 
-- Jede Ansage wird über deinen Schlüssel abgerechnet. Voreingestellt ist „nur das Wichtigste“
-  (Bestzeit, Sprit, Start und Ziel), mit einer Grenze pro Minute und pro Sitzung; ein Zähler
-  zeigt den Verbrauch.
-- Der Ton kommt aus den Lautsprechern des Rechners (Zusatz installieren:
+- **Dieser Mac** (in der App, ab macOS 26): Stimme, Spracherkennung und Sprachmodell kommen vom
+  Mac selbst. Kein Schlüssel, kein Internet, keine Kosten – und nichts verlässt den Rechner.
+  Das ist die Voreinstellung, wo es geht.
+- **Gemini von Google** (überall): gesprochen von Googles Gemini Live API mit **deinem eigenen
+  API-Schlüssel** aus Google AI Studio, den du am Rechner mit dem Programm einträgst. Jede
+  Ansage wird über deinen Schlüssel abgerechnet; deshalb gibt es hier eine Grenze pro Minute
+  und pro Sitzung und einen Zähler für den Verbrauch.
+
+Für beide gilt:
+
+- Voreingestellt ist „nur das Wichtigste“ (Bestzeit, Sprit, Start und Ziel).
+- Der Ton kommt aus den Lautsprechern des Rechners (aus dem Quelltext mit dem Zusatz
   `pip install -e ".[box]"`) oder aus jedem Browser mit dem Dashboard, nachdem dort „Ton an“
   getippt wurde; eine OBS-Quelle spielt ihn ohne Tippen ab.
 - Zurücksprechen: den Knopf „Sprechen“ im Menü des Dashboards gedrückt halten und fragen
   („Wie viel Sprit ist noch drin?“). Benutzt wird das Mikrofon des Rechners, auch wenn der
-  Knopf auf einem Tablet gehalten wird. Die Box schlägt Sprit, Reifen, Runden und Zeiten nach,
-  bevor sie antwortet. Für einen eigenen Knopf: `POST /api/box/talk` mit `{"on": true}` und
-  `{"on": false}`.
+  Knopf auf einem Tablet gehalten wird. Für einen eigenen Knopf: `POST /api/box/talk` mit
+  `{"on": true}` und `{"on": false}`.
 - „Hey Box“: unter *Einstellungen* einschalten und einfach fragen: „Hey Box, wie viel Sprit
   habe ich noch?“ Das Mikrofon des Rechners hört dann dauernd mit, die Sprache wird aber auf dem
-  Rechner selbst erkannt (Whisper); nur eine Frage, die mit „Hey Box“ beginnt, wird
-  weitergegeben. Braucht den Zusatz `pip install -e ".[wake]"`; die Spracherkennung lädt ihr
-  Modell (rund 500 MB) einmalig herunter.
+  Rechner selbst erkannt; nur eine Frage, die mit „Hey Box“ beginnt, wird beantwortet. In der
+  Mac-App erkennt der Mac selbst; aus dem Quelltext braucht es den Zusatz
+  `pip install -e ".[wake]"` (Whisper, lädt sein Modell von rund 500 MB einmalig herunter).
+- Wenn du streamst: Kennzeichne die Stimme als KI-erzeugt, wo deine Plattform oder das Gesetz
+  es verlangt.
+
+Spricht der Mac allein:
+
+- Auf Fragen antwortet die Box mit festen Sätzen und den echten Werten der Fahrt: Sprit,
+  Runden, Zeiten, Reifen, Tempo, Dreher. Das Sprachmodell des Macs entscheidet nur, worum es
+  geht – eine Zahl erfinden kann es so nicht. Auf alles andere sagt sie, dass sie dazu nichts
+  hat.
+- Für Fragen muss Apple Intelligence eingeschaltet sein; die Ansagen funktionieren auch ohne.
+- Die Stimme wählst du in den Einstellungen. Bessere Stimmen („Premium“, „Erweitert“) lädst du
+  in den Systemeinstellungen unter Bedienungshilfen → Gesprochene Inhalte → Systemstimme →
+  Stimmen verwalten.
+
+Spricht Gemini:
+
+- Die Box schlägt Sprit, Reifen, Runden und Zeiten nach, bevor sie antwortet, und formuliert
+  frei.
 - Was an Google geht: der Text jeder Ansage (zum Beispiel „Neue Bestzeit: 1:39,9“), der Name,
   den du gewählt hast, deine gesprochenen Fragen und – wenn du fragst – die aktuellen Werte
   der Fahrt. Für dich als Inhaber des Schlüssels gelten Googles Bedingungen für die Gemini API;
   prüfe, ob sie deine Nutzung an deinem Wohnort erlauben.
-- Wenn du streamst: Kennzeichne die Stimme als KI-erzeugt, wo deine Plattform oder das Gesetz
-  es verlangt.
 - Der Schlüssel liegt nur auf deinem Rechner (`secrets.json`, nur für dich lesbar) und wird nie
   wieder angezeigt, an eine Seite geschickt oder in ein Protokoll geschrieben.
-- Ohne Schlüssel läuft alles andere wie gewohnt.
+
+Ohne die Box läuft alles andere wie gewohnt.
 
 <br clear="both">
 
@@ -162,17 +197,20 @@ Das Menü des Dashboards erscheint, wenn du den Zeiger bewegst oder den Bildschi
 ## Datenschutz und Sicherheit
 
 - Das Programm spricht mit deiner PlayStation und mit den Geräten in deinem Heimnetz. Ins
-  Internet geht nichts – außer an Google, wenn du die Box nutzt (siehe oben).
+  Internet geht nichts – außer an Google, wenn du die Box mit Gemini nutzt (siehe oben).
 - Es ist für ein Heimnetz gemacht. Gib seinen Port nicht ins Internet frei.
 - Einstellungen und eigene Layouts liegen in deinem Benutzerordner (`gt7-companion-by-qshi`).
 
 ## Entwicklung
 
 ```sh
-.venv/bin/pip install -e ".[dev,app]"
+.venv/bin/pip install -e ".[dev,app,window]"
 .venv/bin/python -m unittest discover -s tests -q
 node --test tests/js/
 ```
+
+Am Mac baut `python tools/build_box_helper.py` das Hilfsprogramm, mit dem die Box ohne Dienst
+läuft (Swift, `native/box-helper`); danach laufen auch die Tests dazu.
 
 Siehe [CONTRIBUTING.md](CONTRIBUTING.md) (englisch).
 

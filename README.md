@@ -29,7 +29,8 @@ computer, for a tablet next to your rig, or as a browser source in OBS.
   another device needs a PIN.
 - **German and English**, km/h or mph, °C or °F.
 - **The Box** (optional): a race engineer on the radio who calls out best laps and fuel and
-  answers questions – with your own Google Gemini API key.
+  answers questions – on a Mac without any service or key, elsewhere with your own Google
+  Gemini API key.
 - **A demo lap** is built in, so you can try everything without a console.
 
 <p>
@@ -51,11 +52,18 @@ surface ring that flashes on a kerb (the ring needs the real console; the demo l
 
 ## Start
 
-**New to this? Follow the step-by-step guide: [docs/INSTALL.md](docs/INSTALL.md)** (Mac and
-Windows; double-click `start-mac.command` or `start-windows.bat`).
+**Mac with Apple silicon (macOS 14 or newer): the app.** Download
+[GT7-Companion-by-qshi-mac-arm64.dmg](https://github.com/qshiqshi/gt7-companion-by-qshi/releases/latest/download/GT7-Companion-by-qshi-mac-arm64.dmg),
+open it, drag the app to "Applications" and start it. It shows the dashboard in a window of
+its own, with an icon in the Dock and a symbol in the menu bar. Closing the window does not
+quit it – tablets and OBS keep getting their data; quit with ⌘Q or through the symbol.
 
-> **Early version.** Checked with automated tests and a stand-in for the console and for the
-> voice service. The Windows path is untested.
+**Windows and everybody else: from source.** The step-by-step guide is
+[docs/INSTALL.md](docs/INSTALL.md) (double-click `start-windows.bat` or `start-mac.command`).
+
+> **Early version.** Checked with automated tests, with a stand-in for the console and for the
+> voice service and – the app and the Box on the Mac – on one Mac with macOS 27. The Windows
+> path is untested.
 
 By hand – requires Python 3.12 or newer:
 
@@ -64,6 +72,8 @@ python -m venv .venv
 .venv/bin/pip install -e ".[app]"          # Windows: .venv\Scripts\pip install -e ".[app]"
 .venv/bin/python -m gt7companion.launcher  # symbol in the menu bar / tray, opens the dashboard
 ```
+
+With `".[app,window]"` this start shows the dashboard in a window of its own, too.
 
 Without the symbol: `python -m gt7companion` and open <http://127.0.0.1:8707/>.
 
@@ -75,8 +85,8 @@ Without the symbol: `python -m gt7companion` and open <http://127.0.0.1:8707/>.
 | `--port 8707` | port of the web pages |
 | `--ps5 IP` | address of the console; without it the console is searched |
 
-A program that runs without Python can be built with `python packaging/build.py`
-(see the notes in that file; the result is not signed).
+The app itself is built with `python packaging/build.py` (needs
+[uv](https://docs.astral.sh/uv/); see the notes in that file, also on signing).
 
 ## Your PlayStation
 
@@ -97,7 +107,8 @@ Switch on *Share in the home network* (menu of the symbol, *Settings*, or `--lan
 network may watch. To edit layouts or settings on another device, tap *Edit* there and
 enter the PIN from the same page.
 
-Tablets go to sleep: set the display to stay on, or use the device's kiosk mode ("Guided
+On the computer itself the screen stays on while the console sends data. Tablets go to sleep
+(browsers do not allow it there): set the display to stay on, or use the device's kiosk mode ("Guided
 Access" on an iPad). Adding the page to the home screen shows it without the browser's bars.
 
 <img src="docs/images/en/connect.png" width="430" alt="The page "Connect devices" with QR code and PIN (made-up values)">
@@ -118,32 +129,56 @@ Speed in km/h or mph, temperatures in °C or °F.
 
 <img src="docs/images/en/settings-box.png" width="360" align="right" alt="Settings of the Box">
 
-A race engineer on the radio: a voice calls out best laps, fuel and the course of the race.
-It is spoken by Google's Gemini Live API with **your own API key** (from Google AI Studio),
-entered under *Settings* on the computer running the program.
+A race engineer on the radio: a voice calls out best laps, fuel and the course of the race and
+answers questions. Under *Settings* → "Who speaks?" there are two ways:
 
-- Every message is billed to your key. The default is "only what matters" (best lap, fuel,
-  start and finish), with a limit per minute and per session; a counter shows the use.
-- Sound comes from the computer's loudspeakers (install the extra: `pip install -e ".[box]"`)
-  or from any browser showing the dashboard after a tap on "Sound on"; an OBS source plays it
-  without a tap.
+- **This Mac** (in the app, macOS 26 or newer): voice, speech recognition and language model
+  are the Mac's own. No key, no internet, no cost – and nothing leaves the computer. This is
+  the default where it is possible.
+- **Gemini by Google** (everywhere): spoken by Google's Gemini Live API with **your own API
+  key** from Google AI Studio, entered on the computer running the program. Every message is
+  billed to your key; that is why there is a limit per minute and per session here, and a
+  counter that shows the use.
+
+For both:
+
+- The default is "only what matters" (best lap, fuel, start and finish).
+- Sound comes from the computer's loudspeakers (from source with the extra
+  `pip install -e ".[box]"`) or from any browser showing the dashboard after a tap on
+  "Sound on"; an OBS source plays it without a tap.
 - Talk back: hold the "Talk" button in the dashboard menu and ask ("how much fuel is left?").
-  The microphone of the computer is used, also when the button is held on a tablet. The Box
-  looks up fuel, tyres, laps and times before it answers. For a button of your own:
-  `POST /api/box/talk` with `{"on": true}` and `{"on": false}`.
+  The microphone of the computer is used, also when the button is held on a tablet. For a
+  button of your own: `POST /api/box/talk` with `{"on": true}` and `{"on": false}`.
 - "Hey Box": switch it on under *Settings* and simply ask, "Hey Box, how much fuel is left?".
   The computer's microphone then listens all the time, but speech is recognised on the
-  computer itself (Whisper); only a question that begins with "Hey Box" is sent on. Needs the
-  extra `pip install -e ".[wake]"`; the recogniser downloads its model (about 500 MB) once.
+  computer itself; only a question that begins with "Hey Box" is answered. In the Mac app the
+  Mac recognises it; from source it needs the extra `pip install -e ".[wake]"` (Whisper, which
+  downloads its model of about 500 MB once).
+- If you stream: say that the voice is generated by AI where your platform or the law asks
+  for it.
+
+When the Mac speaks alone:
+
+- The Box answers questions with fixed sentences and the real values of the drive: fuel, laps,
+  times, tyres, speed, spins. The language model of the Mac only decides what a question is
+  about – that way it cannot make a number up. To everything else it says that it has nothing
+  on that.
+- Questions need Apple Intelligence to be switched on; the messages work without it.
+- You choose the voice in the settings. Better voices ("Premium", "Enhanced") can be
+  downloaded in System Settings under Accessibility → Spoken Content → System Voice → Manage
+  Voices.
+
+When Gemini speaks:
+
+- The Box looks up fuel, tyres, laps and times before it answers, in its own words.
 - What is sent to Google: the text of each message (for example "New best lap: 1:39.9"), the
   name you chose, your spoken questions, and – when you ask – the current values of the drive.
   Google's terms for the Gemini API apply to you as the holder of the key; check whether they
   allow your use where you live.
-- If you stream: say that the voice is generated by AI where your platform or the law asks
-  for it.
 - The key is stored only on your computer (`secrets.json`, readable by you alone) and is never
   shown again, sent to a page or written to a log.
-- Without a key everything else works as usual.
+
+Without the Box everything else works as usual.
 
 <br clear="both">
 
@@ -154,17 +189,20 @@ The menu of the dashboard appears when you move the pointer or touch the screen:
 ## Privacy and safety
 
 - The program talks to your PlayStation and to the devices in your home network. Nothing is
-  sent to the internet, except to Google when you use the Box (see above).
+  sent to the internet, except to Google when you use the Box with Gemini (see above).
 - It is made for a home network. Do not open its port to the internet.
 - Settings and your own layouts are stored in your user folder (`gt7-companion-by-qshi`).
 
 ## Development
 
 ```sh
-.venv/bin/pip install -e ".[dev,app]"
+.venv/bin/pip install -e ".[dev,app,window]"
 .venv/bin/python -m unittest discover -s tests -q
 node --test tests/js/
 ```
+
+On a Mac, `python tools/build_box_helper.py` builds the helper program that lets the Box run
+without a service (Swift, `native/box-helper`); with it the tests for that run, too.
 
 See [CONTRIBUTING.md](CONTRIBUTING.md).
 

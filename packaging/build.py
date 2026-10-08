@@ -19,7 +19,7 @@ For a Mac app that others can simply open (needs a paid Apple developer account)
 ``--sign`` signs every program file with the hardened runtime (default: $GT7C_SIGN_IDENTITY),
 ``--notarize`` has Apple check the result and attaches the ticket (PROFILE is a keychain
 profile made with ``xcrun notarytool store-credentials``), ``--dmg`` packs the app into
-dist/GT7 Companion by qshi.dmg.
+dist/GT7-Companion-by-qshi-mac-arm64.dmg.
 """
 from __future__ import annotations
 
@@ -39,6 +39,7 @@ SYSTEM = {"darwin": "mac", "win32": "windows"}.get(sys.platform, "linux")
 PYTHON = {"mac": "3.13", "windows": "cpython-3.13-windows-x86_64-none"}.get(SYSTEM, "3.13")
 MINIMUM_MACOS = "14.0"                   # the oldest macOS the app claims to run on (LSMinimumSystemVersion)
 PRODUCT = "GT7 Companion by qshi"        # name of the app and the disk image, as in gt7companion.launcher
+DISK_IMAGE = "GT7-Companion-by-qshi-mac-arm64.dmg"     # no spaces: the name survives a download link
 BOX_HELPER = "gt7c-box"                  # the Box on the Mac alone; built for macOS 26, the app runs without it before
 ENTITLEMENTS = ROOT / "packaging" / "entitlements.plist"
 _MACH_O = {b"\xcf\xfa\xed\xfe", b"\xfe\xed\xfa\xcf", b"\xca\xfe\xba\xbe", b"\xca\xfe\xba\xbf"}
@@ -148,7 +149,7 @@ def disk_image(app: Path, identity: str | None) -> Path:
     stage.mkdir(parents=True)
     run("ditto", app, stage / app.name)
     (stage / "Applications").symlink_to("/Applications")
-    image = DIST / f"{PRODUCT}.dmg"
+    image = DIST / DISK_IMAGE
     image.unlink(missing_ok=True)
     run("hdiutil", "create", "-volname", PRODUCT, "-srcfolder", stage, "-format", "UDZO", "-ov", image)
     if identity:

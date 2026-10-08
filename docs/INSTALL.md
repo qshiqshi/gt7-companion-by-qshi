@@ -2,8 +2,27 @@
 
 *Deutsch: [INSTALL.de.md](INSTALL.de.md)*
 
-You need a Mac or a Windows PC in the same home network as your PlayStation, and about
-ten minutes. Nothing is installed outside the program's own folder (except Python itself).
+You need a Mac or a Windows PC in the same home network as your PlayStation.
+
+## Mac: the app (the short way)
+
+For Macs with Apple silicon and macOS 14 or newer the program comes as a ready-made app – no
+Python, no Terminal:
+
+1. Download [GT7-Companion-by-qshi-mac-arm64.dmg](https://github.com/qshiqshi/gt7-companion-by-qshi/releases/latest/download/GT7-Companion-by-qshi-mac-arm64.dmg) and open it.
+2. Drag the app into the "Applications" folder and start it from there.
+3. A window shows the dashboard with a demo lap. Go on with
+   [4. Connect your PlayStation](#4-connect-your-playstation).
+
+Closing the window does not quit the app: tablets and OBS keep getting their data. A click on
+the icon in the Dock or on the symbol in the menu bar at the top right brings the window back;
+quit with ⌘Q or through the symbol → **Quit**.
+
+## Windows, or from source
+
+Steps 1 to 3 are for Windows and for everybody who prefers to start the program from source.
+They take about ten minutes; nothing is installed outside the program's own folder (except
+Python itself).
 
 > The Mac steps were run on a Mac with Apple silicon. **The Windows steps are untested** –
 > they should work, but nobody has tried them on a real Windows PC yet. If something goes
@@ -82,33 +101,50 @@ http://127.0.0.1:8707/?obs=1
 
 ## 7. The Box – race engineer on the radio (optional)
 
+**In the Mac app (macOS 26 or newer)** the Box needs nothing else: symbol → **Settings** →
+*The Box*: tick **Switch on the messages**, **Save**, then **Test message**. Voice, speech
+recognition and answers are the Mac's own – no internet, no key, no cost.
+
+**Everywhere else – or if you choose so – Gemini by Google speaks:**
+
 1. Get an API key in Google AI Studio (<https://aistudio.google.com/>). Using it costs money;
    Google bills it to your account.
-2. Symbol → **Settings** → *The Box*: tick **Switch on the messages**, paste the key,
-   **Save the key**, then **Check** and **Test message**.
+2. Symbol → **Settings** → *The Box*: tick **Switch on the messages**, choose **Gemini by
+   Google** under *Who speaks?*, **Save**. Then paste the key, **Save the key**, **Check** and
+   **Test message**.
 
 <img src="images/en/settings-box.png" width="360" alt="Box">
 
+### Asking questions
+
+Hold the **Talk** button in the menu of the dashboard, ask ("How much fuel do I have left?")
+and let go. The first time the computer asks whether the program may use the microphone. In
+the Mac app this needs Apple Intelligence to be switched on (System Settings → Apple
+Intelligence & Siri); the messages work without it.
+
 ### "Hey Box" (optional)
 
-To ask without pressing a button, the computer needs speech recognition. Install it once:
+To ask without pressing a button, tick **Listen for "Hey Box"** in the settings.
 
-- **Mac:** open the Terminal, type `cd `, drag the program's folder into the window, press
-  Return, then run: `.venv/bin/python -m pip install -e ".[wake]"`
-- **Windows:** open the program's folder, click into the address bar, type `cmd`, press Enter,
-  then run: `.venv\Scripts\python.exe -m pip install -e ".[wake]"`
-
-Start the program again and tick **Listen for "Hey Box"** in the settings. The first use
-downloads the recognition model (about 500 MB).
+- **Mac app:** that is all, the Mac recognises speech itself.
+- **From source** the computer needs speech recognition. Install it once and start the program
+  again; the first use downloads the recognition model (about 500 MB):
+  - **Mac:** open the Terminal, type `cd `, drag the program's folder into the window, press
+    Return, then run: `.venv/bin/python -m pip install -e ".[wake]"`
+  - **Windows:** open the program's folder, click into the address bar, type `cmd`, press
+    Enter, then run: `.venv\Scripts\python.exe -m pip install -e ".[wake]"`
 
 ## Updating
 
-Download the ZIP again and replace the folder (or `git pull`). Your settings and your own
-layouts are not in that folder; they stay. If the start file reports a problem after an
-update, delete the folder `.venv` inside the program's folder and start again.
+- **Mac app:** download the new version and replace the app in "Applications".
+- **From source:** download the ZIP again and replace the folder (or `git pull`). If the start
+  file reports a problem afterwards, delete the folder `.venv` inside the program's folder and
+  start again.
+
+Your settings and your own layouts are not inside the program; they stay.
 
 ## Removing
 
-Quit the program and delete its folder. Your settings are in
+Quit the program and delete its folder (the Mac app: move it to the Bin). Your settings are in
 `~/Library/Application Support/gt7-companion-by-qshi` (Mac) or
 `%LOCALAPPDATA%\gt7-companion-by-qshi` (Windows); delete that folder, too, if you like.
