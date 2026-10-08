@@ -11,11 +11,21 @@ the macOS it is installed on, that one also runs on older systems; the build che
 for every file it packs. ``--here`` uses the Python that runs this script instead
 (install ``-e ".[app,window,box]" pyinstaller`` into it first).
 
-The result is not signed: macOS and Windows will ask on first start.
+Without more the result is not signed: macOS and Windows will ask on first start.
+For a Mac app that others can simply open (needs a paid Apple developer account):
+
+    python packaging/build.py --sign "Developer ID Application: …" --notarize PROFILE --dmg
+
+``--sign`` signs every program file with the hardened runtime (default: $GT7C_SIGN_IDENTITY),
+``--notarize`` has Apple check the result and attaches the ticket (PROFILE is a keychain
+profile made with ``xcrun notarytool store-credentials``), ``--dmg`` packs the app into
+dist/GT7 Companion by qshi.dmg.
 """
 from __future__ import annotations
 
 import argparse
+import json
+import os
 import shutil
 import subprocess
 import sys
@@ -28,6 +38,8 @@ SYSTEM = {"darwin": "mac", "win32": "windows"}.get(sys.platform, "linux")
 # Windows: always the x64 Python, also on ARM computers – the window needs libraries that only exist for x64.
 PYTHON = {"mac": "3.13", "windows": "cpython-3.13-windows-x86_64-none"}.get(SYSTEM, "3.13")
 MINIMUM_MACOS = "14.0"                   # the oldest macOS the app claims to run on (LSMinimumSystemVersion)
+PRODUCT = "GT7 Companion by qshi"        # name of the app and the disk image, as in gt7companion.launcher
+ENTITLEMENTS = ROOT / "packaging" / "entitlements.plist"
 _MACH_O = {b"\xcf\xfa\xed\xfe", b"\xfe\xed\xfa\xcf", b"\xca\xfe\xba\xbe", b"\xca\xfe\xba\xbf"}
 
 
@@ -94,23 +106,94 @@ def check_macos_files(app: Path, limit: str = MINIMUM_MACOS) -> list[str]:
     return problems
 
 
+def sign(app: Path, identity: str) -> None:
+    """Sign every program file from the inside out, then the app, all with the hardened runtime
+    and a time stamp from Apple – notarisation accepts nothing less."""
+    inner = [path for path in app.rglob("*") if path.is_file() and not path.is_symlink() and is_mach_o(path)
+             and path.parent != app / "Contents" / "MacOS"]
+    inner.sort(key=lambda path: len(path.parts), reverse=True)
+    base = ["codesign", "--force", "--timestamp", "--options", "runtime", "--sign", identity]
+    print(f"+ codesign: {len(inner)} program files, then the app", flush=True)
+    for start in range(0, len(inner), 20):
+        subprocess.run(base + [str(path) for path in inner[start:start + 20]], check=True, capture_output=True)
+    run(*base, "--entitlements", ENTITLEMENTS, app)
+    run("codesign", "--verify", "--deep", "--strict", app)
+
+
+def notarize(path: Path, profile: str) -> None:
+    """Have Apple check an app or a disk image and attach the ticket, so the first start works offline too."""
+    upload = path
+    if path.suffix == ".app":
+        upload = BUILD / f"{path.stem}.zip"
+        run("ditto", "-c", "-k", "--keepParent", path, upload)
+    print(f"+ notarytool submit {upload.name} (this takes a few minutes)", flush=True)
+    done = subprocess.run(["xcrun", "notarytool", "submit", str(upload), "--keychain-profile", profile, "--wait",
+                           "--output-format", "json"], capture_output=True, text=True)
+    try:
+        answer = json.loads(done.stdout)
+    except ValueError:
+        answer = {}
+    if answer.get("status") != "Accepted":
+        if answer.get("id"):                 # Apple says what it did not like
+            subprocess.run(["xcrun", "notarytool", "log", answer["id"], "--keychain-profile", profile])
+        sys.exit(f"Not notarised: {answer.get('status') or done.stderr.strip() or done.stdout.strip()}")
+    run("xcrun", "stapler", "staple", path)
+
+
+def disk_image(app: Path, identity: str | None) -> Path:
+    """The app next to a shortcut to the Applications folder, as people expect it."""
+    stage = BUILD / "dmg"
+    shutil.rmtree(stage, ignore_errors=True)
+    stage.mkdir(parents=True)
+    run("ditto", app, stage / app.name)
+    (stage / "Applications").symlink_to("/Applications")
+    image = DIST / f"{PRODUCT}.dmg"
+    image.unlink(missing_ok=True)
+    run("hdiutil", "create", "-volname", PRODUCT, "-srcfolder", stage, "-format", "UDZO", "-ov", image)
+    if identity:
+        run("codesign", "--force", "--timestamp", "--sign", identity, image)
+    return image
+
+
 def main(argv: list[str] | None = None) -> int:
     parser = argparse.ArgumentParser(description=__doc__.split("\n\n")[0])
     parser.add_argument("--here", action="store_true", help="use the Python that runs this script")
     parser.add_argument("--fresh", action="store_true", help="make the build environment anew")
+    parser.add_argument("--sign", metavar="IDENTITY", nargs="?", const="", default=None,
+                        help="macOS: sign with this certificate (default: $GT7C_SIGN_IDENTITY)")
+    parser.add_argument("--notarize", metavar="PROFILE", help="macOS: have Apple check the signed result")
+    parser.add_argument("--dmg", action="store_true", help="macOS: pack the app into a disk image")
     args = parser.parse_args(argv)
+    identity = None
+    if args.sign is not None:
+        identity = args.sign or os.environ.get("GT7C_SIGN_IDENTITY")
+        if not identity:
+            parser.error("--sign needs a certificate name, or GT7C_SIGN_IDENTITY")
+    if (identity or args.notarize or args.dmg) and SYSTEM != "mac":
+        parser.error("--sign, --notarize and --dmg are for macOS")
+    if args.notarize and not identity:
+        parser.error("--notarize needs --sign")
 
     python = Path(sys.executable) if args.here else environment(args.fresh)
     run(python, "-m", "PyInstaller", "--noconfirm", "--clean", "--distpath", DIST,
         "--workpath", BUILD / "pyinstaller", ROOT / "packaging" / "gt7companion.spec")
 
     if SYSTEM == "mac":
-        app = next(DIST.glob("*.app"))
+        app = DIST / f"{PRODUCT}.app"
         problems = check_macos_files(app)
         if problems:
             print(f"\nNot fit for macOS {MINIMUM_MACOS}:\n  " + "\n  ".join(problems), file=sys.stderr)
             return 1
         print(f"\n{app.relative_to(ROOT)}: every program file runs on macOS {MINIMUM_MACOS} or newer.")
+        if identity:
+            sign(app, identity)
+        if args.notarize:
+            notarize(app, args.notarize)
+        if args.dmg:
+            image = disk_image(app, identity)
+            if args.notarize:
+                notarize(image, args.notarize)
+            print(f"\n{image.relative_to(ROOT)}")
     else:
         print(f"\n{(DIST / 'gt7companion').relative_to(ROOT)}")
     return 0
