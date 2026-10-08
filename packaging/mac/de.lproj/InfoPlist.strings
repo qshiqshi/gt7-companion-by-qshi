@@ -1,4 +1,4 @@
 /* What macOS shows when it asks the user for a permission (German). */
 "NSLocalNetworkUsageDescription" = "Empfängt die Fahrdaten von Gran Turismo 7 von deiner PlayStation und zeigt das Dashboard auf Geräten in deinem Heimnetz.";
-"NSMicrophoneUsageDescription" = "Nimmt deine Frage auf, solange du die Sprechtaste hältst, und gibt sie an den Renningenieur weiter.";
+"NSMicrophoneUsageDescription" = "Hört deine Frage an den Renningenieur: solange du die Sprechtaste hältst oder, wenn du das einschaltest, nach „Hey Box“.";
 "NSHumanReadableCopyright" = "Gran Turismo 7 Companion by qshi – GPL-3.0-or-later. Nicht verbunden mit Sony Interactive Entertainment oder Polyphony Digital.";

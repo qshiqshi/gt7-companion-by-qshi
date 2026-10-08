@@ -39,6 +39,7 @@ SYSTEM = {"darwin": "mac", "win32": "windows"}.get(sys.platform, "linux")
 PYTHON = {"mac": "3.13", "windows": "cpython-3.13-windows-x86_64-none"}.get(SYSTEM, "3.13")
 MINIMUM_MACOS = "14.0"                   # the oldest macOS the app claims to run on (LSMinimumSystemVersion)
 PRODUCT = "GT7 Companion by qshi"        # name of the app and the disk image, as in gt7companion.launcher
+BOX_HELPER = "gt7c-box"                  # the Box on the Mac alone; built for macOS 26, the app runs without it before
 ENTITLEMENTS = ROOT / "packaging" / "entitlements.plist"
 _MACH_O = {b"\xcf\xfa\xed\xfe", b"\xfe\xed\xfa\xcf", b"\xca\xfe\xba\xbe", b"\xca\xfe\xba\xbf"}
 
@@ -79,11 +80,11 @@ def _version(text: str) -> tuple[int, ...]:
 def check_macos_files(app: Path, limit: str = MINIMUM_MACOS) -> list[str]:
     """Every program file in the app must run on ``limit`` and must not point outside the system.
 
-    Returns what is wrong, one line per file. Helpers in Contents/Helpers have a floor of their own.
+    Returns what is wrong, one line per file. The helper of the Box has a floor of its own.
     """
     problems = []
     for path in sorted(app.rglob("*")):
-        if path.is_symlink() or not path.is_file() or not is_mach_o(path) or "Helpers" in path.relative_to(app).parts:
+        if path.is_symlink() or not path.is_file() or not is_mach_o(path) or path.name == BOX_HELPER:
             continue
         name = path.relative_to(app).as_posix()
         load = subprocess.run(["otool", "-l", str(path)], capture_output=True, text=True, check=True).stdout.splitlines()
@@ -159,6 +160,9 @@ def main(argv: list[str] | None = None) -> int:
     parser = argparse.ArgumentParser(description=__doc__.split("\n\n")[0])
     parser.add_argument("--here", action="store_true", help="use the Python that runs this script")
     parser.add_argument("--fresh", action="store_true", help="make the build environment anew")
+    parser.add_argument("--no-box-helper", action="store_true",
+                        help="macOS: leave out the helper that lets the Box run on the Mac alone "
+                             "(it needs the Xcode tools of macOS 26 or newer to build)")
     parser.add_argument("--sign", metavar="IDENTITY", nargs="?", const="", default=None,
                         help="macOS: sign with this certificate (default: $GT7C_SIGN_IDENTITY)")
     parser.add_argument("--notarize", metavar="PROFILE", help="macOS: have Apple check the signed result")
@@ -175,6 +179,17 @@ def main(argv: list[str] | None = None) -> int:
         parser.error("--notarize needs --sign")
 
     python = Path(sys.executable) if args.here else environment(args.fresh)
+    if SYSTEM == "mac":
+        helper = BUILD / BOX_HELPER                  # the recipe packs it if it is there
+        helper.unlink(missing_ok=True)
+        if not args.no_box_helper:
+            sys.path.insert(0, str(ROOT / "tools"))
+            from build_box_helper import build as build_box_helper
+
+            try:
+                print("+ swiftc", build_box_helper(helper).relative_to(ROOT), flush=True)
+            except RuntimeError as problem:
+                sys.exit(f"{problem}\n\nThe helper of the Box could not be built; --no-box-helper builds without it.")
     run(python, "-m", "PyInstaller", "--noconfirm", "--clean", "--distpath", DIST,
         "--workpath", BUILD / "pyinstaller", ROOT / "packaging" / "gt7companion.spec")
 

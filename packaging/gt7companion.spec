@@ -23,16 +23,21 @@ hidden = (collect_submodules("uvicorn") + collect_submodules("websockets") + col
 datas = [(str(SOURCE / "gt7companion" / "web"), "gt7companion/web"),
          (str(SOURCE / "gt7companion" / "data"), "gt7companion/data"),
          (str(ROOT / "LICENSE"), "."), (str(ROOT / "THIRD_PARTY_NOTICES.md"), ".")]
+binaries = []
 if sys.platform == "darwin":
     datas += [(str(PACKAGING / "mac" / f"{language}.lproj" / "InfoPlist.strings"), f"{language}.lproj")
               for language in ("en", "de")]
+    helper = ROOT / "build" / "gt7c-box"                # the Box on the Mac alone; packaging/build.py compiles it
+    if helper.is_file():
+        binaries.append((str(helper), "."))
 
 analysis = Analysis(
     [str(PACKAGING / "app_entry.py")],
     pathex=[str(SOURCE)],
     datas=datas,
+    binaries=binaries,
     hiddenimports=hidden,
-    # "Hey Box" through Whisper is far too large to bundle; it works when started from source.
+    # Whisper is far too large to bundle; on a Mac the helper above recognises speech instead.
     excludes=["tkinter", "numpy", "playwright", "fontTools", "PyInstaller", "mlx", "mlx_whisper", "torch",
               "faster_whisper", "numba", "scipy"],
 )
@@ -63,7 +68,8 @@ if sys.platform == "darwin":
                 "Receives the telemetry of Gran Turismo 7 from your PlayStation and shows the dashboard "
                 "on devices in your home network.",
             "NSMicrophoneUsageDescription":
-                "Records your question while you hold the talk button, to pass it on to the race engineer.",
+                "Hears your question to the race engineer: while you hold the talk button or, if you switch "
+                "that on, after you say \"Hey Box\".",
             "NSHumanReadableCopyright": f"{APP_NAME} – GPL-3.0-or-later. Not affiliated with Sony Interactive "
                                         "Entertainment or Polyphony Digital.",
         },
