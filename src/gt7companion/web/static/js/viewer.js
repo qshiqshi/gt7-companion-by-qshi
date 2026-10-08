@@ -94,11 +94,11 @@ if (IS_VIEW && wait && menu) {
   const talk = document.getElementById('btn-talk');
   let box = {};
   function renderBox() {
-    const usable = !!box.enabled && !!box.has_key;
+    const usable = !!box.enabled && !!box.usable;
     sound.hidden = !usable;
     sound.classList.toggle('on', soundOn);
     sound.textContent = soundOn ? t('Ton aus') : t('Ton an');
-    talk.hidden = !(usable && box.microphone && (role === 'owner' || role === 'editor'));
+    talk.hidden = !(usable && box.questions && box.microphone && (role === 'owner' || role === 'editor'));
     talk.classList.toggle('talking', box.state === 'listening');
     talk.textContent = box.state === 'listening' ? t('Loslassen zum Senden') : t('Sprechen');
   }

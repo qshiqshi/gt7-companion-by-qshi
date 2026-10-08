@@ -85,11 +85,28 @@
 
     <section class="card" id="box">
       <h2>Die Box – Renningenieur am Funk</h2>
-      <p class="muted">Eine Stimme sagt Bestzeiten, Sprit und Rennverlauf an. Dafür brauchst du einen eigenen Schlüssel für die Gemini-API von Google; jede Ansage wird über deinen Schlüssel abgerechnet. Ohne Schlüssel läuft alles andere wie gewohnt.</p>
+      <p class="muted">Eine Stimme sagt Bestzeiten, Sprit und Rennverlauf an und beantwortet deine Fragen. Auf einem Mac mit macOS 26 oder neuer kann das der Computer allein: ohne Schlüssel, ohne Internet, ohne Kosten. Sonst spricht Gemini von Google – dafür brauchst du einen eigenen Schlüssel, über den jede Ansage abgerechnet wird. Ohne die Box läuft alles andere wie gewohnt.</p>
       <p class="note" id="box-state" role="status" hidden></p>
       <label class="check">
         <input id="box_enabled" type="checkbox">
         <span>Ansagen einschalten</span>
+      </label>
+      <label class="field">
+        <span>Wer spricht?</span>
+        <select id="box_engine">
+          <option value="auto">Automatisch: dieser Computer, wenn er es kann</option>
+          <option value="local">Dieser Mac – ohne Schlüssel und ohne Internet</option>
+          <option value="gemini">Gemini von Google – mit eigenem Schlüssel</option>
+        </select>
+        <small id="box-engine-now"></small>
+      </label>
+      <p class="note warn" id="box-local-hint" hidden></p>
+      <label class="field" id="box-local-voice" hidden>
+        <span>Stimme dieses Macs</span>
+        <select id="box_local_voice">
+          <option value="">Die beste, die installiert ist</option>
+        </select>
+        <small>Mehr Stimmen lädst du in den Systemeinstellungen unter Bedienungshilfen → Gesprochene Inhalte → Systemstimme → Stimmen verwalten. Stimmen mit dem Zusatz „Premium“ oder „Erweitert“ klingen am besten.</small>
       </label>
       <label class="check">
         <input id="box_speaker" type="checkbox">
@@ -100,7 +117,7 @@
       <label class="check">
         <input id="box_wake" type="checkbox">
         <span>Auf „Hey Box“ hören
-          <small>Dann kannst du einfach fragen: „Hey Box, wie viel Sprit habe ich noch?“ Das Mikrofon dieses Computers hört dafür dauernd mit – die Sprache wird aber auf dem Computer selbst erkannt. Erst eine Frage, die mit „Hey Box“ beginnt, geht an Google.</small>
+          <small>Dann kannst du einfach fragen: „Hey Box, wie viel Sprit habe ich noch?“ Das Mikrofon dieses Computers hört dafür dauernd mit – die Sprache wird aber auf dem Computer selbst erkannt. Erst eine Frage, die mit „Hey Box“ beginnt, wird beantwortet; mit Gemini geht nur sie an Google.</small>
         </span>
       </label>
       <p class="note warn" id="box-wake-missing" hidden>Für „Hey Box“ fehlt auf diesem Computer die Spracherkennung. Installiere das Zusatzpaket (siehe Anleitung) und starte das Programm neu.</p>
@@ -138,6 +155,7 @@
         <label class="check"><input type="checkbox" data-kind="incidents"><span>Dreher, Einschläge, neben der Strecke</span></label>
         <label class="check"><input type="checkbox" data-kind="tyres"><span>Heiße Reifen</span></label>
       </fieldset>
+      <div id="box-gemini">
       <label class="field">
         <span>Höchstens so viele Ansagen pro Minute</span>
         <input id="box_per_minute" type="text" inputmode="numeric" maxlength="2">
@@ -159,6 +177,7 @@
           <small>Nur ändern, wenn Google das Modell umbenennt oder die Prüfung „Modell nicht verfügbar“ meldet.</small>
         </label>
       </details>
+      </div>
       <div class="row">
         <button id="box-test" type="button">Probeansage</button>
         <span class="muted" id="box-test-result" role="status"></span>

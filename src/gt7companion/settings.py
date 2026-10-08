@@ -24,6 +24,8 @@ DEFAULTS: dict = {
     "units": "metric",       # "metric" (km/h, °C) or "imperial" (mph, °F)
     # The Box (race engineer on the radio); the API key itself is in keystore.py
     "box_enabled": False,
+    "box_engine": "auto",    # who speaks and answers: "local" (this Mac, no key), "gemini" (own key) or "auto"
+    "box_local_voice": "",   # the Mac's voice by its identifier; empty: the best one installed
     "box_driver": "",        # how the Box addresses the driver
     "box_language": "auto",  # "de", "en" or "auto": like the pages on this computer
     "box_voice": "Orus",
@@ -107,6 +109,7 @@ def _kinds(value):
 
 
 _CHECKS = {"box_enabled": _flag, "box_speaker": _flag, "box_wake": _flag, "box_driver": _text(40), "box_language": _one_of("auto", "de", "en"),
+           "box_engine": _one_of("auto", "local", "gemini"), "box_local_voice": _text(120, r"[A-Za-z0-9._-]*"),
            "box_voice": _text(40, r"[A-Za-z][A-Za-z0-9 _-]*"), "box_model": _text(80, r"[A-Za-z0-9][A-Za-z0-9._-]*"),
            "box_announce": _kinds, "box_per_minute": _number(1, 20), "box_per_session": _number(1, 2000),
            "source": _source, "ps5_ip": _ps5_ip, "packet": _packet, "telemetry_hz": _telemetry_hz,

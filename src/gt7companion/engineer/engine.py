@@ -1,8 +1,13 @@
-"""The Box itself: takes messages, lets the voice service speak them, plays the audio.
+"""The Box itself: takes messages, has them spoken, plays the audio.
 
-One message at a time. The connection to the service is opened when the first
-message is due and closed again after a while of silence. Every spoken message
-costs money on the user's key, so there is a limit per minute and per session.
+Two engines can do the speaking and answer questions: the Mac itself ("local":
+Apple's voice, speech recognition and language model, through a helper program)
+or the voice service of Google ("gemini", with the user's own key).
+
+One message at a time. A conversation with the engine is opened when the first
+message is due and closed again after a while of silence. With Gemini every
+spoken message costs money on the user's key, so there is a limit per minute
+and per session; the Mac speaks for free and has none.
 """
 from __future__ import annotations
 
@@ -17,6 +22,8 @@ import time
 from ..keystore import KeyStore
 from ..settings import Settings
 from . import live
+from .helper import Helper, HelperError
+from .local import LocalSession, topic_instructions
 from .mic import Microphone
 from .speaker import Speaker
 from .texts import SPEECH_CODE, Texts
@@ -37,18 +44,24 @@ class _Item:
     text: str = dataclasses.field(compare=False)
     created: float = dataclasses.field(compare=False)
     forced: bool = dataclasses.field(compare=False, default=False)     # a test message ignores the limits
-    audio: bytes = dataclasses.field(compare=False, default=b"")       # a spoken question instead of text
+    audio: bytes = dataclasses.field(compare=False, default=b"")       # a spoken question; text is what was heard
 
 
 class Engineer:
     def __init__(self, settings: Settings, keys: KeyStore, *, speaker: Speaker | None = None,
                  microphone: Microphone | None = None, transcriber=None, url: str = live.URL,
-                 device_language: str = "en", on_change=None, clock=time.monotonic) -> None:
+                 device_language: str = "en", on_change=None, clock=time.monotonic,
+                 helper: Helper | None = None) -> None:
         self.settings, self.keys = settings, keys
         self.speaker = speaker or Speaker()
         self.microphone = microphone or Microphone()
         self.session_status = dict              # callable() -> dict: facts the voice may look up
-        self.transcriber = transcriber if transcriber is not None else make_transcriber()
+        self.helper = helper                    # the Mac's own voice, recognition and language model, if there
+        self.local: dict = {}                   # what the helper said this Mac can do; empty: nothing (yet)
+        self._preparing: set[str] = set()       # languages whose speech recognition is being set up
+        self._prepared: set[str] = set()        # … is set up, or could not be (no second try until something changes)
+        self._warmed: tuple | None = None       # the voice that was loaded into memory
+        self.transcriber = transcriber if transcriber is not None else make_transcriber(helper)
         self.wake = (WakeListener(self.microphone, self.transcriber, language=self.language, on_question=self.ask,
                                   blocked=lambda: self.speaking or self.listening or not self._queue.empty())
                      if self.transcriber is not None else None)
@@ -59,7 +72,7 @@ class Engineer:
         self._queue: asyncio.PriorityQueue[_Item] = asyncio.PriorityQueue(maxsize=20)
         self._seq = itertools.count()
         self._task: asyncio.Task | None = None
-        self._session: live.LiveSession | None = None
+        self._session: live.LiveSession | LocalSession | None = None
         self._spoken_at: collections.deque[float] = collections.deque()
         self.error: str | None = None           # code of the last problem, cleared by the next success
         self.speaking = False
@@ -75,22 +88,108 @@ class Engineer:
         return chosen if chosen in ("de", "en") else self._device_language
 
     def _make_texts(self) -> Texts:
-        return Texts(self.language(), self.settings["box_driver"])
+        # The Mac's voice reads what it gets, so lap times are spelled out for it.
+        return Texts(self.language(), self.settings["box_driver"], spoken=self.engine() == "local")
 
     @property
     def enabled(self) -> bool:
         return bool(self.settings["box_enabled"])
 
+    # --------------------------------------------------------------- engine
+    def engine(self) -> str:
+        """``"local"`` or ``"gemini"``: who speaks and answers."""
+        chosen = self.settings["box_engine"]
+        if chosen in ("local", "gemini"):
+            return chosen
+        # "auto": on this computer where that works. Whoever has stored a key before stays
+        # with Gemini until they choose otherwise – nothing changes under their hands.
+        return "local" if self.local_ready and not self.keys.has_key else "gemini"
+
+    @property
+    def local_ready(self) -> bool:
+        """The Mac can speak the messages: it has a voice for the language of the Box."""
+        return bool(self.local.get("voices"))
+
+    @property
+    def questions(self) -> bool:
+        """Questions can be answered: always with Gemini; on the Mac if it recognises speech
+        in the language of the Box and its language model is switched on."""
+        if self.engine() == "gemini":
+            return True
+        return bool(self.local.get("model") == "available"
+                    and SPEECH_CODE[self.language()] in (self.local.get("recognition") or []))
+
+    @property
+    def usable(self) -> bool:
+        """The chosen engine can speak."""
+        return self.local_ready if self.engine() == "local" else self.keys.has_key
+
+    async def look_at_helper(self) -> None:
+        """Ask the helper what this Mac offers: voices for the language of the Box, speech
+        recognition, the language model. Sets up what is missing in the background."""
+        if self.helper is None:
+            return
+        language = self.language()
+        try:
+            status = await asyncio.to_thread(self.helper.status)
+            voices = await asyncio.to_thread(self.helper.voices, language)
+        except HelperError as problem:
+            log.info("The Box cannot run on this computer alone: %s", problem)
+            self.local = {}
+            return
+        model, speech = status.get("model") or {}, status.get("speech") or {}
+        voices = [voice for voice in voices if voice.get("natural")] or voices      # not the robots, if there is a choice
+        self.local = {"voices": voices,
+                      "model": "available" if model.get("available") else str(model.get("reason") or "unavailable"),
+                      "recognition": list(speech.get("installed") or []) if speech.get("available") else []}
+        self.texts = self._make_texts()             # who speaks may have changed with what the Mac offers
+        if not (self.enabled and self.engine() == "local" and self.local_ready):
+            return
+        locale = SPEECH_CODE[language]
+        voice = (self.settings["box_local_voice"], language)
+        if self._warmed != voice:                   # the first sentence of a voice takes more than a second otherwise
+            self._warmed = voice
+            self._background(self.helper.warm, language=language, voice=voice[0])
+        if (self.local["model"] == "available" and locale not in self._prepared | self._preparing
+                and locale in (speech.get("supported") or [])):
+            self._preparing.add(locale)             # a language pack may have to be downloaded: do not wait for it
+            asyncio.get_running_loop().create_task(self._prepare(locale))
+
+    def _background(self, call, *arguments, **values) -> None:
+        """Run something that may take a while without waiting for it; its failure only matters later."""
+        def run() -> None:
+            try:
+                call(*arguments, **values)
+            except HelperError as problem:
+                log.info("The helper of the Box: %s", problem)
+
+        with contextlib.suppress(RuntimeError):
+            asyncio.get_running_loop().run_in_executor(None, run)
+
+    async def _prepare(self, locale: str) -> None:
+        try:
+            await asyncio.to_thread(self.helper.prepare, locale)
+        except HelperError as problem:
+            log.warning("Speech in %s cannot be recognised on this Mac: %s", locale, problem)
+        finally:
+            self._preparing.discard(locale)
+            self._prepared.add(locale)
+        await self.look_at_helper()
+        await self._sync_wake()
+        self._changed()
+
     async def refresh(self) -> None:
         """Settings or the key changed: the next message uses them."""
         self.texts = self._make_texts()
         self.error = None
+        self._prepared.clear()                      # a language pack that could not be loaded gets another try
         await self._close_session()
+        await self.look_at_helper()
         await self._sync_wake()
         self._changed()
 
     def wake_wanted(self) -> bool:
-        return bool(self.enabled and self.keys.has_key and self.settings["box_wake"])
+        return bool(self.enabled and self.usable and self.questions and self.settings["box_wake"])
 
     async def _sync_wake(self) -> None:
         """Listen for the wake word exactly while it is switched on and usable."""
@@ -110,8 +209,8 @@ class Engineer:
     def state(self) -> str:
         if not self.enabled:
             return "off"
-        if not self.keys.has_key:
-            return "no_key"
+        if not self.usable:
+            return "no_key" if self.engine() == "gemini" else "no_local"
         if self.listening:
             return "listening"
         if self.speaking:
@@ -120,6 +219,10 @@ class Engineer:
 
     def status(self) -> dict:
         return {"enabled": self.enabled, "has_key": self.keys.has_key, "state": self.state(), "error": self.error,
+                "engine": self.engine(), "usable": self.usable, "questions": self.questions,
+                "local": {"helper": self.helper is not None, "available": self.local_ready,
+                          "model": self.local.get("model"), "preparing": bool(self._preparing),
+                          "voices": list(self.local.get("voices") or [])},
                 "said": self.said, "skipped": self.skipped, "tokens": self.tokens,
                 "per_minute": self.settings["box_per_minute"], "per_session": self.settings["box_per_session"],
                 "speaker": self.speaker.available, "microphone": self.microphone.available,
@@ -141,8 +244,8 @@ class Engineer:
                 and self.said < self.settings["box_per_session"])
 
     def say(self, text: str, priority: int = NORMAL, *, forced: bool = False) -> bool:
-        """Queue a message. ``False`` if the Box is off, has no key or the queue is full."""
-        if not text or not self.keys.has_key or not (self.enabled or forced):
+        """Queue a message. ``False`` if the Box is off, cannot speak or the queue is full."""
+        if not text or not self.usable or not (self.enabled or forced):
             return False
         try:
             self._queue.put_nowait(_Item(priority, next(self._seq), text, self._clock(), forced))
@@ -154,10 +257,13 @@ class Engineer:
         """The talk button: record while it is held, send the question when it is released.
         Returns whether the Box is listening now."""
         if on:
-            if self.listening or not self.enabled or not self.keys.has_key:
+            if self.listening or not self.enabled or not self.usable or not self.questions:
                 return self.listening
             if not self.microphone.start():
                 return False
+            if self.engine() == "local":                      # the language model sleeps after seconds: wake it now
+                self._background(self.helper.warm, locale=SPEECH_CODE[self.language()], model=True,
+                                 instructions=topic_instructions())
             self.listening = True
             with contextlib.suppress(RuntimeError):           # a stuck button ends by itself
                 self._listen_timer = asyncio.get_running_loop().call_later(20.0, self.talk, False)
@@ -175,12 +281,12 @@ class Engineer:
         self._changed()
         return False
 
-    def ask(self, question: bytes) -> bool:
-        """Queue a spoken question (16 kHz mono, 16 bit)."""
-        if not question or not self.enabled or not self.keys.has_key:
+    def ask(self, question: bytes, text: str = "") -> bool:
+        """Queue a spoken question (16 kHz mono, 16 bit); ``text`` if it was recognised already."""
+        if not question or not self.enabled or not self.usable or not self.questions:
             return False
         try:
-            self._queue.put_nowait(_Item(URGENT, next(self._seq), "", self._clock(), audio=question))
+            self._queue.put_nowait(_Item(URGENT, next(self._seq), text, self._clock(), audio=question))
         except asyncio.QueueFull:
             return False
         return True
@@ -188,6 +294,7 @@ class Engineer:
     async def start(self) -> None:
         if self._task is None:
             self._task = asyncio.create_task(self._run())
+        await self.look_at_helper()
         await self._sync_wake()
 
     async def stop(self) -> None:
@@ -209,11 +316,16 @@ class Engineer:
             self.tokens += session.tokens
             await session.close()
 
-    def _new_session(self) -> live.LiveSession:
+    def _new_session(self) -> live.LiveSession | LocalSession:
         texts = self.texts
+        if self.engine() == "local":
+            if self.helper is None:
+                raise live.BoxError()
+            return LocalSession(self.helper, texts, voice=self.settings["box_local_voice"],
+                                units=self.settings["units"], status=lambda: self.session_status())
         return live.LiveSession(self.keys.reveal(), model=self.settings["box_model"], voice=self.settings["box_voice"],
                                 language=SPEECH_CODE[texts.language], system=texts.system_prompt(), url=self._url,
-                                status=lambda: self.session_status())
+                                status=lambda: self.session_status(), read_aloud=texts.read_aloud)
 
     async def _run(self) -> None:
         while True:
@@ -226,7 +338,8 @@ class Engineer:
             if not item.audio and now - item.created > (_URGENT_MAX_AGE_S if item.priority == URGENT
                                                            else _NORMAL_MAX_AGE_S):
                 continue
-            if not item.forced and not self._within_limits(now):
+            # The limits protect the user's money; the Mac speaks for free.
+            if not item.forced and self.engine() == "gemini" and not self._within_limits(now):
                 self.skipped += 1
                 self._changed()
                 continue
@@ -255,7 +368,7 @@ class Engineer:
         self.speaking = True
         self._changed()
         try:
-            answer = session.ask(item.audio) if item.audio else session.say(self.texts.read_aloud(item.text))
+            answer = session.ask(item.audio, item.text) if item.audio else session.say(item.text)
             await self.speaker.play(self._listen(answer), live.OUT_RATE, mute=not self.settings["box_speaker"])
             self.said += 1
             self._spoken_at.append(self._clock())
@@ -281,9 +394,12 @@ class Engineer:
 
     # ---------------------------------------------------------------- check
     async def check(self) -> dict:
-        """Try the key with the chosen model. Costs nothing: no message is spoken."""
-        if not self.keys.has_key:
-            return {"ok": False, "error": "no_key"}
+        """Try the engine: the key with the chosen model, or what the Mac offers. Costs nothing:
+        no message is spoken."""
+        await self.look_at_helper()
+        if not self.usable:
+            self._changed()
+            return {"ok": False, "error": "no_key" if self.engine() == "gemini" else "no_local"}
         session = self._new_session()
         try:
             await session.open()

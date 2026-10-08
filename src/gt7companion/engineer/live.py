@@ -71,9 +71,10 @@ def _error_for(status: int | None, text: str) -> BoxError:
 
 class LiveSession:
     def __init__(self, key: str, *, model: str, voice: str, language: str, system: str, url: str = URL,
-                 status=None) -> None:
+                 status=None, read_aloud=None) -> None:
         self._key, self._url = key, url
         self._status = status                 # callable() -> dict, answers the voice's look-ups
+        self._read_aloud = read_aloud         # callable(text) -> the order to read exactly this text
         self._model, self._voice, self._language, self._system = model, voice, language, system
         self._ws = None
         self.tokens = 0                       # tokens the service billed in this conversation
@@ -125,13 +126,17 @@ class LiveSession:
             raise _error_for(None, json.dumps(answer.get("error", answer))[:500])
 
     async def say(self, text: str) -> AsyncIterator[bytes]:
-        """Send one turn of text and yield the spoken answer as raw audio until it is complete."""
+        """Have a message read out: yields the speech as raw audio until it is complete.
+        The service is a conversation partner, so it is told to read and not to reply."""
+        if self._read_aloud is not None:
+            text = self._read_aloud(text)
         async for chunk in self._turn([{"clientContent": {
                 "turns": [{"role": "user", "parts": [{"text": text}]}], "turnComplete": True}}]):
             yield chunk
 
-    async def ask(self, pcm: bytes) -> AsyncIterator[bytes]:
-        """Send a spoken question (16 kHz mono, 16 bit) and yield the spoken answer."""
+    async def ask(self, pcm: bytes, text: str = "") -> AsyncIterator[bytes]:
+        """Send a spoken question (16 kHz mono, 16 bit) and yield the spoken answer.
+        ``text`` (what a recogniser heard) is not needed: the service listens itself."""
         messages = [{"realtimeInput": {"activityStart": {}}}]
         for start in range(0, len(pcm), _BLOCK):
             messages.append({"realtimeInput": {"audio": {

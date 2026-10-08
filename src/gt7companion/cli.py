@@ -81,7 +81,9 @@ def main(argv: list[str] | None = None) -> int:
                                          else "PlayStation in the home network"))
     print("  Stop with Ctrl+C.", flush=True)
 
-    app = create_app(settings, source=source, lan=lan, port=args.port)
+    from .engineer import helper
+
+    app = create_app(settings, source=source, lan=lan, port=args.port, helper=helper.find())
     uvicorn.run(app, host=host, port=args.port, log_level="debug" if args.verbose else "warning",
                 ws_max_size=256 * 1024, access_log=False)
     return 0

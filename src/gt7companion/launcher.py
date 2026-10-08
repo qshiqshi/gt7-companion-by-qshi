@@ -54,6 +54,7 @@ class Server:
         self._thread: threading.Thread | None = None
         self.lan = False
         self.window: Callable[[], None] | None = None     # brings the window to the front, if there is one
+        self.helper = None                                # lets the Box run on a Mac alone; survives restarts
 
     @property
     def url(self) -> str:
@@ -74,7 +75,7 @@ class Server:
         if not port_is_free(host, self.port):
             return False
         app = create_app(self.settings, source=self.source, lan=self.lan, port=self.port,
-                         show_window=self._show_window)
+                         show_window=self._show_window, helper=self.helper)
         self._server = uvicorn.Server(uvicorn.Config(app, host=host, port=self.port, log_level="warning",
                                                      ws_max_size=256 * 1024, access_log=False))
         self._thread = threading.Thread(target=self._server.run, name="gt7companion-server", daemon=True)
@@ -282,7 +283,10 @@ def main(argv: list[str] | None = None) -> int:
     args = parser.parse_args(argv)
     _set_up_logging()
 
+    from .engineer import helper
+
     server = Server(Settings(), args.port)
+    server.helper = helper.find()
     if not server.start():
         if show_running(args.port):      # the program runs already and has brought its window to the front
             return 0

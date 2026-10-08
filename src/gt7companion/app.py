@@ -93,14 +93,15 @@ def create_app(settings: Settings | None = None, *, layouts: LayoutStore | None 
                source: str | None = None, lan: bool = False, port: int = 8707,
                ports: tuple[int, int] | None = None, keys: KeyStore | None = None,
                box_url: str | None = None, speaker=None, microphone=None, transcriber=None,
-               show_window: Callable[[], bool] | None = None) -> FastAPI:
+               show_window: Callable[[], bool] | None = None, helper=None) -> FastAPI:
     """Build the application.
 
     ``source`` overrides the stored setting for this run ("demo" or "live");
     ``lan`` and ``port`` tell the pages how other devices reach them (the
     caller does the actual listening); ``ports`` are the UDP ports of the
     console and only differ in tests; ``show_window`` brings the window of
-    the program to the front and tells whether there is one.
+    the program to the front and tells whether there is one; ``helper`` lets
+    the Box run on a Mac alone (see ``engineer/helper.py``).
     """
     settings = settings or Settings()
     bus = EventBus()
@@ -116,7 +117,7 @@ def create_app(settings: Settings | None = None, *, layouts: LayoutStore | None 
             pass                                    # no loop yet: nobody is listening anyway
 
     engineer = Engineer(settings, keys or KeyStore(), speaker=speaker, microphone=microphone,
-                        transcriber=transcriber, on_change=box_changed,
+                        transcriber=transcriber, on_change=box_changed, helper=helper,
                         device_language=system.language(), **({"url": box_url} if box_url else {}))
     announcer = Announcer(bus, engineer)
     engineer.session_status = hub.facts
@@ -373,7 +374,7 @@ def create_app(settings: Settings | None = None, *, layouts: LayoutStore | None 
 
     @app.post("/api/box/check")
     async def check_box(request: Request):
-        """Try the key and the chosen voice model without speaking (costs nothing)."""
+        """Try the key and the chosen voice model – or what the Mac offers – without speaking (costs nothing)."""
         require_owner(request)
         return JSONResponse({**(await engineer.check()), **box_view()}, headers=_NO_STORE)
 

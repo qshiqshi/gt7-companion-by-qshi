@@ -5,6 +5,7 @@ and is skipped without it. ``GT7C_CHROMIUM`` may name a Chromium executable to u
 """
 import os
 import socket
+import sys
 import tempfile
 import threading
 import time
@@ -38,13 +39,20 @@ def free_port() -> int:
 
 
 @unittest.skipUnless(sync_playwright, "Playwright is not installed")
-class BrowserCase(unittest.TestCase):
+class Pages(unittest.TestCase):
+    """The program and a browser to look at its pages; the tests are in the classes below."""
+
+    @classmethod
+    def app_options(cls, home: Path) -> dict:
+        """More arguments for the application (subclasses)."""
+        return {}
+
     @classmethod
     def setUpClass(cls):
         cls.folder = tempfile.TemporaryDirectory()
         home = Path(cls.folder.name)
         app = create_app(Settings(home / "settings.json"), layouts=LayoutStore(home / "layouts"), source="demo",
-                         keys=KeyStore(home / "secrets.json"))
+                         keys=KeyStore(home / "secrets.json"), **cls.app_options(home))
         cls.port = free_port()
         cls.server = uvicorn.Server(uvicorn.Config(app, host="127.0.0.1", port=cls.port, log_level="error"))
         cls.thread = threading.Thread(target=cls.server.run, daemon=True)
@@ -113,6 +121,8 @@ class BrowserCase(unittest.TestCase):
             context.close()
             self.assertEqual(problems, [])
 
+
+class BrowserCase(Pages):
     def test_dashboard_fits_every_screen_uncropped_and_centred(self):
         for size in SCREENS:
             with self.subTest(size=size):
@@ -391,6 +401,65 @@ class BrowserCase(unittest.TestCase):
         self.assertTrue(page.evaluate("document.getElementById('wait').hidden"))
         box = page.evaluate(STAGE)
         self.assertAlmostEqual(box["right"] - box["left"], 1920, delta=1)
+
+
+class LocalBoxInTheBrowser(Pages):
+    """The settings page on a Mac that can let the Box speak by itself (a stand-in for its helper program)."""
+
+    @classmethod
+    def app_options(cls, home: Path) -> dict:
+        from gt7companion.engineer.helper import Helper
+
+        from tests.test_box import FakeMicrophone, FakeSpeaker, FakeTranscriber
+
+        cls.helper = Helper([sys.executable, str(Path(__file__).with_name("fake_box_helper.py")),
+                             "--model", "disabled"])
+        return {"helper": cls.helper, "speaker": FakeSpeaker(), "microphone": FakeMicrophone(),
+                "transcriber": FakeTranscriber()}
+
+    @classmethod
+    def tearDownClass(cls):
+        super().tearDownClass()
+        cls.helper.close()
+
+    def hidden(self, page, *names) -> list[bool]:
+        return [page.evaluate(f"document.getElementById('{name}').hidden") for name in names]
+
+    def test_the_mac_speaks_without_a_key_and_the_page_shows_only_what_matters(self):
+        page = self.open_plain("settings")
+        page.wait_for_selector("#form", state="visible")
+        page.check("#box_enabled")
+        page.click("#form button[type=submit]")
+        page.wait_for_function("() => document.getElementById('box-state').textContent.includes('bereit')")
+        self.assertEqual(page.evaluate("document.getElementById('box-engine-now').textContent"), "Im Moment: dieser Mac.")
+        # no key, no limits, no model of the service – but the voices of this Mac
+        self.assertEqual(self.hidden(page, "box-key", "box-gemini", "box-local-voice"), [True, True, False])
+        self.assertEqual(page.evaluate("[...document.getElementById('box_local_voice').options].map(o => o.textContent).join('|')"),
+                         "Die beste, die installiert ist|Anna (Premium)|Anna")
+        self.assertIn("Apple Intelligence", page.evaluate("document.getElementById('box-local-hint').textContent"))
+        self.assertFalse(page.evaluate("document.getElementById('box-test').disabled"))
+        page.select_option("#box_local_voice", "com.apple.voice.compact.de-DE.Anna")
+        page.click("#form button[type=submit]")
+        page.wait_for_function("() => document.getElementById('result').textContent !== ''")
+        page.reload()
+        page.wait_for_selector("#form", state="visible")
+        page.wait_for_function("() => document.getElementById('box_local_voice').options.length === 3")
+        self.assertEqual(page.evaluate("document.getElementById('box_local_voice').value"),
+                         "com.apple.voice.compact.de-DE.Anna")
+        # Gemini by choice: the key comes back, the voices of the Mac go
+        page.select_option("#box_engine", "gemini")
+        page.click("#form button[type=submit]")
+        page.wait_for_function("() => document.getElementById('box-state').textContent.includes('kein Schlüssel')")
+        self.assertEqual(self.hidden(page, "box-key", "box-gemini", "box-local-voice", "box-local-hint"),
+                         [False, False, True, True])
+        self.assertEqual(page.evaluate("document.getElementById('box-engine-now').textContent"), "")
+
+    def test_the_same_page_in_english(self):
+        page = self.open_plain("settings", locale="en-US")
+        page.wait_for_selector("#form", state="visible")
+        self.assertEqual(page.evaluate("[...document.getElementById('box_engine').options].map(o => o.textContent).join('|')"),
+                         "Automatic: this computer, if it can|This Mac – no key and no internet|"
+                         "Gemini by Google – with a key of your own")
 
 
 if __name__ == "__main__":
