@@ -5,7 +5,7 @@ import unittest
 
 from gt7companion import telemetry
 from gt7companion.bus import EventBus
-from gt7companion.demo import DEMO_FILE, DEMO_LAP_MS, demo_laps
+from gt7companion.demo import DEMO_FILE, DEMO_LAPS_MS, demo_laps
 from gt7companion.hub import Hub
 from gt7companion.models import TelemetryFrame
 
@@ -72,24 +72,46 @@ class HubTests(unittest.IsolatedAsyncioTestCase):
 
 
 class DemoTests(unittest.IsolatedAsyncioTestCase):
-    def test_every_pass_is_the_next_lap_and_times_appear_after_the_first(self):
+    def test_the_recording_is_four_whole_laps_that_can_be_looped(self):
         raw = DEMO_FILE.read_bytes()
         size = telemetry._RECORD_SIZE
         self.assertEqual(len(raw) % size, 0)
-        first = telemetry._parse(raw[8:size])
-        last = telemetry._parse(raw[len(raw) - size + 8:])
-        self.assertEqual((first.current_lap, last.current_lap, last.last_lap_ms), (3, 4, DEMO_LAP_MS))
-        duration = struct.unpack_from("<d", raw, len(raw) - size)[0] - struct.unpack_from("<d", raw, 0)[0]
-        self.assertAlmostEqual(duration * 1000, DEMO_LAP_MS, delta=150)
+        more = telemetry.read_extension(DEMO_FILE)
+        count = len(raw) // size
+        self.assertEqual(len(more), count)                           # every packet has the bytes of format C
+        frames = [telemetry._parse(raw[at + 8:at + size] + more[raw[at:at + 8]]) for at in range(0, len(raw), size * 20)]
+        first, last = telemetry._parse(raw[8:size]), telemetry._parse(raw[len(raw) - size + 8:])
+        self.assertEqual((first.current_lap, last.current_lap), (1, len(DEMO_LAPS_MS)))
+        self.assertTrue(all(frame.on_track and not frame.paused and not frame.loading for frame in frames))
+        self.assertGreater(len({frame.surface for frame in frames}), 3)       # tarmac, kerbs, a wheel on the grass
+        self.assertEqual({frame.packet_type for frame in frames}, {"C"})
+        # even time stamps, 60 a second, and as long as the laps the game reported
+        stamps = [struct.unpack_from("<d", raw, at)[0] for at in range(0, len(raw), size)]
+        self.assertTrue(all(abs(b - a - 1 / 60) < 1e-9 for a, b in zip(stamps, stamps[1:])))
+        self.assertAlmostEqual(count / 60 * 1000, sum(DEMO_LAPS_MS), delta=50)
+        # the seam of the loop: the same place on the finish straight, at about the same speed
+        self.assertLess(abs(first.pos_x - last.pos_x) + abs(first.pos_z - last.pos_z), 5.0)
+        self.assertLess(abs(first.speed_mps - last.speed_mps) * 3.6, 10.0)
 
-        def lap(record, passes):
-            got = demo_laps(telemetry._parse(record), passes)
+    def test_every_pass_counts_on_and_the_lap_times_follow(self):
+        raw = DEMO_FILE.read_bytes()
+        size = telemetry._RECORD_SIZE
+        first_of_lap = {}
+        for at in range(0, len(raw), size):
+            first_of_lap.setdefault(telemetry._parse(raw[at + 8:at + size]).current_lap, raw[at + 8:at + size])
+        one, two, three, four = DEMO_LAPS_MS
+
+        def lap(recorded, passes):
+            got = demo_laps(telemetry._parse(first_of_lap[recorded]), passes)
             return got.current_lap, got.last_lap_ms, got.best_lap_ms
 
-        self.assertEqual(lap(raw[8:size], 0), (1, -1, -1))
-        self.assertEqual(lap(raw[len(raw) - size + 8:], 0), (2, DEMO_LAP_MS, DEMO_LAP_MS))
-        self.assertEqual(lap(raw[8:size], 1), (2, DEMO_LAP_MS, DEMO_LAP_MS))
-        self.assertEqual(lap(raw[8:size], 5), (6, DEMO_LAP_MS, DEMO_LAP_MS))
+        self.assertEqual(lap(1, 0), (1, -1, -1))                     # nothing driven yet
+        self.assertEqual(lap(2, 0), (2, one, one))
+        self.assertEqual(lap(3, 0), (3, two, min(one, two)))
+        self.assertEqual(lap(4, 0), (4, three, min(one, two, three)))
+        self.assertEqual(lap(1, 1), (5, four, min(DEMO_LAPS_MS)))    # the fourth lap is known when the next pass begins
+        self.assertEqual(lap(2, 1), (6, one, min(DEMO_LAPS_MS)))
+        self.assertEqual(lap(4, 3), (16, three, min(DEMO_LAPS_MS)))
 
     async def test_demo_plays_into_the_hub(self):
         bus, screens = EventBus(), Screens()
@@ -106,8 +128,9 @@ class DemoTests(unittest.IsolatedAsyncioTestCase):
         self.assertIsNotNone(hub.latest)
         self.assertEqual(hub.latest["lap_number"], 1)
         self.assertTrue(hub.latest["on_track"])
-        self.assertEqual(hub.latest["available"]["packet"], "A")
-        self.assertIsNone(hub.latest["surface"])               # never invented for an A recording
+        self.assertEqual(hub.latest["available"]["packet"], "C")
+        self.assertEqual(len(hub.latest["surface"]), 4)        # one letter per tyre, from the recording
+        self.assertEqual(hub.latest["car_class"], "Gr.N")
         self.assertEqual(screens.sent[0], ("status", {"telemetry_connected": True}))
 
 

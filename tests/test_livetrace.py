@@ -3,7 +3,7 @@ import math
 import unittest
 
 from gt7companion import telemetry
-from gt7companion.demo import DEMO_FILE, DEMO_LAP_MS, demo_laps
+from gt7companion.demo import DEMO_FILE, DEMO_LAPS_MS, demo_laps
 from gt7companion.livetrace import LiveTrace
 from gt7companion.models import TelemetryFrame
 
@@ -94,19 +94,20 @@ class LiveTraceTests(unittest.TestCase):
         self.drive(idle, lap_frames(0, frames=10, on_track=False), [0.0])
         self.assertIsNone(idle.snapshot()["current"])
 
-    def test_demo_lap_counts_from_its_first_frame(self):
+    def test_demo_laps_count_from_the_first_frame(self):
         raw = DEMO_FILE.read_bytes()
         size = telemetry._RECORD_SIZE
         trace = LiveTrace()
         trace.reset(first_lap_complete=True)
         stamp = 0.0
+        fastest = DEMO_LAPS_MS.index(min(DEMO_LAPS_MS)) + 1
         for passes in range(2):
             for offset in range(0, len(raw), size):
                 trace.add(demo_laps(telemetry._parse(raw[offset + 8:offset + size]), passes), stamp)
                 stamp += 1 / 60
             best = trace.snapshot()["best"]
-            self.assertEqual((best["lap_number"], best["duration_ms"]), (1, DEMO_LAP_MS))
-        self.assertGreater(len(best["points"]), 500)
+            self.assertEqual(best["duration_ms"], min(DEMO_LAPS_MS[:fastest - 1] if passes == 0 else DEMO_LAPS_MS))
+        self.assertGreater(len(best["points"]), 400)
 
 
 if __name__ == "__main__":

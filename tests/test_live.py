@@ -143,7 +143,7 @@ class LiveCase(unittest.IsolatedAsyncioTestCase):
         await asyncio.sleep(1.3)
         self.assertEqual(len(console.heartbeats), beats)         # no more heartbeats to the console
         self.assertTrue(self.frames)
-        self.assertTrue(all(f.packet_type == "A" for f in self.frames))          # only the demo lap
+        self.assertTrue(all(f.car_class == "GRN" for f in self.frames))          # only the demo drive (the console sent GR3)
         with self.assertRaises(ValueError):
             await self.sources.use("satellite")
 

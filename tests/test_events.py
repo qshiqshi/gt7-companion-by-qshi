@@ -4,7 +4,7 @@ import unittest
 
 from gt7companion import telemetry
 from gt7companion.bus import EventBus
-from gt7companion.demo import DEMO_FILE, DEMO_LAP_MS, demo_laps
+from gt7companion.demo import DEMO_FILE, DEMO_LAPS_MS, demo_laps
 from gt7companion.detectors import DetectorSuite
 from gt7companion.hub import Hub
 from gt7companion.models import TelemetryFrame
@@ -37,18 +37,24 @@ class EventTests(unittest.IsolatedAsyncioTestCase):
     def shown(self):
         return [(extra.get("type"), data) for topic, data, extra in self.screens.log if topic == "event"]
 
-    async def test_demo_lap_is_counted_and_clean(self):
+    async def test_demo_laps_are_counted_with_what_happened_in_them(self):
         raw, size = DEMO_FILE.read_bytes(), telemetry._RECORD_SIZE
+        more = telemetry.read_extension(DEMO_FILE)
         for passes in range(3):
             for offset in range(0, len(raw), size):
-                frame = demo_laps(telemetry._parse(raw[offset + 8:offset + size]), passes)
-                await self.bus.publish("telemetry.frame", frame)
+                packet = raw[offset + 8:offset + size] + more[raw[offset:offset + 8]]
+                await self.bus.publish("telemetry.frame", demo_laps(telemetry._parse(packet), passes))
                 if offset % (size * 50) == 0:
                     await asyncio.sleep(0)
         for _ in range(10):
             await asyncio.sleep(0)
-        self.assertEqual(self.hub.stats, {"laps": 3, "spins": 0, "crashes": 0, "best_lap_ms": DEMO_LAP_MS})
-        self.assertEqual(self.shown(), [])           # equal laps: no "new best lap", nothing invented
+        # Three passes: eleven laps are over, the twelfth ends with the recording. The drive was a real one,
+        # with a slide in the hairpin of the first and third lap and a touch of the wall in the other three.
+        self.assertEqual(self.hub.stats, {"laps": 11, "spins": 6, "crashes": 9, "best_lap_ms": min(DEMO_LAPS_MS)})
+        best = [data["lap_time_ms"] for kind, data in self.shown() if kind == "best_lap"]
+        self.assertEqual(best, [DEMO_LAPS_MS[1], DEMO_LAPS_MS[3]])   # the second lap beat the first, the fourth both
+        kinds = [kind for kind, _ in self.shown() if kind != "best_lap"]
+        self.assertEqual((kinds.count("spin"), kinds.count("crash")), (6, 9))
 
     async def test_spin_is_counted_and_shown(self):
         await self.feed(40)                          # driving normally (warm-up of the detectors)

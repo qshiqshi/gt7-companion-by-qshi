@@ -14,13 +14,12 @@ from unittest.mock import Mock, patch
 
 from gt7companion import telemetry
 from gt7companion.bus import EventBus
-from gt7companion.demo import DEMO_FILE
 from gt7companion.models import TelemetryFrame
 from gt7companion.paths import WEB
 from gt7companion.settings import DEFAULTS
 from gt7companion.telemetry_view import SignVote, TelemetryView, car_class_label
 
-FIXTURE = DEMO_FILE
+FIXTURE = Path(__file__).with_name("fixtures") / "dragon-trail-lap.gt7r"      # one lap in packet format A
 PS5 = '10.0.0.5'
 SIZES = {'A': 296, 'B': 316, 'C': 368}
 
