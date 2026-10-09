@@ -146,10 +146,26 @@ Access" on an iPad). Adding the page to the home screen shows it without the bro
 
 ## OBS
 
-Add a *Browser* source, 1920 × 1080, with the address `http://127.0.0.1:8707/?obs=1`.
-It is transparent, shows the overlay layout and hides the driving widgets while you are in
-the menus. `?layout=<name>` picks another layout, `?lang=en` and `?units=imperial` set
-language and units for this source.
+The overlay is a transparent view of its own for the stream. This is how it gets into OBS:
+
+1. The program is running – its window may be closed.
+2. In OBS click **+** under **Sources**, choose **Browser**, give it a name, **OK**.
+3. Enter: **URL** `http://127.0.0.1:8707/?obs=1`, **Width** 1920, **Height** 1080 (the size of
+   your canvas if you stream in another size), then **OK**.
+4. Drag the source above your game capture in the list.
+
+Good to know:
+
+- The source is transparent. The driving widgets show on the track only; in the game's menus
+  they hide.
+- Arranging: open **Edit** in the program, choose the layout "Stream overlay 16:9" at the top
+  and move the widgets. OBS shows every change at once.
+- The voice of the Box comes out of this source, too. With **Control audio via OBS** in the
+  source's properties it gets a fader of its own in the mixer.
+- If OBS runs on another computer: switch on "Share in the home network" and use the address
+  from the page *Connect devices* instead of `127.0.0.1`.
+- `?layout=<name>` picks another layout, `?lang=en` and `?units=imperial` set language and
+  units for this source.
 
 ## Tisch Turismo – the game on the desk
 

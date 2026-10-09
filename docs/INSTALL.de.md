@@ -100,6 +100,18 @@ mit **Bearbeiten** ordnest du das Dashboard um, **Hilfe** zeigt die Sprechblasen
 
 <img src="images/de/menu.png" width="540" alt="Menu">
 
+Unter **Bearbeiten** werden Änderungen automatisch gespeichert. **Layout speichern** sichert
+einen Stand für dieses Layout; **Zurücksetzen** kehrt dorthin zurück. Bestehende Layouts werden
+vor dem ersten Autosave nach einem Update gesichert. Zur mitgelieferten Vorlage führt dagegen
+**Eigenes Layout** → **Vorlage wiederherstellen**, bestätigt mit einem zweiten Klick.
+
+**Rückgängig** oder Strg/Cmd+Z nimmt die letzte Änderung zurück (bis zu 100); ein Ziehen zählt
+als eine Änderung. Anzeige wählen, dann **Stil kopieren** / **Stil einfügen** oder Strg/Cmd+C/V,
+um Stil und Größe zu übertragen. Unter **Styling** steht die globale Schriftwahl, am Pinsel
+die Schrift einer einzelnen Anzeige. Für Milchglas und Dackel gibt es dort außerdem
+**Bewegung** → **Empfindlichkeit** (5–500%). Das Glas startet bei 25%, der Dackel bei 100%;
+bereits eingestellte eigene Werte bleiben erhalten.
+
 ## 4. PlayStation verbinden
 
 1. PlayStation und Rechner sind im selben Heimnetz (kein Gäste-WLAN).
@@ -129,25 +141,28 @@ die PIN von derselben Seite eingeben.
 
 ## 6. Stream-Overlay in OBS
 
-Unter **Bearbeiten** werden Änderungen automatisch gespeichert. **Layout speichern** sichert
-einen Stand für dieses Layout; **Zurücksetzen** kehrt dorthin zurück. Bestehende Layouts werden
-vor dem ersten Autosave nach einem Update gesichert. Zur mitgelieferten Vorlage führt dagegen
-**Eigenes Layout** → **Vorlage wiederherstellen**, bestätigt mit einem zweiten Klick.
+Das Overlay ist eine eigene, durchsichtige Ansicht für den Stream. So kommt es in OBS:
 
-**Rückgängig** oder Strg/Cmd+Z nimmt die letzte Änderung zurück (bis zu 100); ein Ziehen zählt
-als eine Änderung. Anzeige wählen, dann **Stil kopieren** / **Stil einfügen** oder Strg/Cmd+C/V,
-um Stil und Größe zu übertragen. Unter **Styling** steht die globale Schriftwahl, am Pinsel
-die Schrift einer einzelnen Anzeige. Für Milchglas und Dackel gibt es dort außerdem
-**Bewegung** → **Empfindlichkeit** (5–500%). Das Glas startet bei 25%, der Dackel bei 100%;
-bereits eingestellte eigene Werte bleiben erhalten.
-
-Eine Quelle der Art **Browser** anlegen, Breite 1920, Höhe 1080, Adresse:
+1. Das Programm läuft – sein Fenster darf zu sein.
+2. In OBS unter **Quellen** auf **+** klicken, **Browser** wählen, einen Namen vergeben, **OK**.
+3. Bei **URL** die Adresse unten eintragen, **Breite** 1920, **Höhe** 1080 (bei einer anderen
+   Stream-Größe die Maße deiner Leinwand), dann **OK**.
+4. Die Quelle in der Liste über dein Spielbild ziehen.
 
 ```
 http://127.0.0.1:8707/?obs=1
 ```
 
 <img src="images/de/overlay.png" width="640" alt="Overlay">
+
+- Die Quelle ist durchsichtig. Die Fahranzeigen erscheinen nur auf der Strecke; in den Menüs des
+  Spiels blenden sie sich aus.
+- Anordnen: im Programm **Bearbeiten** öffnen, oben das Layout **Overlay für den Stream 16:9**
+  wählen und die Anzeigen verschieben. OBS zeigt jede Änderung sofort.
+- Die Stimme der Box kommt auch aus dieser Quelle. Mit **Audio über OBS steuern** in den
+  Eigenschaften der Quelle bekommt sie im Mixer einen eigenen Regler.
+- Läuft OBS auf einem anderen Rechner: Symbol → **Im Heimnetz freigeben** und statt `127.0.0.1`
+  die Adresse von der Seite **Geräte verbinden** nehmen.
 
 Das kleine Spiel **Tisch Turismo** – ein Spielzeugauto auf einem Schreibtisch, das nachfährt, was
 du fährst – ist eine zweite Quelle derselben Art: Breite 1536, Höhe 864, Adresse:

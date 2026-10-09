@@ -83,6 +83,27 @@ byId('open-dashboard').href = seen('view') ? '/' : '/?tour=1';
 byId('open-editor').href = seen('edit') ? '/?edit=1' : '/?edit=1&tour=1';
 byId('tour-note').hidden = seen('view');
 
+/* The overlay for a stream: the address OBS has to be given, ready to be copied. */
+const obsUrl = location.origin + '/?obs=1';
+const obsCopy = byId('obs-copy');
+byId('obs-url').textContent = obsUrl;
+obsCopy.addEventListener('click', function() {
+  /* Without a clipboard the address is marked, so Ctrl/Cmd+C takes it. */
+  const mark = function() {
+    const range = document.createRange();
+    range.selectNodeContents(byId('obs-url'));
+    const selection = getSelection();
+    selection.removeAllRanges();
+    selection.addRange(range);
+  };
+  const copied = function() {
+    obsCopy.textContent = 'Kopiert';
+    setTimeout(function() { obsCopy.textContent = 'Kopieren'; }, 2000);
+  };
+  if (navigator.clipboard && navigator.clipboard.writeText) navigator.clipboard.writeText(obsUrl).then(copied, mark);
+  else mark();
+});
+
 await load();
 setInterval(function() { if (!document.hidden && !busy) load(); }, 2000);
 document.addEventListener('visibilitychange', function() { if (!document.hidden) load(); });

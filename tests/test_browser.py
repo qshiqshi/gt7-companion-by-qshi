@@ -725,6 +725,17 @@ class StartPageAndTour(Pages):
         self.assertTrue(page.evaluate("document.getElementById('start-screen-row').hidden"))
         self.assertEqual(page.get_attribute("#source-locked a", "href"), "/connect?next=/start")
 
+    def test_the_start_page_tells_how_the_overlay_gets_into_obs(self):
+        page = self.open_plain("start", permissions=["clipboard-read", "clipboard-write"])
+        page.wait_for_function("() => !document.getElementById('choices').disabled")
+        address = f"http://127.0.0.1:{self.port}/?obs=1"
+        self.assertEqual(page.text_content("#obs-url"), address)
+        self.assertFalse(page.is_visible("#obs-copy"))                    # folded away until it is asked for
+        page.click("details.how summary")
+        page.click("#obs-copy")
+        page.wait_for_function("() => document.getElementById('obs-copy').textContent === 'Kopiert'")
+        self.assertEqual(page.evaluate("() => navigator.clipboard.readText()"), address)
+
     def test_the_start_page_in_english_on_a_phone(self):
         page = self.open_plain("start", size=(390, 844), locale="en-US")
         page.wait_for_function("() => !document.getElementById('choices').disabled")

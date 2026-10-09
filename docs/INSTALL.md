@@ -95,6 +95,17 @@ back to the start page:
 
 <img src="images/en/menu.png" width="540" alt="Menu">
 
+In **Edit**, changes save automatically. **Save layout** keeps a checkpoint for this layout;
+**Reset** returns to it. Existing layouts are protected before their first autosave after an
+update. To return to a shipped preset instead, open **Own layout** → **Restore preset** and
+confirm with a second click.
+
+**Undo** or Ctrl/Cmd+Z reverses the last change (up to 100); a drag is one change. Select a
+widget, then **Copy style** / **Paste style**, or Ctrl/Cmd+C/V, to transfer its style and scale.
+Choose a global font under **Styling**, or an individual font with the widget's brush.
+For the glass or dachshund, the brush also has **Movement** → **Sensitivity** (5–500%).
+The glass starts at 25%, the dachshund at 100%; an existing custom value stays as it is.
+
 ## 4. Connect your PlayStation
 
 1. PlayStation and computer are in the same home network (not a guest Wi-Fi).
@@ -124,24 +135,28 @@ PIN from the same page.
 
 ## 6. Stream overlay in OBS
 
-In **Edit**, changes save automatically. **Save layout** keeps a checkpoint for this layout;
-**Reset** returns to it. Existing layouts are protected before their first autosave after an
-update. To return to a shipped preset instead, open **Own layout** → **Restore preset** and
-confirm with a second click.
+The overlay is a transparent view of its own for the stream. This is how it gets into OBS:
 
-**Undo** or Ctrl/Cmd+Z reverses the last change (up to 100); a drag is one change. Select a
-widget, then **Copy style** / **Paste style**, or Ctrl/Cmd+C/V, to transfer its style and scale.
-Choose a global font under **Styling**, or an individual font with the widget's brush.
-For the glass or dachshund, the brush also has **Movement** → **Sensitivity** (5–500%).
-The glass starts at 25%, the dachshund at 100%; an existing custom value stays as it is.
-
-Add a source of the kind **Browser**, width 1920, height 1080, address:
+1. The program is running – its window may be closed.
+2. In OBS click **+** under **Sources**, choose **Browser**, give it a name, **OK**.
+3. Enter the address below as **URL**, **Width** 1920, **Height** 1080 (the size of your canvas
+   if you stream in another size), then **OK**.
+4. Drag the source above your game capture in the list.
 
 ```
 http://127.0.0.1:8707/?obs=1
 ```
 
 <img src="images/en/overlay.png" width="640" alt="Overlay">
+
+- The source is transparent. The driving widgets show on the track only; in the game's menus
+  they hide.
+- Arranging: open **Edit** in the program, choose the layout **Stream overlay 16:9** at the top
+  and move the widgets. OBS shows every change at once.
+- The voice of the Box comes out of this source, too. With **Control audio via OBS** in the
+  source's properties it gets a fader of its own in the mixer.
+- If OBS runs on another computer: symbol → **Share in the home network**, and use the address
+  from the page **Connect devices** instead of `127.0.0.1`.
 
 The little game **Tisch Turismo** – a toy car on a desk that drives what you drive – is a second
 source of the same kind: width 1536, height 864, address:

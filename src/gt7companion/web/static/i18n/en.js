@@ -587,5 +587,11 @@ window.GT7_TEXTS_EN = {
   "Sichern und zurück": "Save and go back",
   "Änderungen speichern sich von selbst. „Layout speichern“ hält einen Stand fest, zu dem „Zurücksetzen“ zurückkehrt. „Rückgängig“ nimmt den letzten Schritt zurück.": "Changes save themselves. “Save layout” keeps a state that “Reset” returns to. “Undo” takes back the last step.",
   "Fertig?": "Done?",
-  "„Zur Ansicht“ bringt dich zurück ins Dashboard. „Hilfe“ zeigt diesen Rundgang noch einmal.": "“To the dashboard” takes you back to the dashboard. “Help” shows this tour again."
+  "„Zur Ansicht“ bringt dich zurück ins Dashboard. „Hilfe“ zeigt diesen Rundgang noch einmal.": "“To the dashboard” takes you back to the dashboard. “Help” shows this tour again.",
+  "Das Overlay in OBS einblenden": "Show the overlay in OBS",
+  "In OBS unter „Quellen“ auf + klicken und „Browser“ wählen.": "In OBS click + under “Sources” and choose “Browser”.",
+  "Diese Adresse als URL eintragen, dazu Breite 1920 und Höhe 1080:": "Enter this address as URL, with width 1920 and height 1080:",
+  "Die Quelle in der Liste über dein Spielbild ziehen.": "Drag the source above your game capture in the list.",
+  "Eine durchsichtige Ansicht für den Stream; die Anzeigen erscheinen nur auf der Strecke.": "A transparent view for the stream; the widgets show on the track only.",
+  "Kopiert": "Copied"
 };

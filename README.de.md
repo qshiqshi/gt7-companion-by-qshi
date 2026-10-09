@@ -151,10 +151,26 @@ die Seite ohne die Leisten des Browsers.
 
 ## OBS
 
-Eine Quelle *Browser* anlegen, 1920 × 1080, mit der Adresse `http://127.0.0.1:8707/?obs=1`.
-Sie ist durchsichtig, zeigt das Overlay-Layout und blendet die Fahranzeigen aus, solange du in
-den Menüs bist. `?layout=<Name>` wählt ein anderes Layout, `?lang=en` und `?units=imperial`
-stellen Sprache und Einheiten für diese Quelle ein.
+Das Overlay ist eine eigene, durchsichtige Ansicht für den Stream. So kommt es in OBS:
+
+1. Das Programm läuft – sein Fenster darf zu sein.
+2. In OBS unter **Quellen** auf **+** klicken, **Browser** wählen, einen Namen vergeben, **OK**.
+3. Eintragen: **URL** `http://127.0.0.1:8707/?obs=1`, **Breite** 1920, **Höhe** 1080 (bei einer
+   anderen Stream-Größe die Maße deiner Leinwand), dann **OK**.
+4. Die Quelle in der Liste über dein Spielbild ziehen.
+
+Gut zu wissen:
+
+- Die Quelle ist durchsichtig. Die Fahranzeigen erscheinen nur auf der Strecke; in den Menüs des
+  Spiels blenden sie sich aus.
+- Anordnen: im Programm **Bearbeiten** öffnen, oben das Layout „Overlay für den Stream 16:9“
+  wählen und die Anzeigen verschieben. OBS zeigt jede Änderung sofort.
+- Die Stimme der Box kommt auch aus dieser Quelle. Mit **Audio über OBS steuern** in den
+  Eigenschaften der Quelle bekommt sie im Mixer einen eigenen Regler.
+- Läuft OBS auf einem anderen Rechner: „Im Heimnetz freigeben“ einschalten und statt
+  `127.0.0.1` die Adresse von der Seite *Geräte verbinden* nehmen.
+- `?layout=<Name>` wählt ein anderes Layout, `?lang=en` und `?units=imperial` stellen Sprache
+  und Einheiten für diese Quelle ein.
 
 ## Tisch Turismo – das Spiel auf dem Schreibtisch
 
