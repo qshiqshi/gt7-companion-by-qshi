@@ -34,7 +34,11 @@ computer, for a tablet next to your rig, or as a browser source in OBS.
   Gemini API key.
   Best laps, spins and impacts have 50 positive radio variants each, in either language.
 - **A demo drive** is built in: a recorded drive of four laps. You can try everything without
-  a console, lap times and the surface ring included.
+  a console, lap times and the surface ring included. While it plays, a strip in the dashboard
+  says so – nobody should take it for their own drive.
+- **A start page and a short tour:** when the program starts you choose where the data comes
+  from – your PlayStation or the demo drive. The first time, a few speech bubbles show what is
+  where; "Help" in the menu brings them back.
 - **Tisch Turismo**, a little game on the side: a toy car on a desk drives what you drive, and
   your own earlier laps race against it. Made for the viewers of a stream.
 
@@ -60,18 +64,26 @@ see the ring without a console.*
 
 **Mac with Apple silicon (macOS 14 or newer): the app.** Download
 [GT7-Companion-by-qshi-mac-arm64.dmg](https://github.com/qshiqshi/gt7-companion-by-qshi/releases/latest/download/GT7-Companion-by-qshi-mac-arm64.dmg),
-open it, drag the app to "Applications" and start it. It shows the dashboard in a window of
-its own, with an icon in the Dock and a symbol in the menu bar. Closing the window does not
-quit it – tablets and OBS keep getting their data; quit with ⌘Q or through the symbol.
+open it, drag the app to "Applications" and start it. It runs in a window of its own, with an
+icon in the Dock and a symbol in the menu bar, and opens with the start page. Closing the window
+does not quit it – tablets and OBS keep getting their data; quit with ⌘Q or through the symbol.
 
 **Windows 10 or 11: the program as a ZIP.** Download
 [GT7-Companion-by-qshi-windows-x64.zip](https://github.com/qshiqshi/gt7-companion-by-qshi/releases/latest/download/GT7-Companion-by-qshi-windows-x64.zip),
-unpack it and start `gt7companion.exe` in the folder. It shows the dashboard in a window of its
-own, with a symbol next to the clock. It is not signed: Windows asks on the first start
-(**More info** → **Run anyway**).
+unpack it and start `gt7companion.exe` in the folder. It runs in a window of its own, with a
+symbol next to the clock, and opens with the start page. It is not signed: Windows asks on the
+first start (**More info** → **Run anyway**).
 
 **Everybody else: from source.** The step-by-step guide is
 [docs/INSTALL.md](docs/INSTALL.md) (double-click `start-windows.bat` or `start-mac.command`).
+
+<img src="docs/images/en/start.png" width="430" align="right" alt="The start page: choose the data source, open the dashboard, make more of it">
+
+**The start page** says where the data comes from right now – your PlayStation or the demo
+drive – and leads to the dashboard, the editor and the other pages with one click. If you do not
+need it, switch it off there with its tick; "Start" in the dashboard's menu leads back.
+
+<br clear="both">
 
 > **Early version.** Checked with automated tests, with a stand-in for the console and for the
 > voice service and – the app and the Box on the Mac – on one Mac with macOS 27 and a real
@@ -106,7 +118,7 @@ The app itself is built with `python packaging/build.py` (needs
 
 1. Console and computer are in the same home network.
 2. Start Gran Turismo 7.
-3. Choose *PlayStation in the home network* under *Settings* (or start with `--live`).
+3. Choose "PlayStation" on the start page (or under *Settings*, or start with `--live`).
 
 The console is found by itself; its address is remembered. If nothing arrives:
 
@@ -230,9 +242,10 @@ Without the Box everything else works as usual.
 
 <br clear="both">
 
-The menu of the dashboard appears when you move the pointer or touch the screen:
+The menu of the dashboard appears when you move the pointer or touch the screen. "Start" leads
+to the start page, "Help" shows the tour again:
 
-<img src="docs/images/en/menu.png" width="540" alt="Menu of the dashboard: Talk, Sound on, layout, Tisch Turismo, Edit, Full screen">
+<img src="docs/images/en/menu.png" width="540" alt="Menu of the dashboard: Start, Talk, Sound on, layout, Tisch Turismo, Edit, Full screen, Help">
 
 ## Privacy and safety
 

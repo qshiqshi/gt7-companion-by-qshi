@@ -1,7 +1,7 @@
 """Take the pictures for README and install guide from the running program itself.
 
     python tools/screenshots.py            (needs Playwright; GT7C_CHROMIUM may name a Chromium to use)
-    python tools/screenshots.py plain      only connect and settings: done in seconds, no waiting for a lap
+    python tools/screenshots.py plain      only connect, start and settings: done in seconds, no waiting for a lap
     python tools/screenshots.py game       only the game and the menu that leads to it (waits for two laps)
 
 Starts the program with the demo drive in a temporary folder, waits until its first lap is
@@ -184,6 +184,11 @@ def main() -> int:
             page.wait_for_function("() => /^[0-9]{6}$/.test(document.getElementById('pin').textContent)")
             page.wait_for_timeout(600)
             shoot(page, language, "connect", full_page=True)
+            page.goto(f"http://127.0.0.1:{PORT}/start")
+            page.wait_for_function("() => !document.getElementById('choices').disabled")
+            page.wait_for_function("() => !document.getElementById('start-screen-row').hidden")
+            page.wait_for_timeout(400)
+            shoot(page, language, "start", full_page=True)
             page.goto(f"http://127.0.0.1:{PORT}/settings")
             page.wait_for_selector("#form", state="visible")
             page.wait_for_timeout(400)

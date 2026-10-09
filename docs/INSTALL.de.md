@@ -11,8 +11,8 @@ Python, ohne Terminal:
 
 1. [GT7-Companion-by-qshi-mac-arm64.dmg](https://github.com/qshiqshi/gt7-companion-by-qshi/releases/latest/download/GT7-Companion-by-qshi-mac-arm64.dmg) laden und öffnen.
 2. Die App in den Ordner „Programme“ ziehen und von dort starten.
-3. Ein Fenster zeigt das Dashboard mit einer Demo-Fahrt. Weiter geht es bei
-   [4. PlayStation verbinden](#4-playstation-verbinden).
+3. Ein Fenster zeigt die Startseite. **Dashboard öffnen** zeigt eine Demo-Fahrt; weiter geht
+   es bei [4. PlayStation verbinden](#4-playstation-verbinden).
 
 Das Fenster zu schließen beendet die App nicht: Tablets und OBS bekommen weiter ihre Daten. Ein
 Klick auf das Symbol im Dock oder oben rechts in der Menüleiste holt das Fenster zurück; beendet
@@ -28,8 +28,8 @@ Programm als ZIP – ohne Python, ohne Installation:
    `gt7companion.exe` starten. Das Programm ist nicht signiert, deshalb zeigt Windows „Der
    Computer wurde durch Windows geschützt“: **Weitere Informationen** → **Trotzdem ausführen**.
    Der allererste Start dauert etwas länger.
-3. Ein Fenster zeigt das Dashboard mit einer Demo-Fahrt. Weiter geht es bei
-   [4. PlayStation verbinden](#4-playstation-verbinden).
+3. Ein Fenster zeigt die Startseite. **Dashboard öffnen** zeigt eine Demo-Fahrt; weiter geht
+   es bei [4. PlayStation verbinden](#4-playstation-verbinden).
 
 Das Fenster zu schließen beendet das Programm nicht: Tablets und OBS bekommen weiter ihre Daten.
 Das Symbol neben der Uhr (es versteckt sich manchmal hinter dem kleinen Pfeil) holt das Fenster
@@ -81,15 +81,19 @@ Die ZIP-Datei entpacken und den Ordner dorthin legen, wo er bleiben kann, zum Be
   Windows geschützt“: **Weitere Informationen** → **Trotzdem ausführen**.
 
 Der erste Start richtet alles ein und dauert ein paar Minuten. Dann erscheint ein kleines
-Symbol – am Mac oben rechts in der Menüleiste, unter Windows neben der Uhr – und das
-Dashboard öffnet sich im Browser mit einer Demo-Fahrt.
+Symbol – am Mac oben rechts in der Menüleiste, unter Windows neben der Uhr – und im Browser
+öffnet sich die Startseite. **Dashboard öffnen** zeigt eine Demo-Fahrt.
 
 Beenden: auf das Symbol klicken → **Beenden**. Wieder starten: Doppelklick auf dieselbe Datei.
 
 <img src="images/de/dashboard.png" width="640" alt="Dashboard">
 
+Beim ersten Öffnen zeigen ein paar Sprechblasen, was wo ist. Solange die Demo-Fahrt läuft, steht
+unten ein Streifen „Demo-Fahrt“.
+
 Bewegst du den Zeiger (oder berührst den Bildschirm), erscheint oben rechts ein kleines Menü –
-mit **Bearbeiten** ordnest du das Dashboard um:
+mit **Bearbeiten** ordnest du das Dashboard um, **Hilfe** zeigt die Sprechblasen noch einmal,
+**Start** führt zurück zur Startseite:
 
 <img src="images/de/menu.png" width="540" alt="Menu">
 
@@ -97,8 +101,10 @@ mit **Bearbeiten** ordnest du das Dashboard um:
 
 1. PlayStation und Rechner sind im selben Heimnetz (kein Gäste-WLAN).
 2. Gran Turismo 7 starten.
-3. Symbol → **Einstellungen** → *Woher kommen die Daten?* → **PlayStation im Heimnetz** →
-   **Speichern**.
+3. Auf der Startseite **PlayStation** wählen. (Aus dem Dashboard dorthin: Menü → **Start**.
+   Dasselbe geht über Symbol → **Einstellungen** → *Woher kommen die Daten?*.)
+
+<img src="images/de/start.png" width="430" alt="Start">
 
 Die Konsole wird von selbst gefunden. Beim ersten Mal fragt dein Rechner, ob das Programm
 Daten aus dem Netz empfangen darf – erlauben (Windows: „Zugriff zulassen“; Mac: „Erlauben“).

@@ -11,7 +11,7 @@ Python, no Terminal:
 
 1. Download [GT7-Companion-by-qshi-mac-arm64.dmg](https://github.com/qshiqshi/gt7-companion-by-qshi/releases/latest/download/GT7-Companion-by-qshi-mac-arm64.dmg) and open it.
 2. Drag the app into the "Applications" folder and start it from there.
-3. A window shows the dashboard with a demo drive. Go on with
+3. A window shows the start page. **Open the dashboard** shows a demo drive; go on with
    [4. Connect your PlayStation](#4-connect-your-playstation).
 
 Closing the window does not quit the app: tablets and OBS keep getting their data. A click on
@@ -27,7 +27,7 @@ as a ZIP – no Python, no installer:
 2. Put the folder where it can stay, for example in "Documents", and start `gt7companion.exe`
    in it. The program is not signed, so Windows shows "Windows protected your PC": **More
    info** → **Run anyway**. The very first start takes a little longer.
-3. A window shows the dashboard with a demo drive. Go on with
+3. A window shows the start page. **Open the dashboard** shows a demo drive; go on with
    [4. Connect your PlayStation](#4-connect-your-playstation).
 
 Closing the window does not quit the program: tablets and OBS keep getting their data. The
@@ -77,14 +77,18 @@ ZIP and move the folder to a place where it can stay, for example your Documents
 
 The first start sets everything up and takes a few minutes. Then a small symbol appears –
 on the Mac in the menu bar at the top right, on Windows in the tray next to the clock – and
-the dashboard opens in your browser with a demo drive.
+the start page opens in your browser. **Open the dashboard** shows a demo drive.
 
 To quit, click the symbol → **Quit**. To start again, double-click the same file.
 
 <img src="images/en/dashboard.png" width="640" alt="Dashboard">
 
+The first time, a few speech bubbles show what is where. While the demo drive plays, a strip
+at the bottom says "Demo drive".
+
 Move the pointer (or touch the screen) and a small menu appears at the top right – with
-**Edit** you rearrange the dashboard:
+**Edit** you rearrange the dashboard, **Help** shows the speech bubbles again, **Start** leads
+back to the start page:
 
 <img src="images/en/menu.png" width="540" alt="Menu">
 
@@ -92,8 +96,10 @@ Move the pointer (or touch the screen) and a small menu appears at the top right
 
 1. PlayStation and computer are in the same home network (not a guest Wi-Fi).
 2. Start Gran Turismo 7.
-3. Click the symbol → **Settings** → *Where does the data come from?* → **PlayStation in the
-   home network** → **Save**.
+3. Choose **PlayStation** on the start page. (From the dashboard: menu → **Start**. The same
+   works through the symbol → **Settings** → *Where does the data come from?*.)
+
+<img src="images/en/start.png" width="430" alt="Start">
 
 The console is found by itself. The first time your computer asks whether the program may
 receive data from the network – allow it (Windows: "Allow access"; Mac: "Allow").

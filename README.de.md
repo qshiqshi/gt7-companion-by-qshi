@@ -36,7 +36,11 @@ Rechner, für ein Tablet neben dem Rig oder als Browser-Quelle in OBS.
   für Google Gemini.
   Für Bestzeiten, Dreher und Einschläge gibt es jeweils 50 positive Funk-Varianten in beiden Sprachen.
 - **Eine Demo-Fahrt** ist eingebaut: eine aufgezeichnete Fahrt über vier Runden. Du kannst alles
-  ohne Konsole ausprobieren, auch die Rundenzeiten und den Untergrund-Ring.
+  ohne Konsole ausprobieren, auch die Rundenzeiten und den Untergrund-Ring. Solange sie läuft,
+  steht das als Streifen im Dashboard – damit niemand sie für die eigene Fahrt hält.
+- **Eine Startseite und ein kurzer Rundgang:** Beim Start wählst du, woher die Daten kommen –
+  deine PlayStation oder die Demo-Fahrt. Beim ersten Öffnen zeigen ein paar Sprechblasen, was wo ist;
+  „Hilfe“ im Menü holt sie zurück.
 - **Tisch Turismo**, ein kleines Spiel nebenbei: Ein Spielzeugauto fährt auf einem Schreibtisch
   nach, was du fährst, und deine eigenen früheren Runden fahren dagegen. Gedacht für die
   Zuschauer eines Streams.
@@ -62,19 +66,27 @@ den Ring siehst du also ohne Konsole.*
 ## Start
 
 **Mac mit Apple-Chip (macOS 14 oder neuer): die App.** [GT7-Companion-by-qshi-mac-arm64.dmg](https://github.com/qshiqshi/gt7-companion-by-qshi/releases/latest/download/GT7-Companion-by-qshi-mac-arm64.dmg)
-laden, öffnen, die App in „Programme“ ziehen und starten. Sie zeigt das Dashboard in einem
-eigenen Fenster, mit einem Symbol im Dock und in der Menüleiste. Das Fenster zu schließen
-beendet sie nicht – Tablets und OBS bekommen weiter ihre Daten; beendet wird mit ⌘Q oder über
-das Symbol.
+laden, öffnen, die App in „Programme“ ziehen und starten. Sie läuft in einem eigenen Fenster,
+mit einem Symbol im Dock und in der Menüleiste, und beginnt mit der Startseite. Das Fenster zu
+schließen beendet sie nicht – Tablets und OBS bekommen weiter ihre Daten; beendet wird mit ⌘Q
+oder über das Symbol.
 
 **Windows 10 oder 11: das Programm als ZIP.** [GT7-Companion-by-qshi-windows-x64.zip](https://github.com/qshiqshi/gt7-companion-by-qshi/releases/latest/download/GT7-Companion-by-qshi-windows-x64.zip)
-laden, entpacken und im Ordner `gt7companion.exe` starten. Es zeigt das Dashboard in einem
-eigenen Fenster, mit einem Symbol neben der Uhr. Es ist nicht signiert: Windows fragt beim
-ersten Start nach (**Weitere Informationen** → **Trotzdem ausführen**).
+laden, entpacken und im Ordner `gt7companion.exe` starten. Es läuft in einem eigenen Fenster,
+mit einem Symbol neben der Uhr, und beginnt mit der Startseite. Es ist nicht signiert: Windows
+fragt beim ersten Start nach (**Weitere Informationen** → **Trotzdem ausführen**).
 
 **Alle anderen: aus dem Quelltext.** Die Anleitung Schritt für Schritt steht in
 [docs/INSTALL.de.md](docs/INSTALL.de.md) (Doppelklick auf `start-windows.bat` bzw.
 `start-mac.command`).
+
+<img src="docs/images/de/start.png" width="430" align="right" alt="Die Startseite: Datenquelle wählen, Dashboard öffnen, mehr daraus machen">
+
+**Die Startseite** sagt, woher die Daten gerade kommen – deine PlayStation oder die Demo-Fahrt –,
+und führt mit einem Klick ins Dashboard, in den Editor und zu den anderen Seiten. Wer sie nicht
+braucht, schaltet sie dort per Häkchen ab; „Start“ im Menü des Dashboards führt zurück.
+
+<br clear="both">
 
 > **Frühe Fassung.** Geprüft mit automatischen Tests, mit einem Nachbau der Konsole und des
 > Sprachdienstes und – die App und die Box auf dem Mac – auf einem Mac mit macOS 27 und einer
@@ -110,7 +122,7 @@ Hinweise in der Datei, auch zum Signieren).
 
 1. Konsole und Rechner sind im selben Heimnetz.
 2. Gran Turismo 7 starten.
-3. Unter *Einstellungen* „PlayStation im Heimnetz“ wählen (oder mit `--live` starten).
+3. Auf der Startseite „PlayStation“ wählen (oder unter *Einstellungen*, oder mit `--live` starten).
 
 Die Konsole wird von selbst gefunden, ihre Adresse gemerkt. Kommt nichts an:
 
@@ -240,9 +252,10 @@ Ohne die Box läuft alles andere wie gewohnt.
 
 <br clear="both">
 
-Das Menü des Dashboards erscheint, wenn du den Zeiger bewegst oder den Bildschirm berührst:
+Das Menü des Dashboards erscheint, wenn du den Zeiger bewegst oder den Bildschirm berührst.
+„Start“ führt zur Startseite, „Hilfe“ zeigt den Rundgang noch einmal:
 
-<img src="docs/images/de/menu.png" width="540" alt="Menü des Dashboards: Sprechen, Ton an, Layout, Tisch Turismo, Bearbeiten, Vollbild">
+<img src="docs/images/de/menu.png" width="540" alt="Menü des Dashboards: Start, Sprechen, Ton an, Layout, Tisch Turismo, Bearbeiten, Vollbild, Hilfe">
 
 ## Datenschutz und Sicherheit
 
