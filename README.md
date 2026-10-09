@@ -69,7 +69,8 @@ icon in the Dock and a symbol in the menu bar, and opens with the start page. Cl
 does not quit it – tablets and OBS keep getting their data; quit with ⌘Q or through the symbol.
 The app is not notarised by Apple yet, so macOS asks on the first start: **System Settings →
 Privacy & Security → Open Anyway** (on macOS 14: right-click the app → **Open**). That is
-needed only once.
+needed only once. If macOS calls the app "damaged" instead, this helps in the Terminal:
+`xattr -dr com.apple.quarantine "/Applications/GT7 Companion by qshi.app"`.
 
 **Windows 10 or 11: the program as a ZIP.** Download
 [GT7-Companion-by-qshi-windows-x64.zip](https://github.com/qshiqshi/gt7-companion-by-qshi/releases/latest/download/GT7-Companion-by-qshi-windows-x64.zip),
@@ -87,6 +88,11 @@ drive – and leads to the dashboard, the editor and the other pages with one cl
 need it, switch it off there with its tick; "Start" in the dashboard's menu leads back.
 
 <br clear="both">
+
+| The app on a Mac | The program on Windows |
+|---|---|
+| <img src="docs/images/app/mac-dashboard.png" width="400" alt="The Mac app: the dashboard with the demo drive in a window of its own"> | <img src="docs/images/app/windows-tour.png" width="400" alt="The Windows program: the tour with speech bubbles in the dashboard"> |
+| <img src="docs/images/app/mac-start.png" width="400" alt="The Mac app with the start page"> | <img src="docs/images/app/windows-start.png" width="400" alt="The Windows program with the start page"> |
 
 > **Early version – testers welcome.** Checked with automated tests, with a stand-in for the
 > console and for the voice service and – the app and the Box on the Mac – on one Mac with

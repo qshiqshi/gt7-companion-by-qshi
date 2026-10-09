@@ -13,7 +13,9 @@ Python, ohne Terminal:
 2. Die App in den Ordner „Programme“ ziehen und von dort starten. Sie ist noch nicht von Apple
    beglaubigt: Meldet macOS, es könne die App nicht prüfen, öffne **Systemeinstellungen →
    Datenschutz & Sicherheit** und klicke dort auf **Dennoch öffnen** (unter macOS 14:
-   Rechtsklick auf die App → **Öffnen**). Das ist nur beim ersten Start nötig.
+   Rechtsklick auf die App → **Öffnen**). Das ist nur beim ersten Start nötig. Nennt macOS die
+   App stattdessen „beschädigt“, hilft im Terminal
+   `xattr -dr com.apple.quarantine "/Applications/GT7 Companion by qshi.app"`.
 3. Ein Fenster zeigt die Startseite. **Dashboard öffnen** zeigt eine Demo-Fahrt; weiter geht
    es bei [4. PlayStation verbinden](#4-playstation-verbinden).
 

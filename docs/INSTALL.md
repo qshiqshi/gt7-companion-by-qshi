@@ -13,7 +13,8 @@ Python, no Terminal:
 2. Drag the app into the "Applications" folder and start it from there. It is not notarised by
    Apple yet: if macOS says it cannot check the app, open **System Settings → Privacy &
    Security** and click **Open Anyway** there (on macOS 14: right-click the app → **Open**).
-   That is needed only on the first start.
+   That is needed only on the first start. If macOS calls the app "damaged" instead, this helps
+   in the Terminal: `xattr -dr com.apple.quarantine "/Applications/GT7 Companion by qshi.app"`.
 3. A window shows the start page. **Open the dashboard** shows a demo drive; go on with
    [4. Connect your PlayStation](#4-connect-your-playstation).
 
