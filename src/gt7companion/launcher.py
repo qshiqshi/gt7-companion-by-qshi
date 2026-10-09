@@ -292,7 +292,9 @@ def run_with_window(server: Server, *, show: bool = True) -> int:
     server.window = window.show
     log.info("Window%s, menus in %s", "" if show else " (hidden at start)", language)
     icon = _symbol_beside(window, server, TEXTS[language])
-    threading.Thread(target=_watch_the_console, args=(server, window), name="gt7companion-awake", daemon=True).start()
+    window_gone = threading.Event()      # ends the watching together with the window
+    threading.Thread(target=_watch_the_console, args=(server, window), kwargs={"stop": window_gone},
+                     name="gt7companion-awake", daemon=True).start()
     if icon is None and sys.platform != "darwin":
         # Nothing could bring a hidden window back or quit the program (the Dock does that on a Mac).
         window.hide_on_close = False
@@ -307,6 +309,8 @@ def run_with_window(server: Server, *, show: bool = True) -> int:
             except Exception:            # noqa: BLE001
                 pass
         raise
+    finally:
+        window_gone.set()
     return 0
 
 

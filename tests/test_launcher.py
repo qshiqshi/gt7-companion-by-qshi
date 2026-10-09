@@ -7,6 +7,8 @@ import socket
 import subprocess
 import sys
 import tempfile
+import threading
+import time
 import unittest
 import urllib.request
 from pathlib import Path
@@ -449,6 +451,13 @@ class WindowAndSymbol(unittest.TestCase):
     def test_on_a_mac_the_dock_brings_the_window_back_so_it_is_only_hidden(self):
         self.assertEqual(self.close_it("darwin", ImportError("No module named 'pystray'")), [False])
         self.assertEqual((self.webview.calls, self.stopped), ([("hide",)], ["server"]))
+
+    def test_the_watch_over_the_display_ends_with_the_window(self):
+        self.close_it("darwin")
+        deadline = time.monotonic() + 2
+        while time.monotonic() < deadline and any(t.name == "gt7companion-awake" for t in threading.enumerate()):
+            time.sleep(0.02)
+        self.assertEqual([t.name for t in threading.enumerate() if t.name == "gt7companion-awake"], [])
 
 
 class TheDisplayStaysOn(unittest.TestCase):

@@ -22,6 +22,10 @@ The first run makes the build environment in `build\venv-windows` (Python 3.13 f
 packages in the versions of `packaging\constraints.txt`). Then PyInstaller writes the program to
 `dist\gt7companion\` and the script packs the ZIP. `--fresh` makes the environment anew.
 
+On an ARM computer PyInstaller warns that it cannot find some libraries of Windows itself
+(`ntdll.dll`, `WINMM.dll`, `bcrypt.dll` and the like). They are never packed – every Windows has
+them – so the warnings mean nothing for the result.
+
 ## Tests
 
     uv venv --python cpython-3.13.12-windows-x86_64-none .venv
