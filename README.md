@@ -67,6 +67,9 @@ see the ring without a console.*
 open it, drag the app to "Applications" and start it. It runs in a window of its own, with an
 icon in the Dock and a symbol in the menu bar, and opens with the start page. Closing the window
 does not quit it – tablets and OBS keep getting their data; quit with ⌘Q or through the symbol.
+The app is not notarised by Apple yet, so macOS asks on the first start: **System Settings →
+Privacy & Security → Open Anyway** (on macOS 14: right-click the app → **Open**). That is
+needed only once.
 
 **Windows 10 or 11: the program as a ZIP.** Download
 [GT7-Companion-by-qshi-windows-x64.zip](https://github.com/qshiqshi/gt7-companion-by-qshi/releases/latest/download/GT7-Companion-by-qshi-windows-x64.zip),
@@ -85,10 +88,12 @@ need it, switch it off there with its tick; "Start" in the dashboard's menu lead
 
 <br clear="both">
 
-> **Early version.** Checked with automated tests, with a stand-in for the console and for the
-> voice service and – the app and the Box on the Mac – on one Mac with macOS 27 and a real
-> PlayStation. The Windows program was built and started in a virtual machine (Windows 11 on
-> ARM); on a real Windows PC, with sound, microphone and a real PlayStation, it is untested.
+> **Early version – testers welcome.** Checked with automated tests, with a stand-in for the
+> console and for the voice service and – the app and the Box on the Mac – on one Mac with
+> macOS 27 and a real PlayStation. The Windows program was built, tested and operated in a
+> virtual machine (Windows 11 on ARM); on a real Windows PC, with sound, microphone and a real
+> PlayStation, it is untested. Try it and tell what works and what does not:
+> [Join in](#join-in-testing-and-feedback).
 
 By hand – requires Python 3.12 or newer:
 
@@ -246,6 +251,21 @@ The menu of the dashboard appears when you move the pointer or touch the screen.
 to the start page, "Help" shows the tour again:
 
 <img src="docs/images/en/menu.png" width="540" alt="Menu of the dashboard: Start, Talk, Sound on, layout, Tisch Turismo, Edit, Full screen, Help">
+
+## Join in: testing and feedback
+
+The program is free of charge and free software. Feedback helps most – above all from real
+Windows PCs (Intel or AMD, Windows 10 and 11), from tablets and from streams.
+
+- What worked, what did not, what is missing? Write it as an
+  [issue](https://github.com/qshiqshi/gt7-companion-by-qshi/issues/new/choose) – in English or German.
+- Helpful: Mac or PC and the system version, the version of the program (at the bottom of the
+  start page), your PlayStation, and what you did before it went wrong. A screenshot often says
+  more.
+- For crashes the file `companion.log` from the user folder helps (Mac:
+  `~/Library/Application Support/gt7-companion-by-qshi`, Windows:
+  `%LOCALAPPDATA%\gt7-companion-by-qshi`). Look into it first: it may name addresses of your
+  home network.
 
 ## Privacy and safety
 

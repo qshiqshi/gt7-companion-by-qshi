@@ -69,7 +69,9 @@ den Ring siehst du also ohne Konsole.*
 laden, öffnen, die App in „Programme“ ziehen und starten. Sie läuft in einem eigenen Fenster,
 mit einem Symbol im Dock und in der Menüleiste, und beginnt mit der Startseite. Das Fenster zu
 schließen beendet sie nicht – Tablets und OBS bekommen weiter ihre Daten; beendet wird mit ⌘Q
-oder über das Symbol.
+oder über das Symbol. Die App ist noch nicht von Apple beglaubigt, deshalb fragt macOS beim
+ersten Start nach: **Systemeinstellungen → Datenschutz & Sicherheit → Dennoch öffnen** (unter
+macOS 14: Rechtsklick auf die App → **Öffnen**). Das ist nur einmal nötig.
 
 **Windows 10 oder 11: das Programm als ZIP.** [GT7-Companion-by-qshi-windows-x64.zip](https://github.com/qshiqshi/gt7-companion-by-qshi/releases/latest/download/GT7-Companion-by-qshi-windows-x64.zip)
 laden, entpacken und im Ordner `gt7companion.exe` starten. Es läuft in einem eigenen Fenster,
@@ -88,11 +90,12 @@ braucht, schaltet sie dort per Häkchen ab; „Start“ im Menü des Dashboards 
 
 <br clear="both">
 
-> **Frühe Fassung.** Geprüft mit automatischen Tests, mit einem Nachbau der Konsole und des
-> Sprachdienstes und – die App und die Box auf dem Mac – auf einem Mac mit macOS 27 und einer
-> echten PlayStation. Das Windows-Programm wurde in einer virtuellen Maschine (Windows 11 auf
-> ARM) gebaut und gestartet; auf einem echten Windows-PC, mit Ton, Mikrofon und echter
-> PlayStation ist es ungetestet.
+> **Frühe Fassung – Tester willkommen.** Geprüft mit automatischen Tests, mit einem Nachbau der
+> Konsole und des Sprachdienstes und – die App und die Box auf dem Mac – auf einem Mac mit
+> macOS 27 und einer echten PlayStation. Das Windows-Programm wurde in einer virtuellen Maschine
+> (Windows 11 auf ARM) gebaut, getestet und bedient; auf einem echten Windows-PC, mit Ton,
+> Mikrofon und echter PlayStation ist es ungetestet. Probier es aus und sag, was läuft und was
+> hakt: [Mitmachen](#mitmachen-testen-und-rückmeldung).
 
 Von Hand – benötigt Python 3.12 oder neuer:
 
@@ -256,6 +259,21 @@ Das Menü des Dashboards erscheint, wenn du den Zeiger bewegst oder den Bildschi
 „Start“ führt zur Startseite, „Hilfe“ zeigt den Rundgang noch einmal:
 
 <img src="docs/images/de/menu.png" width="540" alt="Menü des Dashboards: Start, Sprechen, Ton an, Layout, Tisch Turismo, Bearbeiten, Vollbild, Hilfe">
+
+## Mitmachen: testen und Rückmeldung
+
+Das Programm ist kostenlos und frei. Am meisten helfen Rückmeldungen – besonders von echten
+Windows-PCs (Intel oder AMD, Windows 10 und 11), von Tablets und aus dem Stream.
+
+- Was hat geklappt, was nicht, was fehlt? Schreib es als
+  [Issue](https://github.com/qshiqshi/gt7-companion-by-qshi/issues/new/choose) – deutsch oder englisch.
+- Hilfreich sind: Mac oder PC und die Systemversion, die Version des Programms (steht unten auf
+  der Startseite), deine PlayStation und was du getan hast, bevor es hakte. Ein Bildschirmfoto
+  sagt oft mehr.
+- Bei Abstürzen hilft die Datei `companion.log` aus dem Benutzerordner (Mac:
+  `~/Library/Application Support/gt7-companion-by-qshi`, Windows:
+  `%LOCALAPPDATA%\gt7-companion-by-qshi`). Schau vorher hinein: Sie kann Adressen aus deinem
+  Heimnetz nennen.
 
 ## Datenschutz und Sicherheit
 
