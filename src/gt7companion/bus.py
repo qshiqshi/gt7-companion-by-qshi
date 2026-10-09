@@ -2,6 +2,7 @@
 
 Topics:
   telemetry.frame     TelemetryFrame (60 Hz, roh)
+  telemetry.packet    bytes: dasselbe Paket entschluesselt, aber ungeparst (fuer das Spiel)
   telemetry.status    {"connected": bool}
   event.best_lap      {"lap_time_ms": int, "lap_number": int}
   event.lap_done      {"last_ms": int, "best_ms": int, "diff_ms": int|None, "lap_number": int}

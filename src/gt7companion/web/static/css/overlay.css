@@ -84,6 +84,9 @@ body.mode-view {
   right: 12px;
   z-index: 9500;
   display: flex;
+  flex-wrap: wrap;                     /* a phone held upright has no room for all of it in one row */
+  justify-content: flex-end;
+  max-width: calc(100vw - 24px);
   gap: 8px;
   opacity: 0;
   pointer-events: none;

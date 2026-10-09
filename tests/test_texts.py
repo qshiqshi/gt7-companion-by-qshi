@@ -23,8 +23,8 @@ class Dictionary(unittest.TestCase):
             self.assertIsInstance(english, str)
             self.assertTrue(english.strip(), german)
             self.assertEqual(german, german.strip())
-            for character in "äöüßÄÖÜ„":
-                self.assertNotIn(character, english, german)       # nothing left in German
+            for character in "äöüßÄÖÜ„":                           # nothing left in German, except names
+                self.assertNotIn(character, english.replace("Nürburgring", ""), german)
             # placeholders, numbers and symbols survive the translation
             for token in ("{n}", "{ip}", "192.168.1.30", "↺", "→", "…", "(/13)"):
                 self.assertEqual(token in german, token in english, german)
@@ -50,7 +50,7 @@ class LanguageAndUnits(AppCase):
         self.assertEqual(self.prefs(client), {"language": "en", "units": "imperial"})
         for bad in ({"language": "fr"}, {"units": "nautical"}, {"language": None}):
             self.assertEqual(client.post("/api/settings", json=bad).status_code, 400)
-        for page in ("/", "/connect", "/settings"):
+        for page in ("/", "/connect", "/settings", "/game", "/game/credits"):
             text = client.get(page).text
             order = [text.index('src="/api/prefs.js"'), text.index('src="/static/i18n/en.js"'),
                      text.index('src="/static/js/i18n-classic.js"')]

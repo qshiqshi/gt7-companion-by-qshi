@@ -39,11 +39,13 @@ WINDOW_TITLE = "GT7 Companion by qshi"
 LOG_FILE = "companion.log"             # in the user folder; only the packaged app writes it
 TEXTS = {
     "de": {"open": "Dashboard öffnen", "show": "Fenster zeigen", "fullscreen": "Vollbild",
-           "browser": "Im Browser öffnen", "connect": "Geräte verbinden …", "settings": "Einstellungen …",
-           "lan": "Im Heimnetz freigeben", "quit": "Beenden", "busy": "Port {port} ist belegt"},
+           "browser": "Im Browser öffnen", "game": "Tisch Turismo (Spiel)", "connect": "Geräte verbinden …",
+           "settings": "Einstellungen …", "lan": "Im Heimnetz freigeben", "quit": "Beenden",
+           "busy": "Port {port} ist belegt"},
     "en": {"open": "Open dashboard", "show": "Show window", "fullscreen": "Full screen",
-           "browser": "Open in the browser", "connect": "Connect devices …", "settings": "Settings …",
-           "lan": "Share in the home network", "quit": "Quit", "busy": "Port {port} is in use"},
+           "browser": "Open in the browser", "game": "Tisch Turismo (game)", "connect": "Connect devices …",
+           "settings": "Settings …", "lan": "Share in the home network", "quit": "Quit",
+           "busy": "Port {port} is in use"},
 }
 
 
@@ -166,6 +168,7 @@ def menu(server: Server, texts: dict, *, on_quit: Callable[[], None], window=Non
     else:
         first = [Entry(texts["open"], page(""), default=True)]
     return first + [
+        Entry(texts["game"], page("game")),
         Entry(texts["connect"], page("connect")),
         Entry(texts["settings"], page("settings")),
         None,

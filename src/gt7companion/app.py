@@ -25,6 +25,7 @@ from .bus import EventBus
 from .detectors import DetectorSuite
 from .engineer.announcer import KINDS as BOX_KINDS, Announcer
 from .engineer.engine import Engineer
+from .game import GameFeed
 from .keystore import KeyStore
 from .hub import Hub
 from .layouts import DEFAULT_LAYOUT, MAX_BYTES, LayoutError, LayoutStore
@@ -47,7 +48,8 @@ TEST_MESSAGES: dict[str, dict] = {
     "surface_sweep": {},               # every surface colour runs once around the car
 }
 _NO_STORE = {"Cache-Control": "no-store"}
-_PAGES = {"/": "index.html", "/connect": "connect.html", "/settings": "settings.html"}
+_PAGES = {"/": "index.html", "/connect": "connect.html", "/settings": "settings.html", "/game": "game.html",
+          "/game/credits": "game-credits.html"}
 
 
 def _content_security_policy() -> str:
@@ -67,7 +69,7 @@ def _content_security_policy() -> str:
         "script-src 'self' " + " ".join(sorted(set(hashes))),
         "style-src 'self' 'unsafe-inline'",          # widgets are positioned through style attributes
         "img-src 'self' data: blob:",
-        "connect-src 'self' ws: wss:",
+        "connect-src 'self' ws: wss: blob:",          # blob: the pictures inside a 3D model are read that way
         "worker-src 'self' blob:",
         "object-src 'none'", "base-uri 'none'", "form-action 'self'", "frame-ancestors 'self'",
     ])
@@ -84,9 +86,17 @@ class Companion:
     sources: Sources
     pairing: Pairing
     engineer: Engineer
+    game: GameFeed
 
     def status(self) -> dict:
         return self.hub.status()
+
+    def game_status(self) -> dict:
+        """What the game is told about the source: enough for its title screen, no addresses."""
+        state = self.hub.status()
+        return {"source": state.get("source"), "error": state.get("source_error"),
+                "connected": bool(state.get("telemetry_connected")),
+                "searching": state.get("source") == "live" and not state.get("ps5_ip")}
 
 
 def create_app(settings: Settings | None = None, *, layouts: LayoutStore | None = None,
@@ -108,6 +118,7 @@ def create_app(settings: Settings | None = None, *, layouts: LayoutStore | None 
     manager = ConnectionManager()
     hub = Hub(bus, manager, telemetry_hz=settings["telemetry_hz"])
     detectors = DetectorSuite(bus)                 # laps, spins, impacts → messages on the bus
+    feed = GameFeed(bus)                           # after the hub: it reports what the hub has just learned
 
     def box_changed() -> None:
         """Tell the pages about the Box (state, counters – never the key)."""
@@ -140,12 +151,19 @@ def create_app(settings: Settings | None = None, *, layouts: LayoutStore | None 
         hub.reset(first_lap_complete=kind == "demo")
         announcer.reset()
         engineer.new_session()
+        feed.restart()
 
     companion = Companion(settings=settings, layouts=layouts or LayoutStore(), bus=bus,
-                          manager=manager, hub=hub, pairing=Pairing(), engineer=engineer,
+                          manager=manager, hub=hub, pairing=Pairing(), engineer=engineer, game=feed,
                           sources=Sources(bus, settings, on_switch=new_session,
                                           **({"ports": ports} if ports else {})))
     hub.status_info = companion.sources.status
+    feed.status_info = companion.game_status
+
+    async def announce_status() -> None:
+        """Tell every screen and every game where the data comes from now."""
+        await hub.announce_status()
+        feed.announce()
 
     @asynccontextmanager
     async def lifespan(app: FastAPI):
@@ -210,12 +228,22 @@ def create_app(settings: Settings | None = None, *, layouts: LayoutStore | None 
     async def settings_page():
         return FileResponse(WEB / "settings.html", headers=_NO_STORE)
 
+    @app.get("/game")
+    async def game_page():
+        """Tisch Turismo: the toy car on the desk that drives what the real car drives."""
+        return FileResponse(WEB / "game.html", headers=_NO_STORE)
+
+    @app.get("/game/credits")
+    async def game_credits_page():
+        """Whose work is in the game, and the facts behind the notes on its desk."""
+        return FileResponse(WEB / "game-credits.html", headers=_NO_STORE)
+
     # -------------------------------------------------------------------- api
     @app.get("/api/status")
     async def status(request: Request):
         return JSONResponse({"app": APP_NAME, "version": __version__, "role": who(request),
                              "lan": bool(app.state.lan), "screens": manager.count,
-                             **companion.status()}, headers=_NO_STORE)
+                             "game_pages": feed.pages, **companion.status()}, headers=_NO_STORE)
 
     @app.post("/api/app/show")
     async def show_app(request: Request):
@@ -345,7 +373,7 @@ def create_app(settings: Settings | None = None, *, layouts: LayoutStore | None 
             raise HTTPException(status_code=400, detail=str(error) or "Invalid settings.") from None
         if any(before[key] != settings[key] for key in ("source", "ps5_ip", "packet")):
             await companion.sources.use(settings["source"])       # applies at once
-            await hub.announce_status()
+            await announce_status()
         if any(before[key] != settings[key] for key in before if key.startswith("box_")):
             await engineer.refresh()
         return JSONResponse(settings_view(), headers=_NO_STORE)
@@ -410,7 +438,7 @@ def create_app(settings: Settings | None = None, *, layouts: LayoutStore | None 
         except (ValueError, AttributeError):
             raise HTTPException(status_code=400, detail="source must be 'demo' or 'live'.") from None
         await companion.sources.use(wanted)
-        await hub.announce_status()
+        await announce_status()
         return companion.status()
 
     @app.get("/api/trace")
@@ -506,6 +534,15 @@ def create_app(settings: Settings | None = None, *, layouts: LayoutStore | None 
             pass
         finally:
             await manager.disconnect(ws)
+
+    @app.websocket("/game/ws")
+    async def game_socket(ws: WebSocket):
+        """The packets of the drive for one page of the game (see ``game.py``); anyone who may watch may play."""
+        if not host_allowed(ws) or not same_origin(ws):
+            await ws.close(code=1008)
+            return
+        await ws.accept()
+        await feed.serve(ws)
 
     app.mount("/static", StaticFiles(directory=WEB / "static"), name="static")
     return app

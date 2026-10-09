@@ -1,0 +1,38 @@
+<!DOCTYPE html>
+<html lang="de">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Tisch Turismo – Gran Turismo 7 Companion by qshi</title>
+<meta name="theme-color" content="#140b08">
+<!-- three.js is bundled (static/vendor/three, r186); the import map has to come before the first module script. -->
+<script type="importmap">
+{ "imports": { "three": "/static/vendor/three/build/three.module.js", "three/addons/": "/static/vendor/three/examples/jsm/" } }
+</script>
+<script src="/api/prefs.js"></script>
+<script src="/static/i18n/en.js"></script>
+<script src="/static/js/i18n-classic.js"></script>
+<script src="/static/game/early.js"></script>
+<link rel="icon" type="image/png" sizes="32x32" href="/static/icons/favicon-32.png">
+<link rel="icon" type="image/png" sizes="64x64" href="/static/icons/favicon-64.png">
+<link rel="stylesheet" href="/static/game/game.css">
+</head>
+<body>
+<div id="buehne">
+  <canvas id="bild"></canvas>
+  <canvas id="anzeige"></canvas>
+</div>
+<div id="leiste">
+  <a href="/">Zum Dashboard</a>
+  <span id="zustand" role="status">Verbinde …</span>
+  <select id="format" aria-label="Bildformat">
+    <option value="normal">4:3</option><option value="breit">16:9</option><option value="hochkant">9:16</option>
+  </select>
+  <button id="record" type="button" aria-pressed="false" title="Nimmt das Spielbild als Video auf">Aufnehmen</button>
+  <a id="video-download" hidden download>Video speichern</a>
+  <span id="record-status" role="status"></span>
+  <a href="/game/credits">Quellen</a>
+</div>
+<script type="module" src="/static/game/src/main.js"></script>
+</body>
+</html>

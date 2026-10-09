@@ -2,6 +2,7 @@
 
     python tools/screenshots.py            (needs Playwright; GT7C_CHROMIUM may name a Chromium to use)
     python tools/screenshots.py plain      only connect and settings: done in seconds, no waiting for a lap
+    python tools/screenshots.py game       only the game and the menu that leads to it (waits for two laps)
 
 Starts the program with the demo drive in a temporary folder, waits until its first lap is
 done (so lap times and the track line are there) and photographs the pages in German and
@@ -134,6 +135,45 @@ def main() -> int:
             page.wait_for_timeout(wait_ms)
             return page
 
+        def menu(language: str) -> None:
+            """The menu of the dashboard, as it shows when the mouse moves."""
+            page = dashboard(language, "dashboard-16x9", 1280, 720, wait_ms=1500)
+            page.mouse.move(900, 300)
+            page.hover("#btn-fullscreen", force=True)
+            page.wait_for_timeout(500)
+            box = page.locator("#view-menu").bounding_box()
+            shoot(page, language, "menu", clip={"x": box["x"] - 12, "y": 0, "width": box["width"] + 24, "height": 72})
+            page.context.close()
+
+        def game(language: str) -> None:
+            """Tisch Turismo with the track on the desk and the best lap as an opponent next to the car."""
+            page = page_for(language, 1056, 650)
+            page.goto(f"http://127.0.0.1:{PORT}/game?format=wide")
+            page.wait_for_function("() => document.documentElement.dataset.phase === 'rennen'")
+            page.wait_for_timeout(2500)
+            shoot(page, language, "game")
+            page.context.close()
+
+        def wait_for_an_opponent() -> None:
+            """Two laps of the demo are done: from the next line on the better one drives along."""
+            print("waiting for the second lap of the demo drive to end …")
+            while app.state.companion.hub.stats["laps"] < 2:
+                time.sleep(2)
+            time.sleep(6)
+
+        if "game" in sys.argv[1:]:
+            wait_for_an_opponent()
+            for language in ("de", "en"):
+                call("/api/settings", {"language": language})
+                game(language)
+            for language in ("de", "en"):
+                call("/api/settings", {"language": language})
+                menu(language)
+            browser.close()
+            server.should_exit = True
+            helper.close()
+            return 0
+
         for language in ("de", "en"):
             call("/api/settings", {"language": language, "box_language": language})
             # pages that do not need a finished lap
@@ -172,11 +212,8 @@ def main() -> int:
                     break
             else:
                 print(f"warning: {language}/dashboard.png was taken while the best lap message faded out", file=sys.stderr)
-            page.mouse.move(900, 300)
-            page.hover("#btn-fullscreen", force=True)
-            page.wait_for_timeout(500)
-            shoot(page, language, "menu", clip={"x": 560, "y": 0, "width": 720, "height": 72})
             page.context.close()
+            menu(language)
 
             page = dashboard(language, "dashboard-4x3", 1024, 768)
             shoot_calm(page, language, "tablet")
@@ -201,6 +238,11 @@ def main() -> int:
             page.wait_for_timeout(800)
             shoot_calm(page, language, "editor-style")
             page.context.close()
+
+        wait_for_an_opponent()
+        for language in ("de", "en"):
+            call("/api/settings", {"language": language})
+            game(language)
 
         browser.close()
     server.should_exit = True

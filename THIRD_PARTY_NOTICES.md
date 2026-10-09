@@ -12,6 +12,9 @@ each under its own licence.
 | interact.js 1.10.28 | `src/gt7companion/web/static/vendor/interact.min.js` | MIT, © Taye Adeyemi, https://github.com/taye/interact.js/blob/main/LICENSE |
 | Michroma (as the derived "GT7C Display") | `src/gt7companion/web/static/fonts/GT7CDisplay-Regular.ttf`, original in `tools/fonts/` | SIL Open Font License 1.1, © 2011 The Michroma Project Authors |
 | Mona Sans, Latin subset (as the renamed "GT7C Text") | `src/gt7companion/web/static/fonts/GT7CText-Variable.woff2` | SIL Open Font License 1.1, © 2022 The Mona Sans Project Authors |
+| "TOON Japan : Nissan Skyline R34" by LePoint_BAT, rebuilt as the toy car of Tisch Turismo | `src/gt7companion/web/static/game/assets/models/r34.glb`, generator in `tools/game/blender/` | [CC BY 4.0](https://creativecommons.org/licenses/by/4.0/), [original model](https://sketchfab.com/3d-models/toon-japan-nissan-skyline-r34-30c3e10eeed64f30b65786bc3ca9cbdb); shape and texture rebuilt by script, see `tools/game/SOURCES.md` |
+| Press Start 2P (as the bitmap font "hud") | `src/gt7companion/web/static/game/assets/fonts/hud.*`, original in `tools/game/fonts/` | SIL Open Font License 1.1, © 2012 The Press Start 2P Project Authors; see `assets/fonts/PressStart2P-OFL.txt` beside the atlas |
+| Kalam (as the bitmap font "hand", with redrawn glyphs) | `src/gt7companion/web/static/game/assets/fonts/hand.*`, original in `tools/game/fonts/` | SIL Open Font License 1.1, © 2014 Indian Type Foundry; see `assets/fonts/Kalam-OFL.txt` beside the atlas |
 
 The glass of milk and the nodding dachshund (`static/milkglass/*.glb`, `static/wackeldackel/*.glb`)
 were modelled for this project by the scripts in `tools/blender/`; the rev band
@@ -50,5 +53,8 @@ jbhoorasingh/gt7-datalogger, zetetos/gt-telemetry. No code of these projects is 
 ## Trademarks
 
 "Gran Turismo" and "PlayStation" are trademarks of Sony Interactive Entertainment Inc.
-"Gemini" is a trademark of Google LLC. This project is not affiliated with, endorsed by or
+"Gemini" is a trademark of Google LLC. "Micro Machines" is a trademark of Hasbro
+(see the [notice in Codemasters' game](https://store.steampowered.com/app/535850/Micro_Machines_World_Series/)).
+"Nissan", "Skyline" and "GT-R" are trademarks of Nissan Motor Co., Ltd. "Twitch" is a
+trademark of Twitch Interactive, Inc. This project is not affiliated with, endorsed by or
 connected to these companies or to Polyphony Digital Inc.

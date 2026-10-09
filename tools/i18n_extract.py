@@ -19,11 +19,13 @@ WEB = Path(__file__).resolve().parents[1] / "src/gt7companion/web"
 DICTIONARY = WEB / "static/i18n/en.js"
 SCRIPTS = ["static/overlay-style.js", "static/overlay-telemetry.js", "static/telemetry-charts.js",
            "static/js/editor.js", "static/js/widgets.js", "static/js/layout.js", "static/js/viewer.js",
-           "static/js/figure.js", "static/js/pages/connect.js", "static/js/pages/settings.js"]
+           "static/js/figure.js", "static/js/pages/connect.js", "static/js/pages/settings.js",
+           "static/game/src/main.js", "static/game/src/panel.js", "static/game/src/record.js",
+           "static/game/src/render/hud.js", "static/game/src/world/notes.js"]
 ATTRIBUTES = ("title", "placeholder", "aria-label", "alt")
 WORD = re.compile(r"[A-Za-zÄÖÜäöüß]{3,}")
 # Literals that are code although they contain letters.
-CODE = re.compile(r"^[#.\[]|^[a-z0-9_-]+$|^[a-z]+:[a-z]|[{}<>=;]|^--|^gt7|^/|\.(js|css|glb|svg|json)\b|^rgba?\(|^[a-z-]+\([^)]*\)$"
+CODE = re.compile(r"^[#.\[]|^[a-z0-9_-]+$|^[a-z]+:[a-z]|^https?://|[{}<>=;]|^--|^gt7|^/|\.(js|css|glb|svg|json)\b|^rgba?\(|^[a-z-]+\([^)]*\)$"
                   r"|^(GET|POST|DELETE|Content-Type|application/json|javascript|pointer\w*|key\w*|resize|click|change|input|"
                   r"focus|blur|submit|hidden|button|option|canvas|absolute|none|block|flex|center|round|classic|reel|"
                   r"dashboard|overlay|owner|editor|viewer|demo|live|true|false|null|undefined)$")

@@ -1,0 +1,5 @@
+# make_r34.py needs the original Sketchfab model in source/ (see SOURCES.md). It is downloaded by hand
+# and is not part of the repository. Blender working files (--work-dir) are not tracked either.
+/source/
+*.blend
+*.blend1

@@ -25,9 +25,9 @@ class Repository(unittest.TestCase):
         tracked = set(git("ls-files", "src/gt7companion/web").splitlines())
         wanted = set()
         for page in (PACKAGE / "web").glob("*.html"):
-            wanted.update(re.findall(r'(?:src|href)="/(static/[^"?#]+)', page.read_text(encoding="utf-8")))
-        wanted.update(re.findall(r'"(?:three|three/addons/)": "/(static/[^"]+)"',
-                                 (PACKAGE / "web" / "index.html").read_text(encoding="utf-8")))
+            text = page.read_text(encoding="utf-8")
+            wanted.update(re.findall(r'(?:src|href)="/(static/[^"?#]+)', text))
+            wanted.update(re.findall(r'"(?:three|three/addons/)": "/(static/[^"]+)"', text))
         for path in sorted(wanted):
             target = "src/gt7companion/web/" + path
             if path.endswith("/"):

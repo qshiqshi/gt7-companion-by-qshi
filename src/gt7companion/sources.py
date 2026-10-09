@@ -11,7 +11,7 @@ import errno
 import logging
 
 from .bus import EventBus
-from .demo import DEMO_FILE, demo_laps
+from .demo import DEMO_FILE, DemoPackets, demo_laps
 from .settings import Settings
 from .telemetry import _RECV_PORT, _SEND_PORT, create_receiver, create_replay_receiver
 
@@ -57,7 +57,7 @@ class Sources:
             try:
                 if kind == "demo":
                     receiver = create_replay_receiver(self.bus, DEMO_FILE, loop=True,
-                                                      transform=demo_laps)
+                                                      transform=demo_laps, packets=DemoPackets())
                 else:
                     receiver = create_receiver(
                         {"ps5_ip": self.settings["ps5_ip"],

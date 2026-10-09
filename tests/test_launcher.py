@@ -514,27 +514,28 @@ class TheMenu(unittest.TestCase):
     def test_with_a_window_the_pages_open_in_it(self):
         entries = self.entries("de", self.window)
         self.assertEqual([entry.text if entry else None for entry in entries],
-                         ["Fenster zeigen", "Vollbild", "Im Browser öffnen", None, "Geräte verbinden …",
-                          "Einstellungen …", None, "Im Heimnetz freigeben", None, "Beenden"])
+                         ["Fenster zeigen", "Vollbild", "Im Browser öffnen", None, "Tisch Turismo (Spiel)",
+                          "Geräte verbinden …", "Einstellungen …", None, "Im Heimnetz freigeben", None, "Beenden"])
         self.assertEqual([entry.text for entry in entries if entry and entry.default], ["Fenster zeigen"])
         with patch.object(launcher.webbrowser, "open") as browser:
             for entry in entries:
                 if entry is not None and entry.text != "Im Heimnetz freigeben":
                     entry.action()
-        self.assertEqual(self.window.calls, [("show",), ("toggle_fullscreen",), ("show", "connect"),
+        self.assertEqual(self.window.calls, [("show",), ("toggle_fullscreen",), ("show", "game"), ("show", "connect"),
                                              ("show", "settings"), ("quit",)])
         browser.assert_called_once_with("http://127.0.0.1:8707/")
 
     def test_without_a_window_the_pages_open_in_the_browser(self):
         entries = self.entries("en")
         self.assertEqual([entry.text if entry else None for entry in entries],
-                         ["Open dashboard", "Connect devices …", "Settings …", None, "Share in the home network",
-                          None, "Quit"])
+                         ["Open dashboard", "Tisch Turismo (game)", "Connect devices …", "Settings …", None,
+                          "Share in the home network", None, "Quit"])
         with patch.object(launcher.webbrowser, "open") as browser:
-            for entry in entries[:3]:
+            for entry in entries[:4]:
                 entry.action()
         self.assertEqual([call.args[0] for call in browser.call_args_list],
-                         ["http://127.0.0.1:8707/", "http://127.0.0.1:8707/connect", "http://127.0.0.1:8707/settings"])
+                         ["http://127.0.0.1:8707/", "http://127.0.0.1:8707/game", "http://127.0.0.1:8707/connect",
+                          "http://127.0.0.1:8707/settings"])
 
     def test_sharing_in_the_home_network_restarts_the_server_and_says_if_that_failed(self):
         said = []

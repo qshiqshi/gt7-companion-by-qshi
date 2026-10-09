@@ -16,6 +16,10 @@ Original-Timing auf den Bus — die Demo und die Tests laufen so ohne PS5.
 
 Abgeleitet aus dem privaten GT7 Companion von qshi (siehe PROVENANCE.md):
 ohne Mitschnitt, ohne Simulator, PS5-Adresse per Rueckruf statt Konfigdatei.
+
+Neben dem geparsten ``telemetry.frame`` geht jedes Paket auch entschluesselt, aber
+ungeparst als ``telemetry.packet`` auf den Bus: Das Spiel (``game.py``) rechnet
+im Browser selbst auf den Paketen.
 """
 from __future__ import annotations
 
@@ -75,11 +79,11 @@ def create_receiver(cfg: dict, bus: EventBus, *, on_ip=None):
 
 
 def create_replay_receiver(bus: EventBus, file: pathlib.Path, *, speed: float = 1.0,
-                           loop: bool = False, transform=None, on_done=None):
+                           loop: bool = False, transform=None, packets=None, on_done=None):
     """Replay-Empfaenger fuer einen ``.gt7r``-Mitschnitt (Demo, Tests).
     ``on_done`` (async callable) wird nach natuerlichem Dateiende gerufen."""
     return _ReplayReceiver(bus, file, speed=speed, loop=loop,
-                           transform=transform, on_done=on_done)
+                           transform=transform, packets=packets, on_done=on_done)
 
 
 def read_extension(recording: pathlib.Path) -> dict[bytes, bytes]:
@@ -285,9 +289,9 @@ class _GT7Protocol(asyncio.DatagramProtocol):
             log.exception("Fehler beim Parsen eines GT7-Pakets")
             return
         self._on_packet(addr, dec, frame)
-        asyncio.get_running_loop().create_task(
-            self._bus.publish("telemetry.frame", frame)
-        )
+        loop = asyncio.get_running_loop()
+        loop.create_task(self._bus.publish("telemetry.frame", frame))
+        loop.create_task(self._bus.publish("telemetry.packet", dec))
 
     def error_received(self, exc: Exception) -> None:
         # debug statt warning: beim Discovery-Sweep antworten hunderte
@@ -535,17 +539,19 @@ class _ReplayReceiver:
 
     Timestamp-Luecken (Pause/Menue beim Aufzeichnen) werden auf 0,5s gekappt.
     Mit ``loop=True`` beginnt die Datei nach dem Ende von vorn (Demo-Betrieb);
-    ``transform(frame, durchlauf)`` darf jeden Frame vor dem Versand anpassen.
+    ``transform(frame, durchlauf)`` darf jeden Frame vor dem Versand anpassen,
+    ``packets(paket, durchlauf)`` das ungeparste Paket (``telemetry.packet``).
     Ohne Schleife wird nach dem Dateiende ``on_done`` gerufen.
     """
 
     def __init__(self, bus: EventBus, file: pathlib.Path, *, speed: float = 1.0,
-                 loop: bool = False, transform=None, on_done=None) -> None:
+                 loop: bool = False, transform=None, packets=None, on_done=None) -> None:
         self._bus = bus
         self._file = pathlib.Path(file)
         self._speed = max(0.1, min(10.0, float(speed)))
         self._loop = bool(loop)
         self._transform = transform
+        self._packets = packets
         self._on_done = on_done
         self._task: asyncio.Task | None = None
         self._running = False
@@ -601,9 +607,12 @@ class _ReplayReceiver:
                         frame = _parse(dec)
                         if self._transform is not None:
                             frame = self._transform(frame, self.passes) or frame
+                        if self._packets is not None:
+                            dec = self._packets(dec, self.passes) or dec
                     except Exception:
                         continue
                     await self._bus.publish("telemetry.frame", frame)
+                    await self._bus.publish("telemetry.packet", dec)
                     if prev_ts is not None:
                         dt = min(max((ts - prev_ts), 0.0), 0.5) / self._speed
                         await asyncio.sleep(dt)

@@ -1,0 +1,40 @@
+/* Tisch Turismo: the page around the game (the game itself is drawn into two canvases). */
+html, body { margin: 0; height: 100%; background: #140b08; color: #e8dcd2; overflow: hidden;
+  font: 13px/1.4 -apple-system, "Segoe UI", "Helvetica Neue", Arial, sans-serif; }
+body { display: flex; flex-direction: column; align-items: center; justify-content: center; }
+html.obs, html.obs body { background: #000; }
+#buehne { position: relative; flex: none; }
+#buehne canvas { position: absolute; inset: 0; width: 100%; height: 100%; image-rendering: pixelated; }
+#leiste { flex: none; display: flex; flex-wrap: wrap; gap: 8px 14px; align-items: center; justify-content: center;
+  padding: 10px 14px; box-sizing: border-box; width: 100%; }
+html.obs #leiste { display: none; }
+#zustand { color: #f2c230; overflow-wrap: anywhere; }
+a { color: #f2c230; text-underline-offset: 3px; }
+select, button { font: inherit; color: #e8dcd2; background: #2a1711; border: 1px solid #5a372a; border-radius: 4px;
+  padding: 8px; min-height: 36px; max-width: 100%; }
+select:focus-visible, button:focus-visible, a:focus-visible { outline: 2px solid #f2c230; outline-offset: 2px; }
+@media (pointer: coarse) { select, button { min-height: 44px; } }
+@media (max-width: 500px) {
+  #leiste { gap: 6px 10px; padding: 8px; }
+  #zustand { width: 100%; text-align: center; }
+}
+button { cursor: pointer; }
+button:hover { background: #3a2018; }
+button:disabled { cursor: default; opacity: .55; }
+#record { border-color: #cb6b58; }
+#record.recording { background: #8e2a20; color: #fff; border-color: #ff9380; }
+#record-status:empty { display: none; }
+/* The window of the program has no place for downloads: recording is for the browser. */
+#leiste.im-fenster :is(#record, #video-download, #record-status) { display: none; }
+
+/* the page with the sources */
+body.quellen { display: block; overflow: auto; height: auto; font-size: 15px; line-height: 1.55; }
+body.quellen main { margin: 0 auto; max-width: 880px; padding: 24px 20px 64px; }
+body.quellen h1 { font-size: 26px; }
+body.quellen h2 { font-size: 19px; margin-top: 36px; color: #f2c230; }
+body.quellen a { color: #8fc7ff; }
+body.quellen table { border-collapse: collapse; width: 100%; }
+body.quellen :is(td, th) { text-align: left; vertical-align: top; padding: 8px 10px; border-bottom: 1px solid #3a2018; }
+body.quellen th { color: #b9a79c; font-weight: 600; }
+body.quellen td.zettel { font-style: italic; }
+body.quellen .klein, body.quellen td span { color: #b9a79c; font-size: 13px; }
