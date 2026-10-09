@@ -1,6 +1,7 @@
 """The web application end to end: pages, live connection, who may write, demo source."""
 import json
 import tempfile
+import threading
 import unittest
 from pathlib import Path
 
@@ -309,6 +310,33 @@ class ProgramWindow(AppCase):
         reply = self.client().post("/api/app/show")
         self.assertEqual((reply.status_code, reply.json()), (200, {"app": APP_NAME, "window": True}))
         self.assertEqual(self.shown, ["shown"])
+
+
+class ProgramWithSlowWindow(AppCase):
+    """pywebview makes a caller wait (up to 20 seconds) for a window that is not up yet."""
+
+    def app_options(self) -> dict:
+        self.asked = threading.Event()               # the window call has begun
+        self.others_served = threading.Event()       # the server answered something else meanwhile
+
+        def show_window() -> bool:
+            self.asked.set()
+            return self.others_served.wait(10)       # stays False if the server stood still
+
+        return {"show_window": show_window}
+
+    def test_the_server_goes_on_serving_while_the_window_is_not_up_yet(self):
+        client, second_start = self.client(), self.client()
+        replies = []
+        asking = threading.Thread(target=lambda: replies.append(second_start.post("/api/app/show").json()))
+        asking.start()
+        self.addCleanup(asking.join)
+        self.addCleanup(self.others_served.set)
+        self.assertTrue(self.asked.wait(10))
+        self.assertEqual(client.get("/api/status").status_code, 200)      # served while the window call is stuck
+        self.others_served.set()
+        asking.join(15)
+        self.assertEqual(replies, [{"app": APP_NAME, "window": True}])
 
 
 class ProgramWithoutWindow(AppCase):

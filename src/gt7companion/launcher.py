@@ -11,10 +11,12 @@ restart of the server, so it applies at once) and quits the program.
 Optional packages decide what there is: ``pip install gt7-companion-by-qshi[app]`` brings
 the symbol (``pystray``, ``pillow``), ``[window]`` the window (``pywebview``). Without the
 window, or with ``--no-window``, the dashboard opens in the browser; without the symbol
-the window runs alone; without both the program runs like ``python -m gt7companion``.
+the window runs alone (on a Mac the Dock still brings it back; elsewhere nothing could, so
+closing it quits the program); without both the program runs like ``python -m gt7companion``.
 """
 from __future__ import annotations
 
+import http.client
 import json
 import logging
 import sys
@@ -61,9 +63,10 @@ class Server:
         return f"http://127.0.0.1:{self.port}/"
 
     def _show_window(self) -> bool:
-        if self.window is None:
+        window = self.window                 # read once: another thread may take it away meanwhile
+        if window is None:
             return False
-        self.window()
+        window()
         return True
 
     def start(self) -> bool:
@@ -76,8 +79,10 @@ class Server:
             return False
         app = create_app(self.settings, source=self.source, lan=self.lan, port=self.port,
                          show_window=self._show_window, helper=self.helper)
+        # No log_config: uvicorn's own set-up writes to the console and fails without one (the packaged
+        # program on Windows has no sys.stdout). _set_up_logging has done the logging already.
         self._server = uvicorn.Server(uvicorn.Config(app, host=host, port=self.port, log_level="warning",
-                                                     ws_max_size=256 * 1024, access_log=False))
+                                                     log_config=None, ws_max_size=256 * 1024, access_log=False))
         self._thread = threading.Thread(target=self._server.run, name="gt7companion-server", daemon=True)
         self._thread.start()
         deadline = time.monotonic() + 15
@@ -97,17 +102,37 @@ class Server:
         self.stop()
         return self.start()
 
+    def status(self) -> dict:
+        """What the running program says about itself (source, console connected); empty while it is stopped."""
+        server = self._server
+        try:
+            return dict(server.config.app.state.companion.status()) if server is not None else {}
+        except Exception:                # noqa: BLE001 - in the middle of a restart
+            return {}
 
-def show_running(port: int, timeout: float = 3.0) -> bool:
-    """Ask a program that already runs on this port to show its window. ``True`` if it did."""
+
+def show_running(port: int, timeout: float = 3.0, *, tries: int = 5, pause: float = 0.5) -> bool:
+    """Ask a program that already runs on this port to show its window. ``True`` if it did.
+
+    The server of a program that has just started runs a moment before its window exists. If it says
+    it has none, ask again (``tries`` asks in all, ``pause`` seconds apart – about two seconds with the
+    defaults) before it counts as a program without a window.
+    """
     request = urllib.request.Request(f"http://127.0.0.1:{port}/api/app/show", data=b"", method="POST")
     opener = urllib.request.build_opener(urllib.request.ProxyHandler({}))      # never through a proxy
-    try:
-        with opener.open(request, timeout=timeout) as reply:
-            answer = json.load(reply)
-    except (OSError, ValueError):
-        return False
-    return isinstance(answer, dict) and answer.get("app") == APP_NAME and answer.get("window") is True
+    for attempt in range(tries):
+        if attempt:
+            time.sleep(pause)
+        try:
+            with opener.open(request, timeout=timeout) as reply:
+                answer = json.load(reply)
+        except (OSError, ValueError, http.client.HTTPException):
+            return False
+        if not (isinstance(answer, dict) and answer.get("app") == APP_NAME):
+            return False                                 # something else holds the port: asking again will not help
+        if answer.get("window") is True:
+            return True
+    return False
 
 
 @dataclass
@@ -173,6 +198,8 @@ def _follow_menu_bar(icon) -> None:
         image = getattr(icon, "_icon_image", None)       # pystray keeps the picture it handed to the menu bar here
         if image is not None:
             image.setTemplate_(True)
+        else:                                            # another pystray: the symbol keeps its own colours
+            log.debug("The symbol cannot follow the colour of the menu bar with this pystray.")
 
 
 def _tray_icon(entries: list[Entry | None]):
@@ -213,6 +240,36 @@ def run_with_tray(server: Server, *, open_browser: bool = True) -> int:
     return 0
 
 
+def _symbol_beside(window, server: Server, texts: dict):
+    """The symbol for a program with a window, on the window's loop. ``None`` if its packages are
+    missing or it cannot be shown: the window then runs without it."""
+    icon = None
+    try:
+        icon = _tray_icon(menu(server, texts, window=window, on_quit=window.quit,
+                               notify=lambda message: icon.notify(message, APP_NAME)))
+        if sys.platform == "darwin":
+            icon.run_detached(setup=lambda _icon: None)       # one loop for both: the window's, in this thread
+            icon.visible = True
+            _follow_menu_bar(icon)
+        else:
+            icon.run_detached()                               # pystray brings a thread of its own
+        return icon
+    except ImportError:
+        log.warning("No symbol (packages pystray and pillow are missing); the window runs without it.")
+    except Exception:
+        log.exception("The symbol could not be shown; the window runs without it.")
+    return None
+
+
+def _watch_the_console(server: Server, window, pause: float = 5.0, stop: threading.Event | None = None) -> None:
+    """While the real console sends data the display must not go to sleep under the dashboard
+    (the demo may run for hours and keeps nothing awake). Runs in a thread of its own."""
+    stop = stop or threading.Event()
+    while not stop.wait(pause):
+        status = server.status()
+        window.keep_awake(status.get("source") == "live" and bool(status.get("telemetry_connected")))
+
+
 def run_with_window(server: Server, *, show: bool = True) -> int:
     """The dashboard in a window of its own, and the symbol if its packages are there."""
     from .paths import user_dir
@@ -234,20 +291,11 @@ def run_with_window(server: Server, *, show: bool = True) -> int:
                     hidden=not show, on_quit=on_quit)
     server.window = window.show
     log.info("Window%s, menus in %s", "" if show else " (hidden at start)", language)
-    try:
-        icon = _tray_icon(menu(server, TEXTS[language], window=window, on_quit=window.quit,
-                               notify=lambda message: icon.notify(message, APP_NAME)))
-        if sys.platform == "darwin":
-            icon.run_detached(setup=lambda _icon: None)       # one loop for both: the window's, in this thread
-            icon.visible = True
-            _follow_menu_bar(icon)
-        else:
-            icon.run_detached()                               # pystray brings a thread of its own
-    except ImportError:
-        log.warning("No symbol (packages pystray and pillow are missing); the window runs without it.")
-    except Exception:
-        icon = None
-        log.exception("The symbol could not be shown; the window runs without it.")
+    icon = _symbol_beside(window, server, TEXTS[language])
+    threading.Thread(target=_watch_the_console, args=(server, window), name="gt7companion-awake", daemon=True).start()
+    if icon is None and sys.platform != "darwin":
+        # Nothing could bring a hidden window back or quit the program (the Dock does that on a Mac).
+        window.hide_on_close = False
     try:
         window.run()
     except Exception:                    # no web view after all: the caller goes on without a window
@@ -315,17 +363,24 @@ def main(argv: list[str] | None = None) -> int:
     print(f"{APP_NAME} {__version__}: {server.url}", flush=True)
     log.info("%s %s on %s (%s)", APP_NAME, __version__, server.url,
              "shared in the home network" if server.lan else "this computer only")
+    return _run(server, window=not args.no_tray and not args.no_window, tray=not args.no_tray,
+                show=not args.no_browser)
 
-    if not args.no_tray:
+
+def _run(server: Server, *, window: bool, tray: bool, show: bool) -> int:
+    """Show the program the best way this computer offers: window and symbol, the symbol alone
+    (pages in the browser), or nothing but the server until Ctrl+C."""
+    if window:
         from .window import available
 
-        if not args.no_window and available():
+        if available():
             try:
-                return run_with_window(server, show=not args.no_browser)
+                return run_with_window(server, show=show)
             except Exception:
                 log.exception("The window could not be shown; opening the dashboard in the browser instead.")
+    if tray:
         try:
-            return run_with_tray(server, open_browser=not args.no_browser)
+            return run_with_tray(server, open_browser=show)
         except ImportError:
             log.warning("No tray symbol (packages pystray and pillow are missing); running without it.")
         except Exception:

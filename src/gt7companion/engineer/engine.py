@@ -27,7 +27,7 @@ from .local import LocalSession, topic_instructions
 from .mic import Microphone
 from .speaker import Speaker
 from .texts import SPEECH_CODE, Texts
-from .wake import WakeListener, make_transcriber
+from .wake import HelperTranscriber, WakeListener, make_transcriber
 
 log = logging.getLogger("box")
 
@@ -35,6 +35,7 @@ URGENT, NORMAL = 0, 1
 _URGENT_MAX_AGE_S = 4.0        # an impact that is announced later than this is old news
 _NORMAL_MAX_AGE_S = 20.0
 _IDLE_CLOSE_S = 90.0
+_LOOK_AGAIN_S = 90.0           # how often the Mac is asked again what it offers (a voice was added, the model got ready)
 
 
 @dataclasses.dataclass(order=True)
@@ -61,6 +62,10 @@ class Engineer:
         self._preparing: set[str] = set()       # languages whose speech recognition is being set up
         self._prepared: set[str] = set()        # … is set up, or could not be (no second try until something changes)
         self._warmed: tuple | None = None       # the voice that was loaded into memory
+        self._looked_at: float | None = None    # when the helper was last asked; None: not yet
+        self._first_look: asyncio.Task | None = None
+        self._preparations: set[asyncio.Task] = set()
+        self._billed = 0                        # messages of this session that cost money (Gemini)
         self.transcriber = transcriber if transcriber is not None else make_transcriber(helper)
         self.wake = (WakeListener(self.microphone, self.transcriber, language=self.language, on_question=self.ask,
                                   blocked=lambda: self.speaking or self.listening or not self._queue.empty())
@@ -110,6 +115,25 @@ class Engineer:
         """The Mac can speak the messages: it has a voice for the language of the Box."""
         return bool(self.local.get("voices"))
 
+    def local_voice(self) -> str:
+        """The voice the user chose, if the Mac has it for the language of the Box; else the best one (empty)."""
+        chosen = self.settings["box_local_voice"]
+        return chosen if any(voice.get("id") == chosen for voice in self.local.get("voices") or []) else ""
+
+    @property
+    def looked(self) -> bool:
+        """The helper has been asked what this Mac offers (or there is none to ask)."""
+        return self.helper is None or self._looked_at is not None
+
+    @property
+    def wake_possible(self) -> bool:
+        """There is a recogniser for the wake word – and if it is the Mac's own, the Mac has it for this language."""
+        if self.wake is None:
+            return False
+        if isinstance(self.transcriber, HelperTranscriber):
+            return SPEECH_CODE[self.language()] in (self.local.get("recognisable") or [])
+        return True
+
     @property
     def questions(self) -> bool:
         """Questions can be answered: always with Gemini; on the Mac if it recognises speech
@@ -137,23 +161,35 @@ class Engineer:
             log.info("The Box cannot run on this computer alone: %s", problem)
             self.local = {}
             return
-        model, speech = status.get("model") or {}, status.get("speech") or {}
+        finally:
+            self._looked_at = self._clock()
+        model, speech = status.get("model"), status.get("speech")
+        if not isinstance(model, dict) or not isinstance(speech, dict):          # not the helper this program knows
+            log.warning("The helper of the Box answers in a way this program does not understand.")
+            self.local = {}
+            return
+        voices = [voice for voice in voices if isinstance(voice, dict)]
         voices = [voice for voice in voices if voice.get("natural")] or voices      # not the robots, if there is a choice
+        heard = speech.get("available")
         self.local = {"voices": voices,
                       "model": "available" if model.get("available") else str(model.get("reason") or "unavailable"),
-                      "recognition": list(speech.get("installed") or []) if speech.get("available") else []}
+                      "recognition": list(speech.get("installed") or []) if heard else [],
+                      "recognisable": sorted({*(speech.get("installed") or []), *(speech.get("supported") or [])})
+                      if heard else []}
         self.texts = self._make_texts()             # who speaks may have changed with what the Mac offers
         if not (self.enabled and self.engine() == "local" and self.local_ready):
             return
         locale = SPEECH_CODE[language]
-        voice = (self.settings["box_local_voice"], language)
+        voice = (self.local_voice(), language)
         if self._warmed != voice:                   # the first sentence of a voice takes more than a second otherwise
             self._warmed = voice
             self._background(self.helper.warm, language=language, voice=voice[0])
         if (self.local["model"] == "available" and locale not in self._prepared | self._preparing
                 and locale in (speech.get("supported") or [])):
             self._preparing.add(locale)             # a language pack may have to be downloaded: do not wait for it
-            asyncio.get_running_loop().create_task(self._prepare(locale))
+            task = asyncio.get_running_loop().create_task(self._prepare(locale))
+            self._preparations.add(task)
+            task.add_done_callback(self._preparations.discard)
 
     def _background(self, call, *arguments, **values) -> None:
         """Run something that may take a while without waiting for it; its failure only matters later."""
@@ -189,7 +225,8 @@ class Engineer:
         self._changed()
 
     def wake_wanted(self) -> bool:
-        return bool(self.enabled and self.usable and self.questions and self.settings["box_wake"])
+        return bool(self.enabled and self.usable and self.questions and self.wake_possible
+                    and self.settings["box_wake"])
 
     async def _sync_wake(self) -> None:
         """Listen for the wake word exactly while it is switched on and usable."""
@@ -201,7 +238,7 @@ class Engineer:
             await self.wake.stop()
 
     def new_session(self) -> None:
-        self.said = self.skipped = self.tokens = 0
+        self.said = self.skipped = self.tokens = self._billed = 0
         self._spoken_at.clear()
         self._changed()
 
@@ -226,7 +263,7 @@ class Engineer:
                 "said": self.said, "skipped": self.skipped, "tokens": self.tokens,
                 "per_minute": self.settings["box_per_minute"], "per_session": self.settings["box_per_session"],
                 "speaker": self.speaker.available, "microphone": self.microphone.available,
-                "wake": bool(self.wake and self.wake.running), "wake_possible": self.wake is not None,
+                "wake": bool(self.wake and self.wake.running), "wake_possible": self.wake_possible,
                 "language": self.language()}
 
     def _changed(self) -> None:
@@ -241,7 +278,7 @@ class Engineer:
         while self._spoken_at and now - self._spoken_at[0] > 60.0:
             self._spoken_at.popleft()
         return (len(self._spoken_at) < self.settings["box_per_minute"]
-                and self.said < self.settings["box_per_session"])
+                and self._billed < self.settings["box_per_session"])
 
     def say(self, text: str, priority: int = NORMAL, *, forced: bool = False) -> bool:
         """Queue a message. ``False`` if the Box is off, cannot speak or the queue is full."""
@@ -292,10 +329,21 @@ class Engineer:
         return True
 
     async def start(self) -> None:
+        """Begin working. What the Mac offers is found out in the background: a helper that is
+        slow to start must not hold up the program."""
         if self._task is None:
             self._task = asyncio.create_task(self._run())
+        if self.helper is None:
+            await self._sync_wake()
+        elif self._first_look is None:
+            self._first_look = asyncio.create_task(self._look_again())
+
+    async def _look_again(self) -> None:
+        before = dict(self.local)
         await self.look_at_helper()
         await self._sync_wake()
+        if self.local != before or not before:
+            self._changed()
 
     async def stop(self) -> None:
         if self.listening:
@@ -303,11 +351,17 @@ class Engineer:
             self.microphone.stop()
         if self.wake is not None:
             await self.wake.stop()
-        task, self._task = self._task, None
-        if task is not None:
-            task.cancel()
-            with contextlib.suppress(asyncio.CancelledError):
-                await task
+        tasks = [self._task, self._first_look, *self._preparations]
+        self._task = self._first_look = None
+        if self.helper is not None:
+            # Whatever the helper is busy with (the download of a language pack takes minutes) must
+            # not hold up quitting: end it, and the threads that wait for its answers return.
+            self.helper.interrupt()
+        for task in tasks:
+            if task is not None:
+                task.cancel()
+                with contextlib.suppress(asyncio.CancelledError):
+                    await task
         await self._close_session()
 
     async def _close_session(self) -> None:
@@ -321,7 +375,7 @@ class Engineer:
         if self.engine() == "local":
             if self.helper is None:
                 raise live.BoxError()
-            return LocalSession(self.helper, texts, voice=self.settings["box_local_voice"],
+            return LocalSession(self.helper, texts, voice=self.local_voice(),
                                 units=self.settings["units"], status=lambda: self.session_status())
         return live.LiveSession(self.keys.reveal(), model=self.settings["box_model"], voice=self.settings["box_voice"],
                                 language=SPEECH_CODE[texts.language], system=texts.system_prompt(), url=self._url,
@@ -329,6 +383,9 @@ class Engineer:
 
     async def _run(self) -> None:
         while True:
+            if (self.helper is not None and self._looked_at is not None
+                    and self._clock() - self._looked_at > _LOOK_AGAIN_S):
+                await self._look_again()             # a voice was downloaded, the language model got ready, …
             try:
                 item = await asyncio.wait_for(self._queue.get(), timeout=_IDLE_CLOSE_S)
             except asyncio.TimeoutError:
@@ -371,7 +428,9 @@ class Engineer:
             answer = session.ask(item.audio, item.text) if item.audio else session.say(item.text)
             await self.speaker.play(self._listen(answer), live.OUT_RATE, mute=not self.settings["box_speaker"])
             self.said += 1
-            self._spoken_at.append(self._clock())
+            if isinstance(session, live.LiveSession):       # only these cost money and count towards the limits
+                self._billed += 1
+                self._spoken_at.append(self._clock())
             self.error = None
         finally:
             self.speaking = False

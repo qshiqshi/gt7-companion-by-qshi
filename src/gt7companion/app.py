@@ -221,7 +221,9 @@ def create_app(settings: Settings | None = None, *, layouts: LayoutStore | None 
     async def show_app(request: Request):
         """A second start of the program asks the running one to show its window."""
         require_owner(request)
-        shown = bool(show_window is not None and show_window())
+        # In a thread of its own: pywebview makes the caller wait (up to 20 seconds) for a window that is
+        # not up yet, and the loop has to go on serving the pages and the live connection meanwhile.
+        shown = bool(show_window is not None and await asyncio.to_thread(show_window))
         return JSONResponse({"app": APP_NAME, "window": shown}, headers=_NO_STORE)
 
     @app.get("/api/prefs.js")

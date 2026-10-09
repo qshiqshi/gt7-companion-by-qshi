@@ -35,6 +35,16 @@ from ..paths import PACKAGE
 log = logging.getLogger("box.helper")
 
 NAME = "gt7c-box"
+MINIMUM_MACOS = 26               # the first system with speech recognition and a language model on the device
+
+
+def _macos_major() -> int:
+    import platform
+
+    try:
+        return int(platform.mac_ver()[0].split(".")[0])
+    except ValueError:
+        return 0
 
 
 class HelperError(Exception):
@@ -78,18 +88,22 @@ class Helper:
                     continue
                 if not isinstance(message, dict) or "event" in message:  # progress of a download: nothing to do
                     continue
+                number = message.get("id")
+                if not isinstance(number, int):          # not an answer to anything that was asked
+                    continue
                 with self._lock:
-                    slot = self._waiting.pop(message.get("id"), None)
+                    slot = self._waiting.pop(number, None)
                 if slot is not None:
                     slot["answer"] = message
                     slot["done"].set()
         except (OSError, ValueError):                # the pipe was closed under our hands
             pass
-        with self._lock:                             # the program has ended: nobody waits for ever
+        with self._lock:                             # the program has ended: nobody waits for it for ever
             if self._process is process:
                 self._process = None
-            waiting, self._waiting = self._waiting, {}
-        for slot in waiting.values():
+            mine = [number for number, slot in self._waiting.items() if slot["process"] is process]
+            waiting = [self._waiting.pop(number) for number in mine]      # a successor keeps its own requests
+        for slot in waiting:
             slot["done"].set()
         for pipe in (process.stdin, process.stdout):
             try:
@@ -107,6 +121,14 @@ class Helper:
         except (OSError, ValueError):
             pass
 
+    def interrupt(self) -> None:
+        """End the helper now, whatever it is doing (a download of minutes, for example). Whoever
+        waits for an answer gets an error; the next request starts a fresh one."""
+        with self._lock:
+            process = self._process
+        if process is not None:
+            self._end(process)
+
     def close(self) -> None:
         """End the helper for good; later requests fail instead of starting it again."""
         with self._lock:
@@ -122,8 +144,17 @@ class Helper:
             except subprocess.TimeoutExpired:
                 process.kill()
 
+    @staticmethod
+    def _end(process: subprocess.Popen) -> None:
+        if process.poll() is None:
+            process.kill()
+
     def request(self, op: str, *, timeout: float | None = None, **values) -> dict:
-        """Send one request and wait for its answer. Raises ``HelperError``."""
+        """Send one request and wait for its answer. Raises ``HelperError``.
+
+        A helper that does not answer in time is taken to hang and is ended; the next
+        request starts a fresh one."""
+        limit = timeout or self._timeout
         slot = {"done": threading.Event()}
         with self._lock:
             if self._closed:
@@ -135,14 +166,22 @@ class Helper:
                 except OSError as problem:
                     raise HelperError("missing", str(problem)) from None
             number = next(self._ids)
+            slot["process"] = process
             self._waiting[number] = slot
+            # Ending the helper also frees a write that is stuck because it reads no more.
+            watchdog = threading.Timer(limit, self._end, args=(process,))
+            watchdog.daemon = True
+            watchdog.start()
             try:
                 process.stdin.write(json.dumps({"id": number, "op": op, **values}, ensure_ascii=False) + "\n")
                 process.stdin.flush()
             except (OSError, ValueError):
+                watchdog.cancel()
                 self._waiting.pop(number, None)
                 raise HelperError("failed", f"the helper does not take '{op}'") from None
-        if not slot["done"].wait(timeout or self._timeout):
+        answered = slot["done"].wait(limit + 2.0)       # the watchdog ends the helper first, which wakes this
+        watchdog.cancel()
+        if not answered:
             with self._lock:
                 self._waiting.pop(number, None)
             raise HelperError("failed", f"no answer to '{op}'")
@@ -156,11 +195,11 @@ class Helper:
     # ----------------------------------------------------------- what it does
     def status(self) -> dict:
         """What this Mac offers: the language model, recognised languages, the best voices."""
-        return self.request("status")
+        return self.request("status", timeout=10.0)
 
     def voices(self, language: str) -> list[dict]:
         """The installed voices for ``"de"`` or ``"en"``, best first: id, name, locale, quality, natural."""
-        return list(self.request("voices", language=language).get("voices") or [])
+        return list(self.request("voices", language=language, timeout=10.0).get("voices") or [])
 
     def prepare(self, locale: str) -> None:
         """Make sure speech in this language can be recognised (may download a language pack once)."""
@@ -180,7 +219,11 @@ class Helper:
 
     def speak(self, text: str, *, language: str, voice: str = "") -> bytes:
         """Text to speech: 24 kHz mono, 16 bit. ``voice`` empty: the best one installed for the language."""
-        return base64.b64decode(self.request("speak", text=text, language=language, voice=voice)["audio"])
+        answer = self.request("speak", text=text, language=language, voice=voice)
+        try:
+            return base64.b64decode(answer["audio"], validate=True)
+        except (KeyError, TypeError, ValueError):
+            raise HelperError("protocol", "the answer to 'speak' carries no audio") from None
 
     def transcribe(self, pcm: bytes, *, locale: str) -> tuple[str, list[str]]:
         """Speech (16 kHz mono, 16 bit) to text: what was heard, and other ways it could be written."""
@@ -197,8 +240,9 @@ class Helper:
 
 
 def find() -> Helper | None:
-    """The helper that belongs to this program, or ``None`` – there is one for Macs only."""
-    if sys.platform != "darwin":
+    """The helper that belongs to this program, or ``None`` – there is one for Macs with
+    macOS 26 or newer only (older systems cannot even load it)."""
+    if sys.platform != "darwin" or _macos_major() < MINIMUM_MACOS:
         return None
     places = []
     if getattr(sys, "frozen", False):                # the packaged app carries it next to its libraries

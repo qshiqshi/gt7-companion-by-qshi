@@ -3,7 +3,9 @@
     macOS    WKWebView          Windows    WebView2
 
 Closing the window only hides it – the server goes on for tablets and OBS, and
-the symbol in the menu bar or a click on the Dock brings the window back.
+the symbol in the menu bar or a click on the Dock brings the window back. Where
+nothing could do that (no symbol, not macOS) the launcher turns ``hide_on_close``
+off and closing the window ends the program.
 Without pywebview, or on a system without a web view, the launcher opens the
 dashboard in the browser as before (``available()`` tells).
 """
@@ -38,6 +40,9 @@ _MAC_NAMED = {
 
 # Where the installer of the WebView2 runtime leaves its version (per machine, per user).
 _WEBVIEW2 = r"Microsoft\EdgeUpdate\Clients\{F3017226-FE2A-4295-8BDF-00C3A9A7E4C5}"
+
+_FULL_SCREEN = 1 << 14          # NSWindowStyleMaskFullScreen: the window is in native full screen (macOS)
+_SM_SHUTTINGDOWN = 0x2000       # GetSystemMetrics: the session is shutting down or being logged off (Windows)
 
 
 def available() -> bool:
@@ -75,13 +80,32 @@ def webview2_version() -> str:
     return ""
 
 
+def _session_is_ending() -> bool:
+    """Windows only: the user logs off or the computer shuts down. A window that cancels its close
+    then (and hiding it does) holds the shutdown up, so it has to let go."""
+    if sys.platform != "win32":
+        return False
+    try:
+        import ctypes
+
+        return bool(ctypes.windll.user32.GetSystemMetrics(_SM_SHUTTINGDOWN))
+    except Exception:                                # noqa: BLE001 - no answer is no reason to keep the window
+        return False
+
+
 class Window:
-    """One window that shows the dashboard. Every method may be called from any thread."""
+    """One window that shows the dashboard. Every method may be called from any thread.
+
+    ``hide_on_close`` tells what the close button does: hide the window (the default; the program
+    goes on, and the symbol or the Dock brings the window back) or close it for good, which ends
+    the program. The launcher turns it off where nothing could bring a hidden window back.
+    """
 
     def __init__(self, url: str, *, title: str, language: str = "en", storage: Path | None = None,
                  hidden: bool = False, on_quit: Callable[[], None] | None = None, backend=None) -> None:
         """``backend`` stands in for the pywebview module in tests."""
         self.url = url
+        self.hide_on_close = True
         self._language = language if language in _MAC_MENUS else "en"
         self._storage = storage
         self._hidden = hidden
@@ -92,11 +116,16 @@ class Window:
         self._webview = backend
         self._quitting = False
         self._finished = False
+        self._minimized = False                      # kept up to date by pywebview's events, see show()
+        self._awake = None                           # macOS: what keeps the display on, see keep_awake()
         self._keep: list = []                        # Cocoa holds its delegates weakly
         # On macOS the window appears once its remembered place is known (see _prepare_mac).
         self._window = backend.create_window(title, url, width=SIZE[0], height=SIZE[1], min_size=MINIMUM,
                                              hidden=hidden or self._mac, background_color=BACKGROUND)
         self._window.events.closing += self._closing
+        self._window.events.minimized += self._now_minimized
+        self._window.events.restored += self._no_longer_minimized
+        self._window.events.maximized += self._no_longer_minimized   # a minimised window can come back maximised
 
     # ------------------------------------------------------------------ in use
     def show(self, path: str | None = None) -> None:
@@ -104,8 +133,10 @@ class Window:
         if path is not None:
             self._window.load_url(self.url + path)
         self._window.show()
-        if sys.platform == "win32":
-            self._window.restore()                   # a minimised window stays in the task bar otherwise
+        if sys.platform == "win32" and self._minimized:
+            # A minimised window stays in the task bar otherwise. Only that one: restore() also takes
+            # a maximised window back to its normal size.
+            self._window.restore()
 
     def hide(self) -> None:
         self._window.hide()
@@ -113,6 +144,33 @@ class Window:
     def toggle_fullscreen(self) -> None:
         self._window.show()
         self._window.toggle_fullscreen()
+
+    def keep_awake(self, wanted: bool) -> None:
+        """Keep the display on while there is something to watch in the window.
+
+        Only macOS needs this from here: elsewhere the page asks its browser itself
+        (``static/js/awake.js``), but WKWebView refuses a page that was not clicked first.
+        A window that is hidden or in the Dock keeps nothing awake."""
+        if self._mac:
+            from PyObjCTools import AppHelper
+
+            AppHelper.callAfter(self._apply_awake, bool(wanted))
+
+    def _apply_awake(self, wanted: bool) -> None:
+        import Foundation
+
+        try:
+            native = self._window.native
+            wanted = bool(wanted and native.isVisible() and not native.isMiniaturized())
+            process = Foundation.NSProcessInfo.processInfo()
+            if wanted and self._awake is None:
+                self._awake = process.beginActivityWithOptions_reason_(
+                    Foundation.NSActivityIdleDisplaySleepDisabled, "The dashboard shows what the console sends")
+            elif not wanted and self._awake is not None:
+                process.endActivity_(self._awake)
+                self._awake = None
+        except Exception:                            # noqa: BLE001 - a display that sleeps is not worth a crash
+            log.debug("Keeping the display on failed", exc_info=True)
 
     def quit(self) -> None:
         """End the program."""
@@ -143,11 +201,48 @@ class Window:
 
     # --------------------------------------------------------------- internals
     def _closing(self):
-        """The close button, Cmd+W, Alt+F4. ``False`` cancels the close: the window is only hidden."""
-        if self._quitting:
+        """The close button, Cmd+W, Alt+F4. ``False`` cancels the close: the window is only hidden.
+        ``None`` lets it happen: for good (``quit``, no way back, Windows shutting down)."""
+        if self._quitting or not self.hide_on_close or _session_is_ending():
             return None
-        self._window.hide()
+        if not (self._mac and self._hide_after_full_screen()):
+            self._window.hide()
         return False
+
+    def _now_minimized(self) -> None:
+        self._minimized = True
+
+    def _no_longer_minimized(self) -> None:
+        self._minimized = False
+
+    def _hide_after_full_screen(self) -> bool:
+        """macOS: a window that is hidden in native full screen leaves its black Space behind. So leave
+        full screen first and hide the window once Cocoa says that is over. ``False`` if there is nothing
+        of the kind to do (not in full screen, or it did not work): the caller hides the window at once."""
+        try:
+            native = self._window.native
+            if not native.styleMask() & _FULL_SCREEN:
+                return False
+            import AppKit
+            import Foundation
+
+            center = Foundation.NSNotificationCenter.defaultCenter()
+
+            def left_full_screen(_notification) -> None:
+                center.removeObserver_(observer)     # once is enough
+                self._keep.remove(observer)
+                self._window.hide()
+
+            native.toggleFullScreen_(None)
+            # The notification comes with the end of the transition, which is after this has returned
+            # to the run loop – there is time to listen for it.
+            observer = center.addObserverForName_object_queue_usingBlock_(
+                AppKit.NSWindowDidExitFullScreenNotification, native, None, left_full_screen)
+            self._keep.append(observer)              # Cocoa does not hold on to it
+            return True
+        except Exception:                            # noqa: BLE001 - better hidden as it is than not closable
+            log.exception("Leaving full screen failed; hiding the window as it is.")
+            return False
 
     def _finish(self) -> None:
         if self._finished:

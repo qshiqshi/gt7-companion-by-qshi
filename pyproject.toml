@@ -26,7 +26,7 @@ Issues = "https://github.com/qshiqshi/gt7-companion-by-qshi/issues"
 
 [project.optional-dependencies]
 box = ["sounddevice>=0.4"]          # the Box on this computer's loudspeakers
-app = ["pystray>=0.19", "pillow>=10"]     # menu bar / tray symbol
+app = ["pystray>=0.19,<0.20", "pillow>=10"]     # menu bar / tray symbol
 # The dashboard in a window of its own (macOS, Windows); the packaged program has it.
 # Pinned: window.py leans on how this version sets up Cocoa.
 window = ["pywebview>=6.2,<6.3"]

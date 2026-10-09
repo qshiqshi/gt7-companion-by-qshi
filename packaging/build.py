@@ -64,7 +64,10 @@ def environment(fresh: bool) -> Path:
         shutil.rmtree(folder)
     if not python.exists():
         run(uv, "venv", "--python", PYTHON, "--python-preference", "only-managed", folder)
-    run(uv, "pip", "install", "--python", python, "-e", f"{ROOT}[app,window,box]", "pyinstaller")
+    wanted = ["-e", f"{ROOT}[app,window,box]", "pyinstaller"]
+    if SYSTEM == "windows":
+        wanted.append("pythonnet<3.2")       # the bridge to .NET under the window: the series the build was tried with
+    run(uv, "pip", "install", "--python", python, *wanted)
     return python
 
 

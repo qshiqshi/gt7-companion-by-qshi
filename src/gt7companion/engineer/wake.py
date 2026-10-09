@@ -234,6 +234,8 @@ class WakeListener:
             await asyncio.to_thread(self._transcriber.warm_up, self._language())
         except Exception:
             log.warning("The speech recogniser could not be loaded; “Hey Box” stays off.", exc_info=True)
+            self._microphone.stop_listening()        # nobody listens: the microphone must not stay open
+            self._task = None
             return
         log.info("Listening for “Hey Box” (on this computer only)")
         while True:

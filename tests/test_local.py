@@ -1,6 +1,8 @@
 """The Box on the computer alone – against a stand-in for the helper program (tests/fake_box_helper.py),
 so this also runs where there is no Mac."""
+import asyncio
 import importlib.util
+import io
 import json
 import sys
 import tempfile
@@ -8,6 +10,7 @@ import threading
 import time
 import unittest
 from pathlib import Path
+from types import SimpleNamespace
 from unittest.mock import patch
 
 from gt7companion.engineer import wake
@@ -99,28 +102,71 @@ class TheHelper(HelperCase, unittest.TestCase):
         self.assertEqual(late.exception.code, "failed")
         self.assertLess(time.monotonic() - began, 1.5)
 
+    def test_a_helper_that_hangs_is_ended_and_replaced(self):
+        helper = self.helper("--hang-on", "speak", timeout=0.4)
+        first = helper.status()
+        self.assertEqual(first["protocol"], 1)
+        hung = helper._process
+        began = time.monotonic()
+        with self.assertRaises(HelperError) as late:
+            helper.speak("Radio check.", language="en")
+        self.assertEqual(late.exception.code, "failed")
+        self.assertLess(time.monotonic() - began, 2.0)
+        hung.wait(timeout=5)                                       # it was ended, it does not linger
+        self.assertEqual(helper.status()["protocol"], 1)          # a fresh one answers
+        self.assertIsNot(helper._process, hung)
+
+    def test_a_dead_helper_does_not_take_the_requests_of_its_successor_with_it(self):
+        helper = Helper(["unused"])
+        old = SimpleNamespace(stdout=io.StringIO(""), stdin=io.StringIO(), stderr=io.StringIO(), wait=lambda: None)
+        new = SimpleNamespace()
+        mine = {"done": threading.Event(), "process": old}
+        theirs = {"done": threading.Event(), "process": new}
+        helper._process, helper._waiting = new, {1: mine, 2: theirs}
+        helper._read_answers(old)                                  # the old one has ended: its reader cleans up
+        self.assertTrue(mine["done"].is_set())
+        self.assertFalse(theirs["done"].is_set())
+        self.assertEqual((list(helper._waiting), helper._process), ([2], new))
+
+    def test_there_is_no_helper_before_macos_26(self):
+        from gt7companion.engineer import helper as module
+
+        with patch.object(module.sys, "platform", "darwin"), patch.object(module, "_macos_major", return_value=15):
+            self.assertIsNone(module.find())
+        with patch.object(module.sys, "platform", "win32"):
+            self.assertIsNone(module.find())
+
+    def test_an_answer_without_audio_is_a_failure_not_a_crash(self):
+        helper = self.helper()
+        with patch.object(Helper, "request", return_value={"ok": True}):
+            with self.assertRaises(HelperError) as odd:
+                helper.speak("Radio check.", language="en")
+        self.assertEqual(odd.exception.code, "protocol")
+
     def test_requests_run_side_by_side(self):
-        helper = self.helper("--slow", "0.6")
+        helper = self.helper("--slow", "1.5")
+        helper.status()                                                           # the helper is up
         answers = []
         slow = threading.Thread(target=lambda: answers.append(helper.choose("sort it", "fuel?", list(TOPICS))))
         slow.start()
         time.sleep(0.1)
-        began = time.monotonic()
-        helper.speak("Radio check.", language="en")                               # does not wait for the model
-        self.assertLess(time.monotonic() - began, 0.4)
-        slow.join(5)
+        helper.speak("Radio check.", language="en")                               # does not wait for the model:
+        self.assertEqual(answers, [])                                             # that one is still thinking
+        slow.join(10)
         self.assertEqual(answers, ["fuel"])
 
 
 class LocalBox(HelperCase, Folder):
-    async def box(self, *options, helper=True, transcriber=None, **changes) -> Engineer:
+    async def box(self, *options, helper=True, transcriber=None, clock=None, **changes) -> Engineer:
         self.settings.update({"box_enabled": True, "box_driver": "Alex", "box_language": "en", **changes})
+        more = {"clock": clock} if clock is not None else {}
         engineer = Engineer(self.settings, self.keys, speaker=self.speaker, microphone=self.microphone,
                             transcriber=transcriber or FakeTranscriber(), url="ws://127.0.0.1:9/unused",
-                            helper=self.helper(*options) if helper else None)
+                            helper=self.helper(*options) if helper else None, **more)
         engineer.session_status = lambda: FACTS
         await engineer.start()
         self.addAsyncCleanup(engineer.stop)
+        await self.until(lambda: engineer.looked)                  # what the Mac offers is found out in the background
         return engineer
 
     # ------------------------------------------------------------ who speaks
@@ -167,7 +213,38 @@ class LocalBox(HelperCase, Folder):
                        transcriber=FakeTranscriber(), helper=Helper([str(self.home / "missing")]))
         await box.start()
         self.addAsyncCleanup(box.stop)
+        await self.until(lambda: box.looked)
         self.assertEqual((box.engine(), box.state()), ("gemini", "no_key"))
+
+    async def test_the_program_does_not_wait_for_a_slow_helper(self):
+        self.settings.update({"box_enabled": True, "box_language": "en"})
+        box = Engineer(self.settings, self.keys, speaker=self.speaker, microphone=self.microphone,
+                       transcriber=FakeTranscriber(), helper=self.helper("--delay-status", "1.5"))
+        began = time.monotonic()
+        await box.start()
+        self.addAsyncCleanup(box.stop)
+        self.assertLess(time.monotonic() - began, 0.5)             # the server can begin to listen
+        self.assertEqual((box.looked, box.engine(), box.state()), (False, "gemini", "no_key"))
+        changes = []
+        box._on_change = lambda: changes.append(box.state())
+        await self.until(lambda: box.looked)
+        await self.until(lambda: bool(changes))
+        self.assertEqual((box.engine(), changes[-1]), ("local", "ready"))                # and the pages hear of it
+
+    async def test_what_the_mac_offers_is_asked_again_after_a_while(self):
+        state = self.home / "mac.json"
+        state.write_text('{"model": "loading"}', encoding="utf-8")
+        now = [1000.0]
+        box = await self.box("--state", str(state), clock=lambda: now[0])
+        self.assertEqual((box.state(), box.questions, box.status()["local"]["model"]), ("ready", False, "loading"))
+        state.write_text('{"model": "available"}', encoding="utf-8")          # the download has finished meanwhile
+        box.say("Radio check.")
+        await self.until(lambda: box.said == 1)
+        self.assertFalse(box.questions)                            # not asked again yet: that was a moment ago
+        now[0] += 120
+        box.say("Radio check.")
+        await self.until(lambda: box.questions)
+        self.assertEqual(box.status()["local"]["model"], "available")
 
     # -------------------------------------------------------------- messages
     async def test_messages_are_spoken_as_they_are_and_cost_nothing(self):
@@ -203,6 +280,24 @@ class LocalBox(HelperCase, Folder):
         await self.until(lambda: box.said == 1)
         self.assertEqual([(r["language"], r["voice"]) for r in self.asked("speak") if r["text"] == "Funkprobe."],
                          [("de", "com.apple.voice.compact.de-DE.Anna")])
+
+    async def test_a_voice_of_another_language_is_not_used(self):
+        box = await self.box(box_language="de", box_local_voice="com.apple.voice.compact.de-DE.Anna")
+        self.settings.update({"box_language": "en"})               # the German voice stays in the settings …
+        await box.refresh()
+        self.assertEqual(box.local_voice(), "")
+        box.say("Radio check.")
+        await self.until(lambda: box.said == 1)
+        self.assertEqual([(r["language"], r["voice"]) for r in self.asked("speak") if r["text"] == "Radio check."],
+                         [("en", "")])                             # … but English is spoken by the best English one
+
+    async def test_the_limits_only_count_what_costs_money(self):
+        box = await self.box(box_per_minute=1, box_per_session=2)
+        for _ in range(3):
+            box.say("Final lap.")
+        await self.until(lambda: box.said == 3)
+        self.assertEqual((box._billed, len(box._spoken_at)), (0, 0))
+        self.assertTrue(box._within_limits(time.monotonic()))      # a change to Gemini starts with a clean slate
 
     async def test_a_voice_that_fails_is_reported(self):
         box = await self.box()
@@ -246,6 +341,33 @@ class LocalBox(HelperCase, Folder):
         self.assertEqual(await self.ask(box, "Wie viel Sprit habe ich noch?"), "Gerade kommen keine Daten vom Spiel.")
         self.assertIn(await self.ask(box, "   "), ("Das habe ich nicht verstanden. Noch einmal?", "Wiederhole das bitte."))
 
+    async def test_a_question_that_cannot_be_recognised_is_reported(self):
+        box = await self.box("--exit-on", "transcribe")
+        await self.until(lambda: "en-US" in box._prepared)
+        self.microphone.said = spoken("how much fuel?")
+        with self.assertLogs("box", level="WARNING"):
+            self.assertTrue(box.talk(True))
+            box.talk(False)
+            await self.until(lambda: box.error is not None)
+        self.assertEqual((box.error, box.said), ("local_speech", 0))
+
+    async def test_a_voice_that_does_not_speak_is_reported(self):
+        box = await self.box("--exit-on", "speak")
+        await self.until(lambda: "en-US" in box._prepared)
+        with self.assertLogs("box", level="WARNING"):
+            box.say("Radio check.")
+            await self.until(lambda: box.error is not None)
+        self.assertEqual((box.error, box.said), ("local_voice", 0))
+        self.assertEqual(box.helper.status()["protocol"], 1)      # a fresh helper is there for the next message
+
+    async def test_quitting_does_not_wait_for_a_download(self):
+        box = await self.box("--installed", "", "--hang-on", "prepare")         # the language pack never arrives
+        await self.until(lambda: bool(self.asked("prepare")))
+        began = time.monotonic()
+        await box.stop()
+        self.assertLess(time.monotonic() - began, 3.0)
+        self.assertEqual(box._preparations, set())
+
     async def test_without_the_language_model_messages_work_and_questions_do_not(self):
         box = await self.box("--model", "disabled")
         self.assertEqual((box.state(), box.usable, box.questions, box.status()["local"]["model"]),
@@ -265,13 +387,12 @@ class LocalBox(HelperCase, Folder):
         with self.assertLogs("box", level="WARNING"):
             box = await self.box("--installed", "", "--exit-on", "prepare")       # the helper dies over it
             await self.until(lambda: len(self.asked("prepare")) == 1 and not box._preparing)
-        import asyncio
-
         await asyncio.sleep(0.3)
         self.assertEqual(len(self.asked("prepare")), 1)
         self.assertEqual((box.state(), box.questions), ("ready", False))          # messages still work
-        await box.refresh()                                                       # settings saved: one more try
-        await self.until(lambda: len(self.asked("prepare")) == 2)
+        with self.assertLogs("box", level="WARNING"):
+            await box.refresh()                                                   # settings saved: one more try
+            await self.until(lambda: len(self.asked("prepare")) == 2 and not box._preparing)
 
     async def test_hey_box_is_heard_by_the_mac_and_recognised_only_once(self):
         helper_options = ("--heard", "Hellbox, wie viel Sprit habe ich noch?")
@@ -283,6 +404,7 @@ class LocalBox(HelperCase, Folder):
         box.session_status = lambda: FACTS
         await box.start()
         self.addAsyncCleanup(box.stop)
+        await self.until(lambda: box.looked)
         await self.until(lambda: box.wake.running and self.microphone.deliver is not None)
         await self.until(lambda: bool(self.asked("prepare")))
         self.microphone.hear(silence(0.6) + speech(1.2) + silence(1.0))
@@ -321,6 +443,24 @@ class WakeWordOfTheMac(unittest.TestCase):
         with patch.object(importlib.util, "find_spec", return_value=object()):
             self.assertIsInstance(wake.make_transcriber(helper), wake.WhisperTranscriber)
 
+    def test_a_recogniser_that_cannot_start_does_not_leave_the_microphone_open(self):
+        class Broken:
+            def warm_up(self, language):
+                raise RuntimeError("no speech model")
+
+        async def scene():
+            microphone = FakeMicrophone()
+            listener = wake.WakeListener(microphone, Broken(), language=lambda: "de", on_question=lambda *a: None)
+            with self.assertLogs("box.wake", level="WARNING"):
+                self.assertTrue(await listener.start())
+                for _ in range(200):
+                    if not listener.running:
+                        break
+                    await asyncio.sleep(0.01)
+            return listener.running, microphone.deliver
+
+        self.assertEqual(asyncio.run(scene()), (False, None))
+
     def test_another_spelling_of_the_same_utterance_wakes_too(self):
         class Stub:
             def transcribe(self, pcm, *, locale):
@@ -341,6 +481,8 @@ class Answers(unittest.TestCase):
                 self.assertTrue(answer and answer[0].isupper() or answer[0].isdigit(), (language, topic, answer))
                 self.assertNotIn("{", answer)
         self.assertEqual(answer_for("speed", FACTS, Texts("en"), units="imperial"), "116 miles per hour, gear 4.")
+        self.assertEqual(answer_for("tyres", FACTS, Texts("en"), units="imperial"),      # like the dashboard: °F
+                         "Tyres front 180 and 178 degrees, rear 165 and 167.")
         self.assertEqual(answer_for("incidents", FACTS, Texts("de")), "Ein Dreher, kein Einschlag in dieser Sitzung.")
         self.assertEqual(answer_for("position", {**FACTS, "start_position": None}, Texts("en")),
                          "The game does not tell me your place.")
@@ -356,11 +498,18 @@ class Answers(unittest.TestCase):
 
     def test_a_missing_value_is_said_never_guessed(self):
         german = Texts("de", spoken=True)
-        self.assertEqual(answer_for("last_lap", {**FACTS, "last_lap": None}, german), "Dazu habe ich noch keine Zeit.")
+        self.assertEqual(answer_for("last_lap", {**FACTS, "last_lap": None}, german),
+                         "Dazu habe ich noch keine Rundenzeit.")
         self.assertEqual(answer_for("best_lap", {**FACTS, "best_lap": None}, german), "Deine Bestzeit: 1 Minute 40,9.")
         self.assertEqual(answer_for("tyres", {**FACTS, "tyre_temperatures_celsius": {}}, german),
                          "Den Wert habe ich gerade nicht.")
         self.assertEqual(answer_for("laps", {**FACTS, "lap": 12}, german), "Runde 12 von 12. Das ist die letzte.")
+        self.assertEqual(answer_for("laps", {**FACTS, "lap": 11}, german), "Runde 11 von 12. Danach noch eine Runde.")
+        self.assertEqual(answer_for("laps", FACTS, german), "Runde 5 von 12. Danach noch 7 Runden.")
+        self.assertEqual(answer_for("fuel", {**FACTS, "fuel_laps_remaining": 1.02, "total_laps": None}, german),
+                         "Sprit bei 37 Prozent, das reicht für eine Runde.")            # never "für 1 Runden"
+        self.assertEqual(answer_for("fuel", {**FACTS, "fuel_laps_remaining": 0.98, "total_laps": None}, Texts("en")),
+                         "Fuel at 37 percent, good for one lap.")
         self.assertEqual(answer_for("laps", {**FACTS, "total_laps": 0}, german), "Du bist in Runde 5.")
         self.assertEqual(answer_for("tyres", {"available": False}, german), "Gerade kommen keine Daten vom Spiel.")
         self.assertIn(answer_for("weather", FACTS, german), ("Dazu habe ich nichts.", "Das kann ich dir nicht sagen."))

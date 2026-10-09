@@ -47,6 +47,8 @@ def main(source: str, first_lap: str, last_lap: str, target: str | None = None, 
         packets += key + packet
         if raw[at:at + 8] in extra:
             extras += key + extra[raw[at:at + 8]]
+    if not packets:
+        sys.exit(f"No packet with a lap from {first_lap} to {last_lap} after packet {start}: nothing written.")
     out.write_bytes(packets)
     out.with_suffix(".gt7x").write_bytes(extras)
     kept = len(packets) // RECORD

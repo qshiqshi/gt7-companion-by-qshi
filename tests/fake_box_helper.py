@@ -2,7 +2,8 @@
 protocol and does nothing real. Runs anywhere Python runs.
 
     python fake_box_helper.py [--log FILE] [--model disabled] [--installed de-DE] [--voices de]
-                              [--heard TEXT] [--slow SECONDS] [--exit-on OP]
+                              [--heard TEXT] [--slow SECONDS] [--exit-on OP] [--hang-on OP]
+                              [--delay-status SECONDS] [--state FILE]
 
 "Speech" it is asked to recognise is text in disguise: audio that begins with ``TEXT:``
 is read as UTF-8 up to the first zero byte; any other audio is "heard" as ``--heard``.
@@ -25,6 +26,9 @@ parser.add_argument("--voices", default="de,en", help="languages that have a voi
 parser.add_argument("--heard", default="", help="what any audio without the TEXT: mark is recognised as")
 parser.add_argument("--slow", type=float, default=0.0, help="the language model takes this long")
 parser.add_argument("--exit-on", default="", help="end without an answer when this is asked")
+parser.add_argument("--hang-on", default="", help="stop answering and reading for good when this is asked")
+parser.add_argument("--delay-status", type=float, default=0.0, help="the first answers take this long")
+parser.add_argument("--state", help="a JSON file read at every status: {\"model\": ..., \"voices\": ...} overrides the options")
 args = parser.parse_args()
 
 installed = {locale for locale in args.installed.split(",") if locale}
@@ -62,6 +66,18 @@ class Failed(Exception):
 
 def handle(request: dict) -> dict:
     op = request.get("op")
+    if op in ("status", "voices"):
+        time.sleep(args.delay_status)
+        if args.state:                                   # what the Mac offers can change while the program runs
+            try:
+                with open(args.state, encoding="utf-8") as file:
+                    state = json.load(file)
+            except (OSError, ValueError):
+                state = {}
+            args.model = state.get("model", args.model)
+            if "voices" in state:
+                voiced.clear()
+                voiced.update(language for language in state["voices"].split(",") if language)
     if op == "status":
         best = {language: (VOICES[language][0] if language in voiced else None) for language in ("de", "en")}
         return {"protocol": 1, "os": "26.0.0",
@@ -122,5 +138,7 @@ for line in sys.stdin:
     note(request)
     if args.exit_on and request.get("op") == args.exit_on:
         sys.exit(3)
+    if args.hang_on and request.get("op") == args.hang_on:
+        time.sleep(3600)                                 # a helper that hangs: no answer, and nothing is read any more
     threading.Thread(target=serve, args=(request,), daemon=True).start()       # like the real one: side by side
 time.sleep(0.05)                                                                # let the last answers out

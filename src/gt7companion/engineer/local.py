@@ -48,61 +48,93 @@ def _milliseconds(lap_time) -> int | None:
     return None if not found else (int(found[1]) * 60 + int(found[2])) * 1000 + int(found[3])
 
 
+def _fuel(facts: dict, texts: Texts, units: str) -> str:
+    say = texts.answer
+    percent, lasts = facts.get("fuel_percent"), facts.get("fuel_laps_remaining")
+    if percent is None:
+        return say("missing")
+    if not isinstance(lasts, (int, float)):
+        return say("fuel_percent", percent=percent)
+    laps = texts.number(lasts)
+    parts = [say("fuel_one", percent=percent) if laps == "1" else say("fuel", percent=percent, laps=laps)]
+    lap, total = facts.get("lap"), facts.get("total_laps")
+    if isinstance(lap, int) and isinstance(total, int) and total >= lap > 0:
+        if lasts >= total - lap + 1:                 # the lap being driven counts in full: rather too careful
+            parts.append(say("fuel_enough"))
+        elif lasts < total - lap:
+            parts.append(say("fuel_short"))
+    return " ".join(parts)
+
+
+def _laps(facts: dict, texts: Texts, units: str) -> str:
+    say = texts.answer
+    lap, total = facts.get("lap"), facts.get("total_laps")
+    if not isinstance(lap, int) or lap <= 0:
+        return say("missing")
+    if not isinstance(total, int) or total < lap:
+        return say("lap", lap=lap)
+    left = total - lap
+    if left == 0:
+        return say("laps_last", lap=lap, total=total)
+    return say("laps_one" if left == 1 else "laps", lap=lap, total=total, left=left)
+
+
+def _lap_time(which: str):
+    def answer(facts: dict, texts: Texts, units: str) -> str:
+        time = _milliseconds(facts.get(which) or (facts.get("session_best_lap") if which == "best_lap" else None))
+        return texts.answer("no_time") if time is None else texts.answer(which, time=texts.lap_time(time))
+    return answer
+
+
+def _tyres(facts: dict, texts: Texts, units: str) -> str:
+    tyres = facts.get("tyre_temperatures_celsius") or {}
+    degrees = [tyres.get(wheel) for wheel in ("front_left", "front_right", "rear_left", "rear_right")]
+    if not all(isinstance(value, (int, float)) for value in degrees):
+        return texts.answer("missing")
+    if units == "imperial":                          # like the dashboard shows them
+        degrees = [value * 9 / 5 + 32 for value in degrees]
+    front_left, front_right, rear_left, rear_right = (round(value) for value in degrees)
+    return texts.answer("tyres", fl=front_left, fr=front_right, rl=rear_left, rr=rear_right)
+
+
+def _position(facts: dict, texts: Texts, units: str) -> str:
+    place = facts.get("start_position")
+    return texts.answer("position", place=place) if place else texts.answer("position_unknown")
+
+
+def _speed(facts: dict, texts: Texts, units: str) -> str:
+    say = texts.answer
+    speed, gear = facts.get("speed_kmh"), facts.get("gear")
+    if not isinstance(speed, (int, float)):
+        return say("missing")
+    shown = round(speed * 0.621371) if units == "imperial" else round(speed)
+    unit = say("mph" if units == "imperial" else "kmh")
+    if isinstance(gear, int) and gear > 0:
+        return say("speed", speed=shown, unit=unit, gear=gear)
+    return say("speed_only", speed=shown, unit=unit)
+
+
+def _incidents(facts: dict, texts: Texts, units: str) -> str:
+    spins, impacts = facts.get("spins"), facts.get("impacts")
+    if not isinstance(spins, int) or not isinstance(impacts, int):
+        return texts.answer("missing")
+    sentence = texts.answer("incidents", spins=texts.count("spins", spins), impacts=texts.count("impacts", impacts))
+    return sentence[:1].upper() + sentence[1:]
+
+
+_ANSWERS = {"fuel": _fuel, "laps": _laps, "last_lap": _lap_time("last_lap"), "best_lap": _lap_time("best_lap"),
+            "tyres": _tyres, "position": _position, "speed": _speed, "incidents": _incidents}
+
+
 def answer_for(topic: str, facts: dict, texts: Texts, *, units: str = "metric") -> str:
     """The answer to a question about ``topic``, from the facts of the drive. Says so if a
     value is not there; never guesses."""
-    say = texts.answer
-    if topic not in TOPICS or topic == "none":
+    answer = _ANSWERS.get(topic)
+    if answer is None:                               # "none", or a topic nobody has heard of
         return texts.line("no_answer")
     if not facts.get("available"):
-        return say("no_data")
-    if topic == "fuel":
-        percent, lasts = facts.get("fuel_percent"), facts.get("fuel_laps_remaining")
-        if percent is None:
-            return say("missing")
-        if not isinstance(lasts, (int, float)):
-            return say("fuel_percent", percent=percent)
-        parts = [say("fuel", percent=percent, laps=texts.number(lasts))]
-        lap, total = facts.get("lap"), facts.get("total_laps")
-        if isinstance(lap, int) and isinstance(total, int) and total >= lap > 0:
-            if lasts >= total - lap + 1:             # the lap being driven counts in full: rather too careful
-                parts.append(say("fuel_enough"))
-            elif lasts < total - lap:
-                parts.append(say("fuel_short"))
-        return " ".join(parts)
-    if topic == "laps":
-        lap, total = facts.get("lap"), facts.get("total_laps")
-        if not isinstance(lap, int) or lap <= 0:
-            return say("missing")
-        if not isinstance(total, int) or total < lap:
-            return say("lap", lap=lap)
-        return say("laps_last", lap=lap, total=total) if total == lap else say("laps", lap=lap, total=total,
-                                                                                left=total - lap)
-    if topic in ("last_lap", "best_lap"):
-        time = _milliseconds(facts.get(topic) or (facts.get("session_best_lap") if topic == "best_lap" else None))
-        return say("no_time") if time is None else say(topic, time=texts.lap_time(time))
-    if topic == "tyres":
-        tyres = facts.get("tyre_temperatures_celsius") or {}
-        degrees = [tyres.get(wheel) for wheel in ("front_left", "front_right", "rear_left", "rear_right")]
-        if not all(isinstance(value, (int, float)) for value in degrees):
-            return say("missing")
-        return say("tyres", fl=round(degrees[0]), fr=round(degrees[1]), rl=round(degrees[2]), rr=round(degrees[3]))
-    if topic == "position":
-        place = facts.get("start_position")
-        return say("position", place=place) if place else say("position_unknown")
-    if topic == "speed":
-        speed, gear = facts.get("speed_kmh"), facts.get("gear")
-        if not isinstance(speed, (int, float)):
-            return say("missing")
-        shown = round(speed * 0.621371) if units == "imperial" else round(speed)
-        unit = say("mph" if units == "imperial" else "kmh")
-        return say("speed", speed=shown, unit=unit, gear=gear) if isinstance(gear, int) and gear > 0 \
-            else say("speed_only", speed=shown, unit=unit)
-    spins, impacts = facts.get("spins"), facts.get("impacts")          # incidents
-    if not isinstance(spins, int) or not isinstance(impacts, int):
-        return say("missing")
-    sentence = say("incidents", spins=texts.count("spins", spins), impacts=texts.count("impacts", impacts))
-    return sentence[:1].upper() + sentence[1:]
+        return texts.answer("no_data")
+    return answer(facts, texts, units)
 
 
 class LocalSession:
@@ -160,6 +192,7 @@ class LocalSession:
                 try:
                     facts = self._status()
                 except Exception:              # noqa: BLE001 - no facts: the answer says that
+                    log.warning("The facts of the drive could not be read", exc_info=True)
                     facts = {}
             log.info("Question about %s", topic)
             answer = answer_for(topic, facts, self._texts, units=self._units)
