@@ -67,7 +67,10 @@ def environment(fresh: bool) -> Path:
         shutil.rmtree(folder)
     if not python.exists():
         run(uv, "venv", "--python", PYTHON, "--python-preference", "only-managed", folder)
-    run(uv, "pip", "install", "--python", python, "-c", CONSTRAINTS, "-e", f"{ROOT}[app,window,box]", "pyinstaller")
+    # The constraints go in relative to the project (where ``run`` works): uv splits this one argument at
+    # spaces, and the folder of the project may have some in its path.
+    run(uv, "pip", "install", "--python", python, "-c", CONSTRAINTS.relative_to(ROOT),
+        "-e", f"{ROOT}[app,window,box]", "pyinstaller")
     return python
 
 

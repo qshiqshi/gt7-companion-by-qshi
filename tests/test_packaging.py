@@ -59,6 +59,20 @@ class WhatIsPacked(unittest.TestCase):
         for needed in ("pyinstaller", "pywebview", "pystray", "pythonnet", "pyobjc-core", "uvicorn", "fastapi"):
             self.assertIn(needed, names)
 
+    def test_the_constraints_reach_uv_as_a_path_without_spaces(self):
+        python = self.home / "venv-mac" / "bin" / "python"          # the environment is there already
+        python.parent.mkdir(parents=True)
+        python.write_text("", encoding="utf-8")
+        commands = []
+        with patch.object(build, "SYSTEM", "mac"), patch.object(build, "BUILD", self.home), \
+                patch.object(build.shutil, "which", return_value="/somewhere/uv"), \
+                patch.object(build, "run", lambda *command: commands.append(command)):
+            self.assertEqual(build.environment(fresh=False), python)
+        (install,) = commands
+        given = str(install[install.index("-c") + 1])                # uv splits this argument at spaces
+        self.assertNotIn(" ", given)
+        self.assertEqual((build.ROOT / given).resolve(), build.CONSTRAINTS.resolve())
+
     def test_versions_compare_by_number_not_by_letter(self):
         self.assertLess(build._version("9.0"), build._version("14.0"))
         self.assertLess(build._version("14.0"), build._version("26.0"))
