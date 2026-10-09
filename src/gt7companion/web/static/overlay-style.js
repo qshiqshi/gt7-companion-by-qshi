@@ -11,6 +11,19 @@
     ['Orbitron', 'Orbitron'], ['Helvetica Neue', 'Helvetica Neue'], ['Arial', 'Arial'],
     ['Georgia', 'Georgia'], ['Courier New', 'Courier New']];
   const fontStack = family => '"' + String(family).replace(/["\\]/g, '') + '", "Helvetica Neue", Arial, sans-serif';
+  /* A font chosen in the menu is stored as { family } and goes for every text. A layout from before that
+     menu carries { family, fallback }: the stack for labels and small numbers – the wide display font
+     of speed, gear and lap time is not its business, and neither are the fonts of the reel look. */
+  const chosenFont = layout => {
+    const font = layout && layout.font;
+    return font && typeof font.family === 'string' && font.family && !font.fallback ? font.family : '';
+  };
+  const earlierFont = layout => {
+    const font = layout && layout.font;
+    if (!font || typeof font.family !== 'string' || !font.family || typeof font.fallback !== 'string' || !font.fallback) return '';
+    const plain = text => text.replace(/[^\w\s,.'-]/g, '');
+    return '"' + plain(font.family).replace(/'/g, '') + '", ' + plain(font.fallback);
+  };
   let lastFonts = '';
   function fontOptions(select, inherited) {
     select.append(new Option(inherited, ''));
@@ -235,11 +248,13 @@
     lastLook = look;
     const over = globalOverrides(layout, look);
     const st = document.body.style;
-    const family = layout && layout.font && layout.font.family;
+    const family = chosenFont(layout);
     for (const key of ['--font-num', '--font-label', '--font-gt7', '--font-choice']) {
       if (family) document.documentElement.style.setProperty(key, fontStack(family));
       else document.documentElement.style.removeProperty(key);
     }
+    const earlier = family ? '' : earlierFont(layout);
+    if (earlier) for (const key of ['--font-num', '--font-label']) document.documentElement.style.setProperty(key, earlier);
     const chart = {};
     effective = {};
     for (const t of TOKENS) {
@@ -465,7 +480,7 @@
   function refreshMenu() {
     if (!menu.built) return;
     const layout = menu.hooks && menu.hooks.getLayout();
-    if (menu.font) { showFont(menu.font, layout?.font?.family); menu.font.disabled = !menu.enabled; }
+    if (menu.font) { showFont(menu.font, chosenFont(layout)); menu.font.disabled = !menu.enabled; }
     const over = globalOverrides(layout, lastLook);
     const n = Object.keys(over).length;
     menu.lookInfo.textContent = 'Farben für ' + (lastLook === 'reel' ? 'Reel-Look' : 'Standard-Look') + (n ? ' · ' + n + ' eigene' : '');

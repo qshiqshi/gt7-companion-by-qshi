@@ -415,6 +415,18 @@ class BrowserCase(Pages):
         editor.wait_for_function("() => document.querySelectorAll('#canvas .wresize').length > 50", timeout=10000)
         self.assertEqual(editor.evaluate("getComputedStyle(document.getElementById('w-radio')).opacity"), "1")
 
+    def test_the_presets_keep_the_wide_display_font_and_the_fonts_of_the_reel_look(self):
+        # The presets carry a font entry from before the font menu: labels and small numbers, nothing else.
+        page = self.open(figure=False)
+        family = "el => getComputedStyle(el).fontFamily"
+        for selector in ("#w-speed .speed-val", "#w-livetime .lt-live"):
+            self.assertTrue(page.locator(selector).evaluate(family).startswith('"GT7C Display"'), selector)
+        self.assertTrue(page.locator("#w-fuel .label").evaluate(family).startswith('"Helvetica Neue"'))
+        page.wait_for_function("() => document.fonts.check('40px \"GT7C Display\"')")      # and the font itself is there
+        reel = self.open("?layout=dashboard-16x9", figure=False)
+        reel.evaluate("document.body.classList.add('look-reel')")              # the look alone: its own text font
+        self.assertTrue(reel.locator("#w-fuel .label").evaluate(family).startswith('"GT7C Text"'))
+
     def test_obs_source_is_transparent_and_bare(self):
         page = self.open("?obs=1", size=(1920, 1080))
         self.assertEqual(page.evaluate("document.body.dataset.mode"), "obs")
@@ -495,6 +507,22 @@ class EditorUpdates(Pages):
                                "getComputedStyle(document.querySelector('#w-gear .gear-current')).fontFamily.includes('Georgia')")
         current = page.request.get(f"http://127.0.0.1:{self.port}/api/layout?name={self.layout}").json()
         self.assertEqual(current["widgets"], saved["widgets"])
+
+    def test_a_layout_from_before_the_font_menu_keeps_its_fonts_until_one_is_chosen(self):
+        page = self.editor(size=(1600, 900))
+        speed = "getComputedStyle(document.querySelector('#w-speed .speed-val')).fontFamily"
+        stored = f"fetch('/api/layout?name={self.layout}').then(r => r.json())"
+        entry = page.request.get(f"http://127.0.0.1:{self.port}/api/layout?name={self.layout}").json()["font"]
+        self.assertEqual(sorted(entry), ["fallback", "family"])                        # as the presets have it
+        self.assertEqual(page.evaluate("document.getElementById('style-font-global').value"), "")     # no choice made
+        self.assertTrue(page.evaluate(speed).startswith('"GT7C Display"'))
+        page.click("#background-settings summary")
+        page.select_option("#style-font-global", "Helvetica Neue")                     # chosen: it goes for every text
+        page.wait_for_function(f"() => {speed}.startsWith('\"Helvetica Neue\"')")
+        page.wait_for_function(f"() => {stored}.then(d => !!d.font && d.font.family === 'Helvetica Neue' && !d.font.fallback)")
+        page.select_option("#style-font-global", "")                                   # back to what the look brings
+        page.wait_for_function(f"() => {speed}.startsWith('\"GT7C Display\"')")
+        page.wait_for_function(f"() => {stored}.then(d => !d.font)")
 
     def test_an_older_program_cannot_claim_a_save_or_reset_the_layout(self):
         page = self.editor(size=(1600, 900))
