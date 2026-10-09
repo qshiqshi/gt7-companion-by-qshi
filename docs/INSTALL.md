@@ -123,6 +123,19 @@ http://127.0.0.1:8707/?obs=1
 
 <img src="images/en/overlay.png" width="640" alt="Overlay">
 
+The little game **Tisch Turismo** – a toy car on a desk that drives what you drive – is a second
+source of the same kind: width 1536, height 864, address:
+
+```
+http://127.0.0.1:8707/game?obs=1&format=wide
+```
+
+<img src="images/en/game.png" width="430" alt="Tisch Turismo">
+
+On the computer itself it opens from the menu of the symbol: **Tisch Turismo (game)**. The other
+shapes of the picture and how your viewers can join in are in the
+[README](../README.md#tisch-turismo--the-game-on-the-desk).
+
 ## 7. The Box – race engineer on the radio (optional)
 
 **In the Mac app (macOS 26 or newer)** the Box needs nothing else: symbol → **Settings** →

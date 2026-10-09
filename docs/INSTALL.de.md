@@ -128,6 +128,19 @@ http://127.0.0.1:8707/?obs=1
 
 <img src="images/de/overlay.png" width="640" alt="Overlay">
 
+Das kleine Spiel **Tisch Turismo** – ein Spielzeugauto auf einem Schreibtisch, das nachfährt, was
+du fährst – ist eine zweite Quelle derselben Art: Breite 1536, Höhe 864, Adresse:
+
+```
+http://127.0.0.1:8707/game?obs=1&format=wide
+```
+
+<img src="images/de/game.png" width="430" alt="Tisch Turismo">
+
+Am Rechner selbst öffnest du es über das Menü des Symbols: **Tisch Turismo (Spiel)**. Die anderen
+Formen des Bilds und wie deine Zuschauer mitspielen, steht in der
+[README](../README.de.md#tisch-turismo--das-spiel-auf-dem-schreibtisch).
+
 ## 7. Die Box – Renningenieur am Funk (wer mag)
 
 **In der Mac-App (ab macOS 26)** braucht die Box nichts weiter: Symbol → **Einstellungen** →

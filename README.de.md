@@ -34,6 +34,9 @@ Rechner, für ein Tablet neben dem Rig oder als Browser-Quelle in OBS.
   für Google Gemini.
 - **Eine Demo-Fahrt** ist eingebaut: eine aufgezeichnete Fahrt über vier Runden. Du kannst alles
   ohne Konsole ausprobieren, auch die Rundenzeiten und den Untergrund-Ring.
+- **Tisch Turismo**, ein kleines Spiel nebenbei: Ein Spielzeugauto fährt auf einem Schreibtisch
+  nach, was du fährst, und deine eigenen früheren Runden fahren dagegen. Gedacht für die
+  Zuschauer eines Streams.
 
 <p>
   <img src="docs/images/milk.gif" width="170" alt="Ein Glas Milch, das mit den Kräften im Auto schwappt">
@@ -135,6 +138,40 @@ Sie ist durchsichtig, zeigt das Overlay-Layout und blendet die Fahranzeigen aus,
 den Menüs bist. `?layout=<Name>` wählt ein anderes Layout, `?lang=en` und `?units=imperial`
 stellen Sprache und Einheiten für diese Quelle ein.
 
+## Tisch Turismo – das Spiel auf dem Schreibtisch
+
+<img src="docs/images/de/game.png" width="430" align="right" alt="Tisch Turismo: ein Spielzeugauto auf einer orangen Bahn auf einem Schreibtisch, daneben ein blaues Auto als Gegner">
+
+Ein Spielzeugauto fährt auf einem Schreibtisch genau das nach, was dein Auto auf der PlayStation
+gerade tut – im Aussehen eines Rennspiels der Neunzigerjahre. Einen Controller braucht es nicht:
+Du spielst, indem du Gran Turismo 7 fährst.
+
+1. **Vermessen:** Bis zur ersten vollen Runde zieht das Auto eine Kreidelinie über den Tisch.
+2. **Bahn:** Ist die Runde zu, klicken entlang der Linie orange Bahnteile ein. In den nächsten
+   Runden rückt die Bahn noch dorthin, wo du wirklich fährst.
+3. **Gegner:** Deine Bestrunde (blau) und deine letzte Runde (rot) fahren als Spielzeugautos mit.
+4. **Wertung:** Wer den anderen abhängt, bekommt ein Licht; acht Lichter gewinnen die Partie.
+   Münzen auf der Bahn bringen Cr., Öl kostet welche, Drifts zählen nach Winkel und Dauer.
+
+Du öffnest es über das Menü des Symbols (*Tisch Turismo (Spiel)*), über das Menü des Dashboards
+oder unter `http://127.0.0.1:8707/game`. Ohne Konsole fährt die Demo-Fahrt. Unter dem Bild wählst
+du seine Form (4:3, 16:9 oder 9:16); *Aufnehmen* speichert das Bild als Video (im Browser, nicht
+im Fenster der App).
+
+**In OBS** eine zweite Quelle *Browser* anlegen: `http://127.0.0.1:8707/game?obs=1&format=wide`,
+1536 × 864. Für 4:3 `format` weglassen und 1280 × 960 nehmen, für 9:16 `format=portrait` und
+864 × 1536 – bei diesen Größen ist jedes Pixel des Spiels genau zwei Pixel breit. `&delay=640`
+hält das Bild um so viele Millisekunden zurück, damit es zu einem Spielbild passt, das verspätet
+in OBS ankommt (Capture-Karte). Wird die Quelle mitten im Rennen neu geladen, baut das Spiel
+Bahn, Gegner und Punktestand aus der bisherigen Fahrt wieder auf.
+
+**Zuschauer spielen mit**, wenn du deinen Twitch-Kanal nennst: `&channel=deinkanal`. `!münze`
+legt eine Münze voraus auf die Bahn, `!öl` einen Ölfleck (je Zuschauer alle 20 Sekunden). Dafür
+liest die Seite den öffentlichen Chat dieses Kanals direkt bei Twitch mit.
+
+Die Zettel auf dem Schreibtisch erzählen kleine wahre Geschichten über Gran Turismo. *Quellen*
+unter dem Bild nennt die Belege – und wessen Arbeit im Spiel steckt.
+
 ## Sprache und Einheiten
 
 Deutsch und Englisch; jedes Gerät nimmt seine eigene Sprache, solange du unter *Einstellungen*
@@ -202,12 +239,13 @@ Ohne die Box läuft alles andere wie gewohnt.
 
 Das Menü des Dashboards erscheint, wenn du den Zeiger bewegst oder den Bildschirm berührst:
 
-<img src="docs/images/de/menu.png" width="540" alt="Menü des Dashboards: Sprechen, Ton an, Layout, Bearbeiten, Vollbild">
+<img src="docs/images/de/menu.png" width="540" alt="Menü des Dashboards: Sprechen, Ton an, Layout, Tisch Turismo, Bearbeiten, Vollbild">
 
 ## Datenschutz und Sicherheit
 
 - Das Programm spricht mit deiner PlayStation und mit den Geräten in deinem Heimnetz. Ins
-  Internet geht nichts – außer an Google, wenn du die Box mit Gemini nutzt (siehe oben).
+  Internet geht nichts – außer an Google, wenn du die Box mit Gemini nutzt (siehe oben). Das
+  Spiel liest den Chat eines Twitch-Kanals nur mit, wenn du in seiner Adresse einen nennst.
 - Es ist für ein Heimnetz gemacht. Gib seinen Port nicht ins Internet frei.
 - Einstellungen und eigene Layouts liegen in deinem Benutzerordner (`gt7-companion-by-qshi`).
 

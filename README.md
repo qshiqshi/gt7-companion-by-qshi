@@ -33,6 +33,8 @@ computer, for a tablet next to your rig, or as a browser source in OBS.
   Gemini API key.
 - **A demo drive** is built in: a recorded drive of four laps. You can try everything without
   a console, lap times and the surface ring included.
+- **Tisch Turismo**, a little game on the side: a toy car on a desk drives what you drive, and
+  your own earlier laps race against it. Made for the viewers of a stream.
 
 <p>
   <img src="docs/images/milk.gif" width="170" alt="A glass of milk that sloshes with the forces in the car">
@@ -130,6 +132,39 @@ It is transparent, shows the overlay layout and hides the driving widgets while 
 the menus. `?layout=<name>` picks another layout, `?lang=en` and `?units=imperial` set
 language and units for this source.
 
+## Tisch Turismo – the game on the desk
+
+<img src="docs/images/en/game.png" width="430" align="right" alt="Tisch Turismo: a toy car on an orange track on a desk, next to it a blue car as its opponent">
+
+A toy car on a desk drives exactly what your car is doing on the PlayStation – in the look of a
+racing game of the 1990s. It needs no controller: you play it by driving Gran Turismo 7.
+
+1. **Measuring:** until your first full lap is done, the car draws a chalk line across the desk.
+2. **Track:** once the lap is closed, orange track pieces click into place along the line. Over
+   the next laps the track still moves to where you really drive.
+3. **Opponents:** your best lap (blue) and your last lap (red) drive along as toy cars.
+4. **Score:** whoever pulls away from the other gets a light; eight lights win the match. Coins
+   on the track bring credits, oil costs some, drifts count by angle and length.
+
+Open it from the menu of the symbol (*Tisch Turismo (game)*), from the menu of the dashboard or
+at `http://127.0.0.1:8707/game`. Without a console it plays the demo drive. Below the picture
+you choose its shape (4:3, 16:9 or 9:16); *Record* saves the picture as a video (in a browser,
+not in the window of the app).
+
+**In OBS** add a second *Browser* source: `http://127.0.0.1:8707/game?obs=1&format=wide`,
+1536 × 864. For 4:3 leave `format` out and take 1280 × 960, for 9:16 `format=portrait` and
+864 × 1536 – at these sizes every pixel of the game is exactly two pixels wide. `&delay=640`
+holds the picture back by that many milliseconds, so that it matches a game picture that
+reaches OBS late (a capture card). If the source is loaded again in the middle of a race, the
+game builds track, opponents and score up again from the drive so far.
+
+**Viewers join in** when you name your Twitch channel: `&channel=yourchannel`. `!coin` puts a
+coin on the track ahead, `!oil` an oil slick (each viewer every 20 seconds). For this the page
+reads the public chat of that channel directly from Twitch.
+
+The notes on the desk tell small true stories about Gran Turismo. *Sources* below the picture
+lists where they come from – and whose work is in the game.
+
 ## Language and units
 
 German and English; each device uses its own language unless you choose one under *Settings*.
@@ -195,12 +230,13 @@ Without the Box everything else works as usual.
 
 The menu of the dashboard appears when you move the pointer or touch the screen:
 
-<img src="docs/images/en/menu.png" width="540" alt="Menu of the dashboard: Talk, Sound on, layout, Edit, Full screen">
+<img src="docs/images/en/menu.png" width="540" alt="Menu of the dashboard: Talk, Sound on, layout, Tisch Turismo, Edit, Full screen">
 
 ## Privacy and safety
 
 - The program talks to your PlayStation and to the devices in your home network. Nothing is
-  sent to the internet, except to Google when you use the Box with Gemini (see above).
+  sent to the internet, except to Google when you use the Box with Gemini (see above). The game
+  reads the chat of a Twitch channel only if you name one in its address.
 - It is made for a home network. Do not open its port to the internet.
 - Settings and your own layouts are stored in your user folder (`gt7-companion-by-qshi`).
 

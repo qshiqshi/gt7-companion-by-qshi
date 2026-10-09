@@ -17,10 +17,10 @@ stay out of your real user folder.
 
 ```sh
 .venv/bin/python -m unittest discover -s tests -q     # Python
-node --test tests/js/                                  # physics of the figures, stage fitting, layout choice
+node --test tests/js/                                  # figures, layouts, Tisch Turismo rules and assets
 ```
 
-The tests in `tests/test_browser.py` drive a real browser and are skipped without Playwright
+The tests in `tests/test_browser.py` and `tests/test_game_browser.py` drive a real browser and are skipped without Playwright
 (`pip install playwright && playwright install chromium`). `GT7C_CHROMIUM` may name a Chromium
 executable to use instead.
 
@@ -33,6 +33,9 @@ interface (`tests/test_live.py`), the voice service by a small server speaking i
 - `src/gt7companion/telemetry.py` receives and decrypts, `detectors.py` finds laps, spins and
   impacts, `hub.py` thins the stream out for the screens, `app.py` serves pages, API and the
   live connection, `security.py` decides who may do what.
+- `src/gt7companion/game.py` remembers and streams the packets for Tisch Turismo.
+  `web/static/game/` holds its ES modules and assets; `tools/game/` holds the generators and
+  font sources (see `tools/game/SOURCES.md`). The game calculates the track and race in the browser.
 - `src/gt7companion/web/` is the page, without a build step: ES modules in `static/js/`.
   Widgets sit on a stage of fixed size that is scaled as a whole (`stage.js`).
 - `src/gt7companion/engineer/` is the Box: `engine.py` queues and speaks, `live.py` is the
