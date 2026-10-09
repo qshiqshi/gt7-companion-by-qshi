@@ -67,10 +67,8 @@ see the ring without a console.*
 open it, drag the app to "Applications" and start it. It runs in a window of its own, with an
 icon in the Dock and a symbol in the menu bar, and opens with the start page. Closing the window
 does not quit it – tablets and OBS keep getting their data; quit with ⌘Q or through the symbol.
-The app is not notarised by Apple yet, so macOS asks on the first start: **System Settings →
-Privacy & Security → Open Anyway** (on macOS 14: right-click the app → **Open**). That is
-needed only once. If macOS calls the app "damaged" instead, this helps in the Terminal:
-`xattr -dr com.apple.quarantine "/Applications/GT7 Companion by qshi.app"`.
+The app is signed and notarised by Apple; on the first start macOS only asks whether you want to
+open an app downloaded from the internet – **Open**.
 
 **Windows 10 or 11: the program as a ZIP.** Download
 [GT7-Companion-by-qshi-windows-x64.zip](https://github.com/qshiqshi/gt7-companion-by-qshi/releases/latest/download/GT7-Companion-by-qshi-windows-x64.zip),

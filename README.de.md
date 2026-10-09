@@ -69,11 +69,8 @@ den Ring siehst du also ohne Konsole.*
 laden, öffnen, die App in „Programme“ ziehen und starten. Sie läuft in einem eigenen Fenster,
 mit einem Symbol im Dock und in der Menüleiste, und beginnt mit der Startseite. Das Fenster zu
 schließen beendet sie nicht – Tablets und OBS bekommen weiter ihre Daten; beendet wird mit ⌘Q
-oder über das Symbol. Die App ist noch nicht von Apple beglaubigt, deshalb fragt macOS beim
-ersten Start nach: **Systemeinstellungen → Datenschutz & Sicherheit → Dennoch öffnen** (unter
-macOS 14: Rechtsklick auf die App → **Öffnen**). Das ist nur einmal nötig. Nennt macOS die App
-stattdessen „beschädigt“, hilft im Terminal
-`xattr -dr com.apple.quarantine "/Applications/GT7 Companion by qshi.app"`.
+oder über das Symbol. Die App ist signiert und von Apple beglaubigt; beim ersten Start fragt
+macOS nur, ob du die aus dem Internet geladene App öffnen willst – **Öffnen**.
 
 **Windows 10 oder 11: das Programm als ZIP.** [GT7-Companion-by-qshi-windows-x64.zip](https://github.com/qshiqshi/gt7-companion-by-qshi/releases/latest/download/GT7-Companion-by-qshi-windows-x64.zip)
 laden, entpacken und im Ordner `gt7companion.exe` starten. Es läuft in einem eigenen Fenster,

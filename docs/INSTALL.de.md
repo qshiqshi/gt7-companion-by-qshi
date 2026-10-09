@@ -10,12 +10,9 @@ Für Macs mit Apple-Chip und macOS 14 oder neuer gibt es das Programm als fertig
 Python, ohne Terminal:
 
 1. [GT7-Companion-by-qshi-mac-arm64.dmg](https://github.com/qshiqshi/gt7-companion-by-qshi/releases/latest/download/GT7-Companion-by-qshi-mac-arm64.dmg) laden und öffnen.
-2. Die App in den Ordner „Programme“ ziehen und von dort starten. Sie ist noch nicht von Apple
-   beglaubigt: Meldet macOS, es könne die App nicht prüfen, öffne **Systemeinstellungen →
-   Datenschutz & Sicherheit** und klicke dort auf **Dennoch öffnen** (unter macOS 14:
-   Rechtsklick auf die App → **Öffnen**). Das ist nur beim ersten Start nötig. Nennt macOS die
-   App stattdessen „beschädigt“, hilft im Terminal
-   `xattr -dr com.apple.quarantine "/Applications/GT7 Companion by qshi.app"`.
+2. Die App in den Ordner „Programme“ ziehen und von dort starten. Sie ist signiert und von
+   Apple beglaubigt; beim ersten Start fragt macOS nur, ob du die aus dem Internet geladene App
+   öffnen willst: **Öffnen**.
 3. Ein Fenster zeigt die Startseite. **Dashboard öffnen** zeigt eine Demo-Fahrt; weiter geht
    es bei [4. PlayStation verbinden](#4-playstation-verbinden).
 
