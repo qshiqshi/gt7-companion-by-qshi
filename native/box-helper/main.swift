@@ -15,7 +15,38 @@
 //     {"id": 7, "op": "choose", "instructions": "…", "prompt": "…", "choices": ["fuel", "tyres", "none"]}
 //     {"id": 8, "op": "respond", "instructions": "…", "prompt": "…"}
 //
-// Answers: {"id": …, "ok": true, …} or {"id": …, "ok": false, "code": "guardrail", "error": "…"}.
+// The "id" is an integer or a string and comes back unchanged. A request without one is answered with null. Any
+// other id (a fraction, true, an object, infinity) could not be matched with its answer, so the request is turned
+// away with an "args" error and a null id.
+//
+// Optional fields (left out or null: the default). A number that is no number (a string, true) or lies outside
+// its range is an "args" error, never a quiet default:
+//
+//     voices      region            breaks ties between the voices of one language ("GB")
+//     warm        locale, language, voice, model (false: leave the language model alone), instructions
+//     speak       voice (an identifier from "voices"), region, rate 0…1, pitch 0.5…2 (left out: the voice's own)
+//     transcribe  rate 8000…48000 (sample rate of the audio, default 16000), lead_ms 0…5000 (silence put before
+//                 the audio, default 400), alternatives (true: the other readings, too)
+//     respond     max_tokens 1…2000 (default 100), temperature 0…2 (left out: the model answers greedily)
+//
+// Answers: {"id": …, "ok": true, …} or {"id": …, "ok": false, "code": "guardrail", "error": "…"}. The codes:
+//
+//     json         the line is not a JSON object, or an answer could not be written as JSON
+//     op           unknown operation
+//     args         a number is no number or out of range; the id is neither an integer nor a string
+//     audio        the audio is not base64, not whole 16 bit samples, or cannot be converted
+//     locale       speech recognition does not know that language
+//     assets       the speech model (or the language model) is not on this Mac
+//     voice        no voice for the language, or the voice failed or did not finish in time
+//     choices      "choose" has nothing to choose from
+//     unavailable  the language model cannot be used here ("error" says why: device, disabled, loading)
+//     guardrail, refusal, context, rate, language, timeout, busy, model
+//                  what the language model itself reported (refused, too much text, too many requests, …)
+//     error        anything else
+//
+// A line that is not JSON, is no object or names an unknown "op" gets its error answer and the program goes on;
+// empty lines are ignored. The program ends when stdin is closed (or nobody reads stdout any more), with exit code 0.
+//
 // Audio is mono, 16 bit, little endian, base64: questions as recorded (16 kHz), the voice at 24 kHz.
 //
 // Nothing leaves the computer: recognition (SpeechAnalyzer), the language model (FoundationModels)
@@ -23,6 +54,10 @@
 // uses no microphone and asks for no permission.
 //
 //     python tools/build_box_helper.py        (swiftc -O -target arm64-apple-macos26.0 main.swift -o gt7c-box)
+//
+// Building needs Xcode 27 or newer (the macOS 27 SDK), although the result runs on macOS 26: a few declarations
+// used below exist only in that SDK (LanguageModelError, the token usage, …), each one inside
+// `if #available(macOS 27.0, *)`. They are never reached on macOS 26, but the compiler has to find them.
 import AVFoundation
 import Foundation
 import FoundationModels
@@ -30,6 +65,8 @@ import Speech
 
 let protocolVersion = 1
 let voiceRate = 24_000.0          // what the program plays
+let speakTimeout = Duration.seconds(30)     // longest a voice may take for one utterance before it counts as stuck
+let endGrace = 1.0                // seconds without audio after an empty buffer that end an utterance, see SpeechCollector
 
 struct HelperError: Error {
     let code: String
@@ -40,7 +77,23 @@ struct HelperError: Error {
 
 let outputLock = NSLock()
 
+/// The id of a request as it may go back in an answer: an integer or a string, as sent; anything else becomes null.
+/// A fraction, `true` or an object would not match the request it answers, and infinity cannot be written at all.
+func safeID(_ value: Any?) -> Any {
+    if let text = value as? String { return text }
+    if let number = value as? NSNumber, CFGetTypeID(number) == CFNumberGetTypeID(), !CFNumberIsFloatType(number) { return number }
+    return NSNull()
+}
+
 func send(_ object: [String: Any]) {
+    var object = object
+    // JSONSerialization raises an Objective-C exception for what JSON cannot hold (infinity, NaN, …). `try?` does not
+    // catch that and the program would end, so ask first. A progress report that cannot be written is dropped; an
+    // answer is replaced by an error, or whoever asked would wait for it for ever.
+    if !JSONSerialization.isValidJSONObject(object) {
+        if object["event"] != nil { return }
+        object = ["id": safeID(object["id"]), "ok": false, "code": "json", "error": "the answer could not be written as JSON"]
+    }
     guard let data = try? JSONSerialization.data(withJSONObject: object, options: [.withoutEscapingSlashes]) else { return }
     outputLock.lock()
     defer { outputLock.unlock() }
@@ -101,9 +154,13 @@ func bytes(of buffer: AVAudioPCMBuffer) -> Data {
     return Data(bytes: channel[0], count: Int(buffer.frameLength) * MemoryLayout<Int16>.size)
 }
 
+/// `nil` when there is nothing to convert (no whole sample, or a rate the system has no format for). A last odd byte is no
+/// sample and is left out; `handle` turns such audio away before it gets here.
 func buffer(fromInt16 pcm: Data, rate: Double) -> AVAudioPCMBuffer? {
     let frames = pcm.count / MemoryLayout<Int16>.size
-    guard frames > 0, let buffer = AVAudioPCMBuffer(pcmFormat: int16Format(rate), frameCapacity: AVAudioFrameCount(frames)) else { return nil }
+    guard frames > 0, frames <= Int(AVAudioFrameCount.max),
+          let format = AVAudioFormat(commonFormat: .pcmFormatInt16, sampleRate: rate, channels: 1, interleaved: true),
+          let buffer = AVAudioPCMBuffer(pcmFormat: format, frameCapacity: AVAudioFrameCount(frames)) else { return nil }
     buffer.frameLength = AVAudioFrameCount(frames)
     pcm.withUnsafeBytes { raw in
         buffer.int16ChannelData![0].update(from: raw.bindMemory(to: Int16.self).baseAddress!, count: frames)
@@ -201,11 +258,130 @@ struct Spoken {
     var totalMs = 0
 }
 
+/// What the callback of the synthesizer, its delegate and the time-out share. It gathers the audio as it comes (converted
+/// to what the program plays) and answers the waiting caller exactly once: with the audio when the utterance is over,
+/// with the first thing that goes wrong, or with the time-out. They run on different threads, hence the lock. Whatever
+/// arrives after the answer is ignored.
+///
+/// When is an utterance over? Not with the first buffer without frames: a voice sends one after every stretch of about
+/// thirteen seconds and goes on with the next. The delegate of the synthesizer knows (`SpeechEnd` calls `ended`). Should
+/// a voice never tell its delegate, the utterance ends when nothing follows an empty buffer for `endGrace` seconds.
+final class SpeechCollector: @unchecked Sendable {
+    private let lock = NSLock()
+    private var arrivals = 0                                         // buffers so far, the empty ones too
+    private let started = ContinuousClock.now
+    private let target = int16Format(voiceRate)
+    private var waiting: CheckedContinuation<Spoken, Error>?         // nil as soon as the caller has its answer
+    private var spoken = Spoken()
+    private var resampler: Resampler?
+
+    init(_ waiting: CheckedContinuation<Spoken, Error>) {
+        self.waiting = waiting
+    }
+
+    /// A buffer with audio arrived.
+    func arrived(_ pcm: AVAudioPCMBuffer) {
+        lock.lock()
+        defer { lock.unlock() }
+        guard waiting != nil else { return }
+        arrivals += 1
+        if resampler == nil {                           // voices deliver 22.05 kHz or 16 kHz, 32 bit float
+            spoken.firstMs = milliseconds(since: started)
+            resampler = Resampler(from: pcm.format, to: target)
+        }
+        guard let converter = resampler else {
+            return finish(.failure(HelperError(code: "voice", message: "cannot convert \(pcm.format)")))
+        }
+        for out in converter.process(pcm) { spoken.pcm.append(bytes(of: out)) }
+    }
+
+    /// A buffer without frames arrived: the voice is through with a stretch of the text, or with all of it.
+    func paused() {
+        lock.lock()
+        arrivals += 1
+        let seen = arrivals
+        lock.unlock()
+        DispatchQueue.global().asyncAfter(deadline: .now() + endGrace) {
+            self.lock.lock()
+            let silent = self.arrivals == seen
+            self.lock.unlock()
+            if silent { self.ended() }                  // the delegate never came: this must have been the end
+        }
+    }
+
+    /// The utterance is over.
+    func ended() {
+        lock.lock()
+        defer { lock.unlock() }
+        guard waiting != nil else { return }
+        for out in resampler?.process(nil) ?? [] { spoken.pcm.append(bytes(of: out)) }
+        spoken.totalMs = milliseconds(since: started)
+        finish(.success(spoken))
+    }
+
+    /// The voice delivered something that is not audio.
+    func failed(_ message: String) {
+        lock.lock()
+        defer { lock.unlock() }
+        finish(.failure(HelperError(code: "voice", message: message)))
+    }
+
+    /// The voice has not finished in time. `false`: it had finished by itself after all, nothing to do.
+    func timedOut() -> Bool {
+        lock.lock()
+        defer { lock.unlock() }
+        guard waiting != nil else { return false }
+        finish(.failure(HelperError(code: "voice", message: "the voice did not finish")))
+        return true
+    }
+
+    /// Answers the caller (the first call only) and lets go of the audio. The caller of this holds the lock.
+    private func finish(_ result: Result<Spoken, Error>) {
+        waiting?.resume(with: result)
+        waiting = nil
+        spoken = Spoken()
+        resampler = nil
+    }
+}
+
+/// The delegate of the synthesizer: tells the collector of an utterance that the voice is through with it.
+final class SpeechEnd: NSObject, AVSpeechSynthesizerDelegate, @unchecked Sendable {
+    private let lock = NSLock()
+    private var collectors: [ObjectIdentifier: SpeechCollector] = [:]
+
+    func expect(_ utterance: AVSpeechUtterance, _ collector: SpeechCollector) {
+        lock.lock()
+        defer { lock.unlock() }
+        collectors[ObjectIdentifier(utterance)] = collector
+    }
+
+    func forget(_ utterance: AVSpeechUtterance) {
+        lock.lock()
+        defer { lock.unlock() }
+        collectors[ObjectIdentifier(utterance)] = nil
+    }
+
+    private func over(_ utterance: AVSpeechUtterance) {
+        lock.lock()
+        let collector = collectors.removeValue(forKey: ObjectIdentifier(utterance))
+        lock.unlock()
+        collector?.ended()
+    }
+
+    func speechSynthesizer(_ synthesizer: AVSpeechSynthesizer, didFinish utterance: AVSpeechUtterance) { over(utterance) }
+    func speechSynthesizer(_ synthesizer: AVSpeechSynthesizer, didCancel utterance: AVSpeechUtterance) { over(utterance) }
+}
+
 @MainActor
 final class Voice {
     static let shared = Voice()
     private let synthesizer = AVSpeechSynthesizer()
+    private let ends = SpeechEnd()
     private let gate = Gate()
+
+    private init() {
+        synthesizer.delegate = ends
+    }
 
     func speak(_ text: String, voice: AVSpeechSynthesisVoice, rate: Float?, pitch: Float?) async throws -> Spoken {
         await gate.enter()
@@ -214,48 +390,22 @@ final class Voice {
         utterance.voice = voice
         if let rate { utterance.rate = rate }
         if let pitch { utterance.pitchMultiplier = pitch }
-        let started = ContinuousClock.now
-        let target = int16Format(voiceRate)
-        let lock = NSLock()
-        var spoken = Spoken()
-        var resampler: Resampler?
-        var done = false
+        defer { ends.forget(utterance) }
         return try await withCheckedThrowingContinuation { continuation in
-            // A voice that never calls back must not block every later sentence: give up after a while.
-            DispatchQueue.global().asyncAfter(deadline: .now() + 30) {
-                lock.lock()
-                defer { lock.unlock() }
-                if done { return }
-                done = true
-                continuation.resume(throwing: HelperError(code: "voice", message: "the voice did not finish"))
+            let collector = SpeechCollector(continuation)
+            ends.expect(utterance, collector)
+            // A voice that never calls back must not block every later sentence: give up after a while. The synthesizer
+            // is shared and works through its queue one utterance after the other, so the stuck one is stopped as well,
+            // or all that come after it would wait behind it. The synthesizer belongs to the main actor: the stop is
+            // called there, in the same step as the answer, so the next sentence cannot start in between.
+            Task { @MainActor in
+                try? await Task.sleep(for: speakTimeout)
+                if collector.timedOut() { self.synthesizer.stopSpeaking(at: .immediate) }
             }
             // The callback needs a free main thread (the run loop below); it never comes while the main thread blocks.
             synthesizer.write(utterance) { buffer in
-                lock.lock()
-                defer { lock.unlock() }
-                if done { return }
-                guard let pcm = buffer as? AVAudioPCMBuffer else {
-                    done = true
-                    continuation.resume(throwing: HelperError(code: "voice", message: "the voice delivered no PCM audio"))
-                    return
-                }
-                if pcm.frameLength == 0 {                       // the end of the utterance
-                    for out in resampler?.process(nil) ?? [] { spoken.pcm.append(bytes(of: out)) }
-                    spoken.totalMs = milliseconds(since: started)
-                    done = true
-                    continuation.resume(returning: spoken)
-                    return
-                }
-                if resampler == nil {                           // voices deliver 22.05 kHz or 16 kHz, 32 bit float
-                    spoken.firstMs = milliseconds(since: started)
-                    resampler = Resampler(from: pcm.format, to: target)
-                    if resampler == nil {
-                        done = true
-                        continuation.resume(throwing: HelperError(code: "voice", message: "cannot convert \(pcm.format)"))
-                        return
-                    }
-                }
-                for out in resampler!.process(pcm) { spoken.pcm.append(bytes(of: out)) }
+                guard let pcm = buffer as? AVAudioPCMBuffer else { return collector.failed("the voice delivered no PCM audio") }
+                if pcm.frameLength == 0 { collector.paused() } else { collector.arrived(pcm) }
             }
         }
     }
@@ -478,8 +628,23 @@ func status() async -> [String: Any] {
             "voices": ["de": best("de"), "en": best("en")]]
 }
 
-func handle(_ request: [String: Any]) async throws -> [String: Any] {
-    let number: (String) -> Double? = { (request[$0] as? NSNumber)?.doubleValue }
+/// A number from the request: `nil` when it is left out (or null), so the caller can use its default. When it is there but
+/// is no number (a string, true), is not finite or lies outside `range`, it is an "args" error. Without that, a negative
+/// count would reach `Data(count:)` and a value like 1e30 would reach `Int(_:)`, and both stop the program.
+func number(_ request: [String: Any], _ key: String, in range: ClosedRange<Double>) throws -> Double? {
+    guard let given = request[key], !(given is NSNull) else { return nil }
+    guard let boxed = given as? NSNumber, CFGetTypeID(boxed) == CFNumberGetTypeID() else {     // CFBoolean is a different type
+        throw HelperError(code: "args", message: "\(key) must be a number")
+    }
+    let value = boxed.doubleValue
+    guard value.isFinite, range.contains(value) else {
+        let limits = [range.lowerBound, range.upperBound].map { String(format: "%g", $0) }
+        throw HelperError(code: "args", message: "\(key) must be between \(limits[0]) and \(limits[1])")
+    }
+    return value
+}
+
+func handle(_ request: [String: Any], id: Any) async throws -> [String: Any] {
     let text: (String) -> String = { request[$0] as? String ?? "" }
     switch text("op") {
     case "status":
@@ -488,9 +653,8 @@ func handle(_ request: [String: Any]) async throws -> [String: Any] {
         return ["voices": VoiceList.shared.voices(language: request["language"] as? String ?? "en",
                                                   region: request["region"] as? String).map(voiceInfo)]
     case "prepare":
-        let id = request["id"] ?? NSNull()
         return try await prepareSpeech(request["locale"] as? String ?? "en-US") { fraction in
-            send(["id": id, "event": "progress", "fraction": fraction])
+            if fraction.isFinite { send(["id": id, "event": "progress", "fraction": min(max(fraction, 0), 1)]) }
         }
     case "warm":                                    // everything into memory: about 2 s once, saves 1–2 s per first use
         let started = ContinuousClock.now
@@ -503,27 +667,37 @@ func handle(_ request: [String: Any]) async throws -> [String: Any] {
         }
         return ["ms": milliseconds(since: started)]
     case "speak":
+        let rate = try number(request, "rate", in: 0...1).map(Float.init)
+        let pitch = try number(request, "pitch", in: 0.5...2).map(Float.init)
         let voice = try pickVoice(request)
         if text("text").trimmingCharacters(in: .whitespacesAndNewlines).isEmpty {      // nothing to say: no audio
             return ["audio": "", "rate": Int(voiceRate), "voice": voice.identifier, "seconds": 0]
         }
-        let spoken = try await Voice.shared.speak(text("text"), voice: voice, rate: number("rate").map(Float.init),
-                                                  pitch: number("pitch").map(Float.init))
+        let spoken = try await Voice.shared.speak(text("text"), voice: voice, rate: rate, pitch: pitch)
         let pcm = trimmedTail(spoken.pcm, rate: voiceRate)
         return ["audio": pcm.base64EncodedString(), "rate": Int(voiceRate), "voice": voice.identifier,
                 "quality": qualityName(voice.quality), "seconds": Double(pcm.count) / 2 / voiceRate,
                 "first_ms": spoken.firstMs, "ms": spoken.totalMs]
     case "transcribe":
-        guard let pcm = Data(base64Encoded: text("audio")) else { throw HelperError(code: "audio", message: "audio is not base64") }
-        return try await transcribe(pcm, rate: number("rate") ?? 16_000, locale: request["locale"] as? String ?? "en-US",
-                                    lead: (number("lead_ms") ?? 400) / 1000,
-                                    alternatives: request["alternatives"] as? Bool ?? false)
+        let rate = try number(request, "rate", in: 8_000...48_000) ?? 16_000
+        let leadMs = try number(request, "lead_ms", in: 0...5_000) ?? 400
+        let given = request["audio"] ?? ""                           // left out: nothing, which is silence and gives no text
+        guard let encoded = given as? String, let pcm = Data(base64Encoded: encoded) else {
+            throw HelperError(code: "audio", message: "audio is not base64")
+        }
+        guard pcm.count % MemoryLayout<Int16>.size == 0 else {       // samples are 16 bit: a half one means the data is cut or not PCM
+            throw HelperError(code: "audio", message: "audio is not whole 16 bit samples (\(pcm.count) bytes)")
+        }
+        return try await transcribe(pcm, rate: rate, locale: request["locale"] as? String ?? "en-US",
+                                    lead: leadMs / 1000, alternatives: request["alternatives"] as? Bool ?? false)
     case "choose":
         return try await choose(instructions: text("instructions"), prompt: text("prompt"),
                                 choices: request["choices"] as? [String] ?? [])
     case "respond":
+        let maxTokens = try number(request, "max_tokens", in: 1...2_000) ?? 100
+        let temperature = try number(request, "temperature", in: 0...2)
         return try await respond(instructions: text("instructions"), prompt: text("prompt"),
-                                 maxTokens: Int(number("max_tokens") ?? 100), temperature: number("temperature"))
+                                 maxTokens: Int(maxTokens), temperature: temperature)
     default:
         throw HelperError(code: "op", message: "unknown op \(text("op"))")
     }
@@ -532,13 +706,17 @@ func handle(_ request: [String: Any]) async throws -> [String: Any] {
 func serve(_ line: String) {
     guard let data = line.data(using: .utf8),
           let request = (try? JSONSerialization.jsonObject(with: data)) as? [String: Any] else {
-        send(["ok": false, "code": "json", "error": "not a JSON object"])
+        send(["id": NSNull(), "ok": false, "code": "json", "error": "not a JSON object"])
         return
     }
-    let id = request["id"] ?? NSNull()
+    let id = safeID(request["id"])
+    if id is NSNull, let sent = request["id"], !(sent is NSNull) {            // an id was sent, but none that can go back
+        send(["id": id, "ok": false, "code": "args", "error": "id must be an integer or a string"])
+        return
+    }
     Task {                                           // requests run side by side; only the voice speaks one at a time
         do {
-            var answer = try await handle(request)
+            var answer = try await handle(request, id: id)
             answer["id"] = id
             answer["ok"] = true
             send(answer)

@@ -2,13 +2,22 @@
 
 Skipped unless the helper is built (``python tools/build_box_helper.py``) and this Mac
 offers what a test needs. Nothing is played aloud and the microphone is not used: the
-"driver" is one of the Mac's own voices.
+"driver" is one of the Mac's own voices. Nothing is downloaded either: a test that needs the
+speech model of a language the Mac does not have yet is skipped.
+
+``RealHelperLines`` starts the program itself and sends it lines that the Python side
+would never write, to see that it answers each one and goes on.
 """
 import array
 import asyncio
+import base64
+import json
 import os
+import queue
+import subprocess
 import sys
 import tempfile
+import threading
 import time
 import unittest
 from pathlib import Path
@@ -66,6 +75,7 @@ def loudness(pcm: bytes) -> float:
 class RealHelper(unittest.TestCase):
     helper: Helper | None = None
     status: dict = {}
+    prepared: set[str] = set()
 
     @classmethod
     def setUpClass(cls):
@@ -76,6 +86,7 @@ class RealHelper(unittest.TestCase):
             cls.status = cls.helper.status()
         except HelperError as problem:
             raise unittest.SkipTest(f"the helper does not run on this system: {problem}") from None
+        cls.prepared = set()
 
     @classmethod
     def tearDownClass(cls):
@@ -85,11 +96,16 @@ class RealHelper(unittest.TestCase):
     def need(self, *, voice: str | None = None, speech: str | None = None, model: bool = False) -> None:
         if voice and not self.status["voices"].get(voice):
             self.skipTest(f"no voice for {voice}")
-        if speech and speech not in self.status["speech"]["installed"]:
-            try:
-                self.helper.prepare(speech)
-            except HelperError as problem:
-                self.skipTest(f"speech in {speech} cannot be recognised here: {problem}")
+        if speech:
+            if speech not in self.status["speech"]["installed"]:
+                # "prepare" would load the language pack (about 400 MB) as a side effect of a test: not here
+                self.skipTest(f"the speech model for {speech} is not installed on this Mac (a test does not download it)")
+            if speech not in self.prepared:
+                try:
+                    self.helper.prepare(speech)          # a pack that is there only has to be registered for this program
+                except HelperError as problem:
+                    self.skipTest(f"speech in {speech} cannot be recognised here: {problem}")
+                self.prepared.add(speech)
         if model and not self.status["model"]["available"]:
             self.skipTest(f"the language model is not available: {self.status['model']['reason']}")
 
@@ -112,6 +128,17 @@ class RealHelper(unittest.TestCase):
             self.assertLess(loudness(audio[-1200:]), 0.05, "ends in quiet")
             tell(f"{language}: {seconds:.1f} s of speech in {time.monotonic() - began:.2f} s")
         self.assertEqual(self.helper.speak("   ", language="en"), b"")
+
+    def test_a_long_text_is_spoken_to_its_end(self):
+        # A voice pauses after about thirteen seconds of audio (an empty buffer) and goes on: that is not the end.
+        self.need(voice="en")
+        sentence = "The fuel lasts for twelve more laps, and the front left tyre is getting hot in the fast corners. "
+        one = len(self.helper.speak(sentence, language="en")) / 2 / 24_000
+        began = time.monotonic()
+        eight = len(self.helper.speak(sentence * 8, language="en")) / 2 / 24_000
+        self.assertGreater(eight, 20.0)
+        self.assertGreater(eight, one * 6)
+        tell(f"one sentence {one:.1f} s, eight of them {eight:.1f} s of speech in {time.monotonic() - began:.2f} s")
 
     def test_what_the_voice_says_is_recognised(self):
         for language, locale, text, word in (("de", "de-DE", "Wie viel Sprit habe ich noch?", "sprit"),
@@ -169,6 +196,227 @@ class RealHelper(unittest.TestCase):
             self.assertEqual(topic, "none")                        # sorted away is as good as refused
 
 
+class RawHelper:
+    """The helper program itself, spoken to line by line: a test can send what the Python side never would."""
+
+    def __init__(self, command: str) -> None:
+        self.process = subprocess.Popen([command], stdin=subprocess.PIPE, stdout=subprocess.PIPE, stderr=subprocess.PIPE)
+        self._lines: queue.Queue = queue.Queue()
+        self._remarks: list[bytes] = []
+        self._readers = [threading.Thread(target=self._read_answers, daemon=True),
+                         threading.Thread(target=self._read_remarks, daemon=True)]
+        for reader in self._readers:
+            reader.start()
+
+    def _read_answers(self) -> None:
+        for line in self.process.stdout:
+            self._lines.put(line)
+        self._lines.put(None)                                      # the program has ended
+
+    def _read_remarks(self) -> None:
+        self._remarks.append(self.process.stderr.read())
+
+    def _gone(self) -> str:
+        """Why the program is not there any more: its exit code, and what it wrote to stderr (a crash explains itself there)."""
+        try:
+            code = self.process.wait(timeout=5)
+        except subprocess.TimeoutExpired:
+            return "it is still running"
+        for reader in self._readers:
+            reader.join(2)
+        said = b"".join(self._remarks).decode("utf-8", "replace").strip()
+        return f"the helper ended with exit code {code}" + (f": {said[:400]}" if said else "")
+
+    def send(self, line) -> None:
+        """One line: a dict (written as JSON), or exactly this text or these bytes."""
+        if isinstance(line, dict):
+            line = json.dumps(line)
+        if isinstance(line, str):
+            line = line.encode("utf-8")
+        try:
+            self.process.stdin.write(line + b"\n")
+            self.process.stdin.flush()
+        except OSError:
+            raise AssertionError(f"cannot write to the helper: {self._gone()}") from None
+
+    def answer(self, timeout: float = 30.0) -> dict:
+        """The next line the program writes, as JSON."""
+        try:
+            line = self._lines.get(timeout=timeout)
+        except queue.Empty:
+            raise AssertionError(f"no answer within {timeout:.0f} s") from None
+        if line is None:
+            self._lines.put(None)                                  # whoever asks again hears it, too
+            raise AssertionError(f"no answer: {self._gone()}")
+        return json.loads(line)
+
+    def ask(self, line, timeout: float = 30.0) -> dict:
+        self.send(line)
+        return self.answer(timeout)
+
+    def assert_quiet(self, seconds: float = 0.1) -> None:
+        """Fails if the program writes anything more within this time (a second answer to the same line, say)."""
+        try:
+            line = self._lines.get(timeout=seconds)
+        except queue.Empty:
+            return
+        raise AssertionError(f"one answer too many: {line!r}" if line else f"the program ended: {self._gone()}")
+
+    def close(self) -> None:
+        """End the program (closing its input does that) and collect the threads."""
+        try:
+            self.process.stdin.close()
+        except OSError:
+            pass
+        try:
+            self.process.wait(timeout=5)
+        except subprocess.TimeoutExpired:
+            self.process.kill()
+            self.process.wait()
+        for reader in self._readers:
+            reader.join(2)
+        for pipe in (self.process.stdout, self.process.stderr):
+            pipe.close()
+
+    def __enter__(self) -> "RawHelper":
+        return self
+
+    def __exit__(self, *_) -> None:
+        self.close()
+
+
+class RealHelperLines(unittest.TestCase):
+    """Lines the Python side would never send: each gets exactly one answer, and the program goes on."""
+
+    command = ""
+    status: dict = {}
+
+    @classmethod
+    def setUpClass(cls):
+        found = helper_module.find()
+        if found is None:
+            raise unittest.SkipTest("the helper is not built (python tools/build_box_helper.py)")
+        cls.command = found._command[0]
+        try:
+            first = RawHelper(cls.command)
+        except OSError as problem:
+            raise unittest.SkipTest(f"the helper does not run on this system: {problem}") from None
+        with first:
+            cls.status = first.ask({"id": 1, "op": "status"})
+
+    def start(self) -> RawHelper:
+        raw = RawHelper(self.command)
+        self.addCleanup(raw.close)
+        return raw
+
+    def assert_ends_by_itself(self, raw: RawHelper) -> None:
+        try:
+            code = raw.process.wait(timeout=2)
+        except subprocess.TimeoutExpired:
+            self.fail("the helper was still running two seconds after its input was closed")
+        self.assertEqual(code, 0)
+
+    def test_a_bad_line_gets_one_error_answer_and_the_program_goes_on(self):
+        silence = base64.b64encode(bytes(16_000)).decode()                  # half a second at 16 kHz
+        odd = base64.b64encode(bytes(3)).decode()                           # a sample and a half
+        cases = (
+            # (what is wrong, the line, the id that must come back, the code)
+            ("text that is no JSON", "this is not json", None, "json"),
+            ("a JSON array", "[1, 2, 3]", None, "json"),
+            ("an id that is infinity", '{"id": -1e999, "op": "status"}', None, "args"),
+            ("an id that is an object", '{"id": {"a": 1}, "op": "status"}', None, "args"),
+            ("an id that is true", '{"id": true, "op": "status"}', None, "args"),
+            ("an id with a fraction", '{"id": 1.5, "op": "status"}', None, "args"),
+            ("an unknown op", {"id": 11, "op": "nonsense"}, 11, "op"),
+            ("a lead below zero", {"id": 12, "op": "transcribe", "audio": silence, "lead_ms": -1}, 12, "args"),
+            ("a lead beyond any limit", {"id": 13, "op": "transcribe", "audio": silence, "lead_ms": 1e12}, 13, "args"),
+            ("a sample rate of 1e30", {"id": 14, "op": "transcribe", "audio": silence, "rate": 1e30}, 14, "args"),
+            ("a sample rate below 8000", {"id": 15, "op": "transcribe", "audio": silence, "rate": 7_999}, 15, "args"),
+            ("a sample rate as text", {"id": 16, "op": "transcribe", "audio": silence, "rate": "16000"}, 16, "args"),
+            ("a sample rate that is true", {"id": 17, "op": "transcribe", "audio": silence, "rate": True}, 17, "args"),
+            ("audio of odd length", {"id": 18, "op": "transcribe", "audio": odd}, 18, "audio"),
+            ("audio that is no base64", {"id": 19, "op": "transcribe", "audio": "%%%"}, 19, "audio"),
+            ("audio that is a number", {"id": 20, "op": "transcribe", "audio": 12}, 20, "audio"),
+            ("a speaking rate of 99", {"id": 21, "op": "speak", "text": "Hi", "language": "en", "rate": 99}, 21, "args"),
+            ("a pitch of 0", {"id": 22, "op": "speak", "text": "Hi", "language": "en", "pitch": 0}, 22, "args"),
+            ("max_tokens of 1e30", {"id": 23, "op": "respond", "prompt": "Hi", "max_tokens": 1e30}, 23, "args"),
+            ("max_tokens of 0", {"id": 24, "op": "respond", "prompt": "Hi", "max_tokens": 0}, 24, "args"),
+            ("a temperature of 3", {"id": 25, "op": "respond", "prompt": "Hi", "temperature": 3}, 25, "args"),
+        )
+        raw = self.start()
+        for what, line, expected_id, code in cases:
+            with self.subTest(what):
+                answer = raw.ask(line)
+                self.assertIs(answer.get("ok"), False, answer)
+                self.assertIn("id", answer, answer)                         # null when there is no id to give back
+                self.assertEqual((answer["id"], answer.get("code")), (expected_id, code), answer)
+                self.assertTrue(isinstance(answer.get("error"), str) and answer["error"], answer)
+                follow_up = raw.ask({"id": 7, "op": "status"})              # still there, and nothing was left over
+                self.assertEqual((follow_up["id"], follow_up["ok"]), (7, True), follow_up)
+                raw.assert_quiet()
+        self.assertIsNone(raw.process.poll())
+
+    def test_an_id_comes_back_as_it_was_sent(self):
+        raw = self.start()
+        for sent in (0, 7, -3, 2 ** 53 + 1, 2 ** 63 - 1, "abc", "", "ünï ✓", 'a "quoted" / slashed one'):
+            with self.subTest(sent):
+                answer = raw.ask({"id": sent, "op": "voices", "language": "de"})
+                self.assertEqual((answer["id"], answer["ok"]), (sent, True), answer)
+        for line in ('{"op": "voices", "language": "de"}', '{"id": null, "op": "voices", "language": "de"}'):
+            with self.subTest(line):                                        # without an id the answer carries null
+                answer = raw.ask(line)
+                self.assertEqual((answer["id"], answer["ok"]), (None, True), answer)
+
+    def test_it_ends_by_itself_when_its_input_is_closed(self):
+        raw = self.start()
+        raw.ask({"id": 1, "op": "status"})                                  # it is up
+        raw.process.stdin.close()
+        self.assert_ends_by_itself(raw)
+
+    def test_it_ends_when_its_input_is_closed_even_while_it_works(self):
+        raw = self.start()
+        raw.send({"id": 1, "op": "warm", "language": "en", "model": True})  # takes a second or so
+        time.sleep(0.2)
+        raw.process.stdin.close()
+        self.assert_ends_by_itself(raw)
+
+    def test_the_limits_of_the_numbers_are_allowed_for_recognition(self):
+        locale = "en-US"
+        if locale not in self.status["speech"]["installed"]:
+            self.skipTest(f"the speech model for {locale} is not installed on this Mac (a test does not download it)")
+        silence = base64.b64encode(bytes(16_000)).decode()
+        raw = self.start()
+        for rate, lead_ms in ((8_000, 0), (48_000, 5_000)):
+            with self.subTest(rate=rate, lead_ms=lead_ms):
+                answer = raw.ask({"id": 1, "op": "transcribe", "audio": silence, "locale": locale,
+                                  "rate": rate, "lead_ms": lead_ms})
+                self.assertEqual((answer["ok"], answer.get("text")), (True, ""), answer)
+        for what, audio in (("empty audio", {"audio": ""}), ("no audio", {})):          # silence is nothing, not a crash
+            with self.subTest(what):
+                answer = raw.ask({"id": 2, "op": "transcribe", "locale": locale, **audio})
+                self.assertEqual((answer["ok"], answer.get("text")), (True, ""), answer)
+
+    def test_the_limits_of_the_numbers_are_allowed_for_speaking(self):
+        if not self.status["voices"].get("en"):
+            self.skipTest("no voice for en")
+        raw = self.start()
+        for rate, pitch in ((0, 0.5), (1, 2)):
+            with self.subTest(rate=rate, pitch=pitch):
+                answer = raw.ask({"id": 1, "op": "speak", "text": "OK.", "language": "en", "rate": rate, "pitch": pitch})
+                self.assertIs(answer["ok"], True, answer)
+                self.assertGreater(answer["seconds"], 0)
+
+    def test_the_limits_of_the_numbers_are_allowed_for_the_language_model(self):
+        if not self.status["model"]["available"]:
+            self.skipTest(f"the language model is not available: {self.status['model']['reason']}")
+        raw = self.start()
+        for max_tokens, temperature in ((1, 0), (2_000, 2)):
+            with self.subTest(max_tokens=max_tokens, temperature=temperature):
+                answer = raw.ask({"id": 1, "op": "respond", "instructions": "Answer in one word.", "prompt": "Say hello.",
+                                  "max_tokens": max_tokens, "temperature": temperature}, timeout=60)
+                self.assertTrue(answer["ok"], answer)
+
+
 class RealBox(unittest.IsolatedAsyncioTestCase):
     """The whole way: a spoken question in, a spoken answer with the right number out."""
 
@@ -194,8 +442,8 @@ class RealBox(unittest.IsolatedAsyncioTestCase):
         box.session_status = lambda: FACTS
         await box.start()
         self.addAsyncCleanup(box.stop)
-        for _ in range(600):                                       # speech recognition is set up in the background
-            if box.questions:
+        for _ in range(600):                                       # the Mac is asked, speech recognition set up: in the background
+            if box.looked and box.engine() == "local" and box.questions:
                 break
             await asyncio.sleep(0.05)
         self.assertEqual((box.engine(), box.state(), box.questions), ("local", "ready", True))
