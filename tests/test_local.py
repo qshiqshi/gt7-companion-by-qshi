@@ -301,7 +301,8 @@ class LocalBox(HelperCase, Folder):
 
     async def test_a_voice_that_fails_is_reported(self):
         box = await self.box()
-        await self.until(lambda: "en-US" in box._prepared)        # everything is set up …
+        # Everything is set up, including the look at the helper that follows the language pack …
+        await self.until(lambda: "en-US" in box._prepared and not box._preparations)
         box.helper.close()                                        # … and then the helper is gone
         with self.assertLogs("box", level="WARNING"):
             box.say("Radio check.")
