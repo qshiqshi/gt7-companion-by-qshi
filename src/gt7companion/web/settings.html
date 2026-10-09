@@ -31,7 +31,7 @@
       <label class="field">
         <span>Quelle</span>
         <select id="source">
-          <option value="demo">Demo-Runde (ohne PlayStation)</option>
+          <option value="demo">Demo-Fahrt (ohne PlayStation)</option>
           <option value="live">PlayStation im Heimnetz</option>
         </select>
       </label>
@@ -85,7 +85,7 @@
 
     <section class="card" id="box">
       <h2>Die Box – Renningenieur am Funk</h2>
-      <p class="muted">Eine Stimme sagt Bestzeiten, Sprit und Rennverlauf an und beantwortet deine Fragen. Auf einem Mac mit macOS 26 oder neuer kann das der Computer allein: ohne Schlüssel, ohne Internet, ohne Kosten. Sonst spricht Gemini von Google – dafür brauchst du einen eigenen Schlüssel, über den jede Ansage abgerechnet wird. Ohne die Box läuft alles andere wie gewohnt.</p>
+      <p class="muted">Eine Stimme sagt Bestzeiten, Sprit und Rennverlauf an und beantwortet deine Fragen. Auf einem Mac mit macOS 26 oder neuer kann das der Computer allein: ohne Schlüssel und ohne Kosten, nichts verlässt den Computer. Internet braucht er dafür nur, bis macOS die Sprachdaten einmal geladen hat. Sonst spricht Gemini von Google – dafür brauchst du einen eigenen Schlüssel, über den jede Ansage abgerechnet wird. Ohne die Box läuft alles andere wie gewohnt.</p>
       <p class="note" id="box-state" role="status" hidden></p>
       <label class="check">
         <input id="box_enabled" type="checkbox">
@@ -95,12 +95,12 @@
         <span>Wer spricht?</span>
         <select id="box_engine">
           <option value="auto">Automatisch: dieser Computer, wenn er es kann</option>
-          <option value="local">Dieser Mac – ohne Schlüssel und ohne Internet</option>
+          <option value="local">Dieser Mac – ohne Schlüssel und ohne Kosten</option>
           <option value="gemini">Gemini von Google – mit eigenem Schlüssel</option>
         </select>
-        <small id="box-engine-now"></small>
+        <small id="box-engine-now" role="status"></small>
       </label>
-      <p class="note warn" id="box-local-hint" hidden></p>
+      <p class="note warn" id="box-local-hint" role="status" hidden></p>
       <label class="field" id="box-local-voice" hidden>
         <span>Stimme dieses Macs</span>
         <select id="box_local_voice">

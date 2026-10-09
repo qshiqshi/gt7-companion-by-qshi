@@ -319,7 +319,7 @@ class BrowserCase(Pages):
         page.wait_for_function("() => document.querySelectorAll('#canvas .wresize').length > 50", timeout=10000)
         self.assertEqual(page.evaluate("document.getElementById('btn-save').textContent"), "Save layout")
         self.assertEqual(page.evaluate("document.getElementById('btn-reset').textContent"), "Reset")
-        page.wait_for_function("() => document.getElementById('btn-source').textContent === 'Data: demo lap'")
+        page.wait_for_function("() => document.getElementById('btn-source').textContent === 'Data: demo drive'")
         page.click("#btn-widgets")
         self.assertIn("Throttle and brake trace", page.evaluate("document.getElementById('widget-panel-list').textContent"))
         self.assertEqual(page.evaluate("document.querySelector('#w-speed .st-brush').getAttribute('aria-label')"),
@@ -368,6 +368,24 @@ class BrowserCase(Pages):
         page.wait_for_selector("#form", state="visible")
         page.click("#box-key-clear")
         page.wait_for_function("() => document.getElementById('box-state').textContent.includes('kein Schlüssel')")
+
+    def test_this_mac_is_only_offered_where_the_box_can_speak_alone(self):
+        engines = "[...document.getElementById('box_engine').options].map(o => o.value).join()"
+        save = """(engine) => fetch('/api/settings', {method: 'POST', headers: {'Content-Type': 'application/json'},
+                                                      body: JSON.stringify({box_engine: engine})})"""
+        page = self.open_plain("settings")
+        page.wait_for_selector("#form", state="visible")
+        page.wait_for_function(f"() => {engines} === 'auto,gemini'")          # this program has no helper for it
+        # chosen all the same (the settings came from a Mac): the choice stays visible, with the reason
+        page.evaluate(save, "local")
+        try:
+            page.reload()
+            page.wait_for_selector("#form", state="visible")
+            page.wait_for_function("() => document.getElementById('box-local-hint').textContent.includes('macOS 26')")
+            self.assertEqual(page.evaluate(engines), "auto,local,gemini")
+            self.assertEqual(page.evaluate("document.getElementById('box_engine').value"), "local")
+        finally:
+            page.evaluate(save, "auto")
 
     def test_radio_display_and_sound_button_follow_the_box(self):
         page = self.open(size=(1280, 720), figure=False)
@@ -439,6 +457,8 @@ class LocalBoxInTheBrowser(Pages):
         self.assertIn("Apple Intelligence", page.evaluate("document.getElementById('box-local-hint').textContent"))
         self.assertFalse(page.evaluate("document.getElementById('box-test').disabled"))
         page.select_option("#box_local_voice", "com.apple.voice.compact.de-DE.Anna")
+        page.click("#box-test")                                   # it would speak with the voice that is saved
+        self.assertIn("Speichere zuerst", page.evaluate("document.getElementById('box-test-result').textContent"))
         page.click("#form button[type=submit]")
         page.wait_for_function("() => document.getElementById('result').textContent !== ''")
         page.reload()
@@ -454,11 +474,21 @@ class LocalBoxInTheBrowser(Pages):
                          [False, False, True, True])
         self.assertEqual(page.evaluate("document.getElementById('box-engine-now').textContent"), "")
 
+    def test_the_list_of_voices_is_left_alone_while_it_stays_the_same(self):
+        page = self.open_plain("settings")
+        page.wait_for_selector("#form", state="visible")
+        page.wait_for_function("() => document.getElementById('box_local_voice').options.length === 3")
+        page.evaluate("document.getElementById('box_local_voice').options[1].dataset.seen = 'yes'")
+        with page.expect_response(lambda response: response.url.endswith("/api/box"), timeout=10000):
+            pass                                                  # the page asks again every few seconds
+        page.wait_for_timeout(300)
+        self.assertEqual(page.evaluate("document.getElementById('box_local_voice').options[1].dataset.seen"), "yes")
+
     def test_the_same_page_in_english(self):
         page = self.open_plain("settings", locale="en-US")
         page.wait_for_selector("#form", state="visible")
         self.assertEqual(page.evaluate("[...document.getElementById('box_engine').options].map(o => o.textContent).join('|')"),
-                         "Automatic: this computer, if it can|This Mac – no key and no internet|"
+                         "Automatic: this computer, if it can|This Mac – no key and no cost|"
                          "Gemini by Google – with a key of your own")
 
 

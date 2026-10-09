@@ -8,7 +8,7 @@ One small program runs on your PC or Mac. It receives the game's telemetry from 
 PlayStation in the home network and serves the dashboard as a web page: for the same
 computer, for a tablet next to your rig, or as a browser source in OBS.
 
-![The dashboard on a 16:9 screen with the demo lap](docs/images/en/dashboard.png)
+![The dashboard on a 16:9 screen with the demo drive](docs/images/en/dashboard.png)
 
 *Deutsche Fassung: [README.de.md](README.de.md)*
 
@@ -31,7 +31,8 @@ computer, for a tablet next to your rig, or as a browser source in OBS.
 - **The Box** (optional): a race engineer on the radio who calls out best laps and fuel and
   answers questions – on a Mac without any service or key, elsewhere with your own Google
   Gemini API key.
-- **A demo lap** is built in, so you can try everything without a console.
+- **A demo drive** is built in: a recorded drive of four laps. You can try everything without
+  a console, lap times and the surface ring included.
 
 <p>
   <img src="docs/images/milk.gif" width="170" alt="A glass of milk that sloshes with the forces in the car">
@@ -40,7 +41,8 @@ computer, for a tablet next to your rig, or as a browser source in OBS.
 </p>
 
 *Recorded from a real drive: the glass of milk, the nodding dachshund, and the tyres with the
-surface ring that flashes on a kerb (the ring needs the real console; the demo lap has no surface data).*
+surface ring that flashes on a kerb. The demo drive carries the surface data as well, so you can
+see the ring without a console.*
 
 | Dashboard on a 4:3 tablet | Layout for the stream (transparent in OBS) |
 |---|---|
@@ -58,12 +60,19 @@ open it, drag the app to "Applications" and start it. It shows the dashboard in 
 its own, with an icon in the Dock and a symbol in the menu bar. Closing the window does not
 quit it – tablets and OBS keep getting their data; quit with ⌘Q or through the symbol.
 
-**Windows and everybody else: from source.** The step-by-step guide is
+**Windows 10 or 11: the program as a ZIP.** Download
+[GT7-Companion-by-qshi-windows-x64.zip](https://github.com/qshiqshi/gt7-companion-by-qshi/releases/latest/download/GT7-Companion-by-qshi-windows-x64.zip),
+unpack it and start `gt7companion.exe` in the folder. It shows the dashboard in a window of its
+own, with a symbol next to the clock. It is not signed: Windows asks on the first start
+(**More info** → **Run anyway**).
+
+**Everybody else: from source.** The step-by-step guide is
 [docs/INSTALL.md](docs/INSTALL.md) (double-click `start-windows.bat` or `start-mac.command`).
 
 > **Early version.** Checked with automated tests, with a stand-in for the console and for the
-> voice service and – the app and the Box on the Mac – on one Mac with macOS 27. The Windows
-> path is untested.
+> voice service and – the app and the Box on the Mac – on one Mac with macOS 27 and a real
+> PlayStation. The Windows program was built and started in a virtual machine (Windows 11 on
+> ARM); on a real Windows PC, with sound, microphone and a real PlayStation, it is untested.
 
 By hand – requires Python 3.12 or newer:
 
@@ -79,14 +88,15 @@ Without the symbol: `python -m gt7companion` and open <http://127.0.0.1:8707/>.
 
 | Option of `python -m gt7companion` | Meaning |
 |---|---|
-| `--demo` | play the recorded demo lap in a loop (default until you choose otherwise) |
+| `--demo` | play the recorded demo drive (four laps) in a loop (default until you choose otherwise) |
 | `--live` | listen to the PlayStation in the home network |
 | `--lan` / `--no-lan` | let other devices in the home network open the dashboard (default: as chosen in the settings) |
 | `--port 8707` | port of the web pages |
 | `--ps5 IP` | address of the console; without it the console is searched |
 
 The app itself is built with `python packaging/build.py` (needs
-[uv](https://docs.astral.sh/uv/); see the notes in that file, also on signing).
+[uv](https://docs.astral.sh/uv/), and on a Mac Xcode 27 or newer for the helper of the Box –
+`--no-box-helper` builds without it; see the notes in that file, also on signing).
 
 ## Your PlayStation
 
@@ -133,8 +143,9 @@ A race engineer on the radio: a voice calls out best laps, fuel and the course o
 answers questions. Under *Settings* → "Who speaks?" there are two ways:
 
 - **This Mac** (in the app, macOS 26 or newer): voice, speech recognition and language model
-  are the Mac's own. No key, no internet, no cost – and nothing leaves the computer. This is
-  the default where it is possible.
+  are the Mac's own. No key, no cost, and nothing leaves the computer; it needs the internet
+  only until macOS has downloaded its speech data once. This is the default where it is
+  possible.
 - **Gemini by Google** (everywhere): spoken by Google's Gemini Live API with **your own API
   key** from Google AI Studio, entered on the computer running the program. Every message is
   billed to your key; that is why there is a limit per minute and per session here, and a
@@ -202,7 +213,8 @@ node --test tests/js/
 ```
 
 On a Mac, `python tools/build_box_helper.py` builds the helper program that lets the Box run
-without a service (Swift, `native/box-helper`); with it the tests for that run, too.
+without a service (Swift, `native/box-helper`); with it the tests for that run, too. Building
+it needs Xcode 27 or newer; the helper itself runs on macOS 26 and newer.
 
 See [CONTRIBUTING.md](CONTRIBUTING.md).
 

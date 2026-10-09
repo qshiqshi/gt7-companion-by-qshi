@@ -7,7 +7,7 @@ Thank you for looking into the code. A few things that help:
 ```sh
 python -m venv .venv
 .venv/bin/pip install -e ".[dev,app]"
-.venv/bin/python -m gt7companion          # demo lap, http://127.0.0.1:8707/
+.venv/bin/python -m gt7companion          # demo drive, http://127.0.0.1:8707/
 ```
 
 For your own experiments set `GT7COMPANION_HOME` to an empty folder; settings and layouts then
@@ -43,9 +43,9 @@ interface (`tests/test_live.py`), the voice service by a small server speaking i
   `packaging/build.py` packs it (see the notes in that file).
 - Layout presets are written by `tools/make_presets.py`, the two typefaces by the scripts in
   `tools/fonts/`, the 3D models by the scripts in `tools/blender/`, the app icon by
-  `tools/make_app_icon.py`.
+  `tools/make_app_icon.py`. The demo drive is cut out of a recording by `tools/make_demo.py`.
 - No console at hand? `python tools/fake_console.py` stands in for one on this computer and
-  sends the demo lap as real packets.
+  sends the demo drive as real packets, in the packet format the program asks for.
 
 ## Texts
 

@@ -17,7 +17,7 @@ def build_parser() -> argparse.ArgumentParser:
         description=f"{APP_NAME} – unofficial dashboard and stream overlay for Gran Turismo 7 telemetry.")
     source = parser.add_mutually_exclusive_group()
     source.add_argument("--demo", action="store_const", const="demo", dest="source",
-                        help="play the recorded demo lap in a loop (no console needed)")
+                        help="play the recorded demo drive in a loop (no console needed)")
     source.add_argument("--live", action="store_const", const="live", dest="source",
                         help="listen to the PlayStation in the home network")
     parser.add_argument("--lan", action=argparse.BooleanOptionalAction, default=None,
@@ -77,7 +77,7 @@ def main(argv: list[str] | None = None) -> int:
         for address in local_addresses():
             print(f"  In your home network:  http://{address}:{args.port}/")
     print(f"  Connect other devices: http://127.0.0.1:{args.port}/connect")
-    print("  Source:                " + ("demo lap (no console needed)" if source == "demo"
+    print("  Source:                " + ("demo drive (no console needed)" if source == "demo"
                                          else "PlayStation in the home network"))
     print("  Stop with Ctrl+C.", flush=True)
 

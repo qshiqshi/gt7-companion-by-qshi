@@ -11,22 +11,46 @@ Python, no Terminal:
 
 1. Download [GT7-Companion-by-qshi-mac-arm64.dmg](https://github.com/qshiqshi/gt7-companion-by-qshi/releases/latest/download/GT7-Companion-by-qshi-mac-arm64.dmg) and open it.
 2. Drag the app into the "Applications" folder and start it from there.
-3. A window shows the dashboard with a demo lap. Go on with
+3. A window shows the dashboard with a demo drive. Go on with
    [4. Connect your PlayStation](#4-connect-your-playstation).
 
 Closing the window does not quit the app: tablets and OBS keep getting their data. A click on
 the icon in the Dock or on the symbol in the menu bar at the top right brings the window back;
 quit with ⌘Q or through the symbol → **Quit**.
 
-## Windows, or from source
+## Windows: the program (the short way)
 
-Steps 1 to 3 are for Windows and for everybody who prefers to start the program from source.
-They take about ten minutes; nothing is installed outside the program's own folder (except
-Python itself).
+For Windows 10 and 11 (64 bit; on an ARM computer it has to be Windows 11) the program comes
+as a ZIP – no Python, no installer:
 
-> The Mac steps were run on a Mac with Apple silicon. **The Windows steps are untested** –
-> they should work, but nobody has tried them on a real Windows PC yet. If something goes
+1. Download [GT7-Companion-by-qshi-windows-x64.zip](https://github.com/qshiqshi/gt7-companion-by-qshi/releases/latest/download/GT7-Companion-by-qshi-windows-x64.zip) and unpack it (right-click → **Extract All**).
+2. Put the folder where it can stay, for example in "Documents", and start `gt7companion.exe`
+   in it. The program is not signed, so Windows shows "Windows protected your PC": **More
+   info** → **Run anyway**. The very first start takes a little longer.
+3. A window shows the dashboard with a demo drive. Go on with
+   [4. Connect your PlayStation](#4-connect-your-playstation).
+
+Closing the window does not quit the program: tablets and OBS keep getting their data. The
+symbol next to the clock (it may hide behind the small arrow) brings the window back and has
+**Quit**. When the program first listens for the PlayStation or shares the dashboard in your
+home network, the Windows firewall asks once: allow it for private networks.
+
+The window needs the WebView2 runtime, which is part of Windows 11 and of an up-to-date
+Windows 10. Without it the program opens the dashboard in your browser instead. On Windows the
+Box speaks with Gemini (your own key); "Hey Box" is only available from source.
+
+> The Windows program was built and started in a virtual machine (Windows 11 on ARM): window,
+> symbol, a second start, the stand-in for the console. **On a real Windows PC it is
+> untested**, and so are sound, microphone and a real PlayStation there. If something goes
 > wrong, please open an issue: <https://github.com/qshiqshi/gt7-companion-by-qshi/issues>.
+
+## From source (Mac, Windows, Linux)
+
+Steps 1 to 3 are for everybody who prefers to start the program from source. They take about
+ten minutes; nothing is installed outside the program's own folder (except Python itself).
+
+> The Mac steps were run on a Mac with Apple silicon. **The Windows steps from source are
+> untested** – they should work, but nobody has tried them on a real Windows PC yet.
 
 ## 1. Install Python (once)
 
@@ -53,7 +77,7 @@ ZIP and move the folder to a place where it can stay, for example your Documents
 
 The first start sets everything up and takes a few minutes. Then a small symbol appears –
 on the Mac in the menu bar at the top right, on Windows in the tray next to the clock – and
-the dashboard opens in your browser with a demo lap.
+the dashboard opens in your browser with a demo drive.
 
 To quit, click the symbol → **Quit**. To start again, double-click the same file.
 
@@ -103,7 +127,8 @@ http://127.0.0.1:8707/?obs=1
 
 **In the Mac app (macOS 26 or newer)** the Box needs nothing else: symbol → **Settings** →
 *The Box*: tick **Switch on the messages**, **Save**, then **Test message**. Voice, speech
-recognition and answers are the Mac's own – no internet, no key, no cost.
+recognition and answers are the Mac's own – no key, no cost. (The first time macOS may
+download speech data; after that it works without the internet.)
 
 **Everywhere else – or if you choose so – Gemini by Google speaks:**
 
@@ -137,6 +162,7 @@ To ask without pressing a button, tick **Listen for "Hey Box"** in the settings.
 ## Updating
 
 - **Mac app:** download the new version and replace the app in "Applications".
+- **Windows program:** quit it, download the new ZIP and replace the folder.
 - **From source:** download the ZIP again and replace the folder (or `git pull`). If the start
   file reports a problem afterwards, delete the folder `.venv` inside the program's folder and
   start again.

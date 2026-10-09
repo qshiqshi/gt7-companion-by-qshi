@@ -40,7 +40,7 @@ onTopic('_ws_status', function(d) {
   select.addEventListener('change', function() { switchLayout(select.value); });
 })();
 
-/* Datenquelle: Demo-Runde oder PlayStation. Der Knopf zeigt, was läuft, und schaltet um. */
+/* Datenquelle: Demo-Fahrt oder PlayStation. Der Knopf zeigt, was läuft, und schaltet um. */
 (function initSourceToggle() {
   var btn = document.getElementById('btn-source');
   if (!btn) return;
@@ -49,7 +49,7 @@ onTopic('_ws_status', function(d) {
     btn.disabled = busy || !wsConnected || !source;
     btn.textContent = busy ? 'Daten: …' : source === 'live'
       ? (error === 'port_in_use' ? 'Daten: PlayStation (Anschluss belegt)' : 'Daten: PlayStation')
-      : source === 'demo' ? 'Daten: Demo-Runde' : 'Daten: …';
+      : source === 'demo' ? 'Daten: Demo-Fahrt' : 'Daten: …';
   }
   onTopic('status', function(d) {
     if (d && d.source) { source = d.source; render(d.source_error); }

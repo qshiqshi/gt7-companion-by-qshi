@@ -15,8 +15,8 @@
   },
   "widgets": {
     "car-class": {
-      "x": 648,
-      "y": 10,
+      "x": 1124,
+      "y": 4,
       "scale": 1.2,
       "visible": true,
       "zIndex": 15,

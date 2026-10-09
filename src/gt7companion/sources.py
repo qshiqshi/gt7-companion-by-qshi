@@ -1,4 +1,4 @@
-"""The one active telemetry source: the demo lap or the real console.
+"""The one active telemetry source: the demo drive or the real console.
 
 Only one source runs at a time. Switching stops the old one first; if the
 real console cannot be listened to (the UDP port is taken by another

@@ -60,7 +60,8 @@ def layout(kind: str, label: dict, size: tuple[int, int], widgets: dict, **more)
 def dashboard_16x9() -> dict:
     return layout("dashboard", {"de": "Dashboard 16:9", "en": "Dashboard 16:9"}, (1920, 1080), {
         # middle: what you read while driving
-        "car-class": widget("car-class", 876, 10, 1.4),
+        "car-class": widget("car-class", 1528, 4, 1.2),      # above the session box: the dot of the steering
+                                                             # angle travels along the top of the rev band
         "rpm-bar": rpm(440, 56, 1040),
         "gear": widget("gear", 594, 216, 1.7),
         "speed": widget("speed", 796, 216, 2.3),
@@ -84,7 +85,7 @@ def dashboard_16x9() -> dict:
 
 def dashboard_16x10() -> dict:
     return layout("dashboard", {"de": "Dashboard 16:10", "en": "Dashboard 16:10"}, (1920, 1200), {
-        "car-class": widget("car-class", 876, 14, 1.4),
+        "car-class": widget("car-class", 1506, 4, 1.2),
         "rpm-bar": rpm(480, 66, 960),
         "gear": widget("gear", 572, 240, 1.8),
         "speed": widget("speed", 786, 240, 2.45),
@@ -106,7 +107,7 @@ def dashboard_16x10() -> dict:
 
 def dashboard_4x3() -> dict:
     return layout("dashboard", {"de": "Dashboard 4:3", "en": "Dashboard 4:3"}, (1440, 1080), {
-        "car-class": widget("car-class", 648, 10, 1.2),
+        "car-class": widget("car-class", 1124, 4, 1.2),
         "rpm-bar": rpm(330, 50, 780),
         "gear": widget("gear", 420, 176, 1.5),
         "speed": widget("speed", 598, 176, 1.85),

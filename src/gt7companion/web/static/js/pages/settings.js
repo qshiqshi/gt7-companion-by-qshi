@@ -32,6 +32,7 @@ function show(values) {
   byId('language').value = values.language;
   byId('units').value = values.units;
   byId('box_enabled').checked = !!values.box_enabled;
+  if (values.box_engine === 'local') offerLocal(true);      /* the choice made stays visible, wherever it was made */
   byId('box_engine').value = values.box_engine;
   chooseVoice(values.box_local_voice || '');
   byId('box_speaker').checked = !!values.box_speaker;
@@ -64,10 +65,28 @@ function show(values) {
 }
 
 /* ---- the Box: state, who speaks, key (only on the computer itself), test message ---- */
-/* The list of the Mac's voices; the chosen one stays in it even while the list is still unknown. */
+/* Write a text only when it changed: a screen reader reads a status line again each time it is written. */
+function say(element, text) {
+  if (element.textContent !== text) element.textContent = text;
+}
+
+/* "This Mac" is only offered where the program can do that at all (the app for the Mac, macOS 26 or newer). */
+const LOCAL_OPTION = byId('box_engine').querySelector('[value="local"]');
+function offerLocal(possible) {
+  const select = byId('box_engine');
+  if (possible === (LOCAL_OPTION.parentNode === select)) return;
+  if (possible) select.insertBefore(LOCAL_OPTION, select.options[1] || null);
+  else LOCAL_OPTION.remove();
+}
+
+/* The list of the Mac's voices; the chosen one stays in it even while the list is still unknown.
+   Built anew only when it changed: this runs every few seconds, also while someone has the list open. */
+let voicesListed = '';
 function chooseVoice(wanted, voices) {
   const select = byId('box_local_voice');
-  if (voices) {
+  const listed = voices ? JSON.stringify(voices.map(voice => [voice.id, voice.name])) : voicesListed;
+  if (listed !== voicesListed) {
+    voicesListed = listed;
     [...select.options].slice(1).forEach(option => option.remove());
     voices.forEach(function(voice) {
       const option = document.createElement('option');
@@ -81,14 +100,14 @@ function chooseVoice(wanted, voices) {
     option.value = option.textContent = wanted;
     select.appendChild(option);
   }
-  select.value = wanted;
+  if (select.value !== wanted) select.value = wanted;
 }
 
 /* Why this Mac cannot answer questions (it can still read the messages). */
 function localHint(box) {
   const local = box.local || {};
   if (box.engine !== 'local') return '';
-  if (!local.helper) return t('Ohne Dienst sprechen kann die Box nur in der App für den Mac. Wähle Gemini, oder nutze die App.');
+  if (!local.helper) return t('Allein sprechen kann die Box nur in der App für den Mac, ab macOS 26. Wähle hier Gemini.');
   if (!local.available) return t('Dieser Mac kann die Box nicht allein sprechen lassen: Das geht ab macOS 26 und braucht eine installierte Stimme in der Sprache der Box.');
   if (box.questions) {
     return local.voices[0] && !local.voices[0].natural
@@ -122,18 +141,18 @@ function showBox(box) {
   else if (box.state === 'no_key' || box.state === 'no_local') { text = t(BOX_PROBLEMS[box.state]); kind = 'note warn'; }
   else if (box.state === 'ready' || box.state === 'speaking') { text = t('Die Box ist bereit.'); kind = 'note good'; }
   if (text && !box.speaker) text += ' ' + t('Auf diesem Computer fehlt die Tonausgabe (Zusatzpaket „sounddevice“).');
-  state.textContent = text;
   state.className = kind;
   state.hidden = !text;
   byId('box-wake-missing').hidden = box.wake_possible && box.microphone;
   if (box.wake) text += ' ' + t('Sie hört auf „Hey Box“.');
-  state.textContent = text;
+  say(state, text);
   const local = box.engine === 'local';
+  offerLocal(!!(box.local || {}).helper || byId('box_engine').value === 'local' || (shown || {}).box_engine === 'local');
   const hint = localHint(box);
-  byId('box-local-hint').textContent = hint;
+  say(byId('box-local-hint'), hint);
   byId('box-local-hint').hidden = !hint;
-  byId('box-engine-now').textContent = byId('box_engine').value !== 'auto' ? ''
-    : local ? t('Im Moment: dieser Mac.') : t('Im Moment: Gemini.');
+  say(byId('box-engine-now'), byId('box_engine').value !== 'auto' ? ''
+    : local ? t('Im Moment: dieser Mac.') : t('Im Moment: Gemini.'));
   chooseVoice(byId('box_local_voice').value, (box.local || {}).voices || []);
   byId('box-local-voice').hidden = !local || !(box.local || {}).available;
   byId('box-gemini').hidden = local;                       /* limits, voice and model of the service */
@@ -172,6 +191,10 @@ byId('box-key-check').addEventListener('click', async function() {
   if (box && box.ok) byId('box-test-result').textContent = t('Der Schlüssel funktioniert.');
 });
 byId('box-test').addEventListener('click', async function() {
+  if (dirty()) {                       /* the program speaks with what is saved, not with what is chosen here */
+    byId('box-test-result').textContent = t('Speichere zuerst: Die Probeansage nutzt die gespeicherten Einstellungen.');
+    return;
+  }
   const box = await boxAction('/api/box/test');
   if (box) byId('box-test-result').textContent = box.ok ? t('Die Probeansage läuft …') : t('Die Box konnte nicht sprechen.');
 });

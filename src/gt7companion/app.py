@@ -402,7 +402,7 @@ def create_app(settings: Settings | None = None, *, layouts: LayoutStore | None 
 
     @app.post("/api/source")
     async def set_source(request: Request):
-        """Switch between the demo lap and the real console; the choice is remembered."""
+        """Switch between the demo drive and the real console; the choice is remembered."""
         require_edit(request)
         try:
             wanted = (await request.json()).get("source")

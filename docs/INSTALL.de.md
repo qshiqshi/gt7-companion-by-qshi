@@ -11,22 +11,50 @@ Python, ohne Terminal:
 
 1. [GT7-Companion-by-qshi-mac-arm64.dmg](https://github.com/qshiqshi/gt7-companion-by-qshi/releases/latest/download/GT7-Companion-by-qshi-mac-arm64.dmg) laden und öffnen.
 2. Die App in den Ordner „Programme“ ziehen und von dort starten.
-3. Ein Fenster zeigt das Dashboard mit einer Demo-Runde. Weiter geht es bei
+3. Ein Fenster zeigt das Dashboard mit einer Demo-Fahrt. Weiter geht es bei
    [4. PlayStation verbinden](#4-playstation-verbinden).
 
 Das Fenster zu schließen beendet die App nicht: Tablets und OBS bekommen weiter ihre Daten. Ein
 Klick auf das Symbol im Dock oder oben rechts in der Menüleiste holt das Fenster zurück; beendet
 wird mit ⌘Q oder über das Symbol → **Beenden**.
 
-## Windows, oder aus dem Quelltext
+## Windows: das Programm (der kurze Weg)
 
-Die Schritte 1 bis 3 sind für Windows und für alle, die das Programm lieber aus dem Quelltext
-starten. Sie dauern etwa zehn Minuten; außerhalb des Programmordners wird nichts installiert
-(außer Python selbst).
+Für Windows 10 und 11 (64 Bit; auf einem ARM-Rechner muss es Windows 11 sein) gibt es das
+Programm als ZIP – ohne Python, ohne Installation:
 
-> Die Mac-Schritte sind auf einem Mac mit Apple-Chip durchgelaufen. **Die Windows-Schritte
-> sind ungetestet** – sie sollten funktionieren, aber noch niemand hat sie an einem echten
-> Windows-PC ausprobiert. Wenn etwas hakt, melde es bitte als Issue: <https://github.com/qshiqshi/gt7-companion-by-qshi/issues>.
+1. [GT7-Companion-by-qshi-windows-x64.zip](https://github.com/qshiqshi/gt7-companion-by-qshi/releases/latest/download/GT7-Companion-by-qshi-windows-x64.zip) laden und entpacken (Rechtsklick → **Alle extrahieren**).
+2. Den Ordner dorthin legen, wo er bleiben kann, zum Beispiel in „Dokumente“, und darin
+   `gt7companion.exe` starten. Das Programm ist nicht signiert, deshalb zeigt Windows „Der
+   Computer wurde durch Windows geschützt“: **Weitere Informationen** → **Trotzdem ausführen**.
+   Der allererste Start dauert etwas länger.
+3. Ein Fenster zeigt das Dashboard mit einer Demo-Fahrt. Weiter geht es bei
+   [4. PlayStation verbinden](#4-playstation-verbinden).
+
+Das Fenster zu schließen beendet das Programm nicht: Tablets und OBS bekommen weiter ihre Daten.
+Das Symbol neben der Uhr (es versteckt sich manchmal hinter dem kleinen Pfeil) holt das Fenster
+zurück und hat **Beenden**. Wenn das Programm zum ersten Mal auf die PlayStation hört oder das
+Dashboard im Heimnetz freigibt, fragt die Windows-Firewall einmal nach: für private Netzwerke
+zulassen.
+
+Das Fenster braucht die WebView2-Laufzeit; sie gehört zu Windows 11 und zu einem aktuellen
+Windows 10. Fehlt sie, öffnet das Programm das Dashboard stattdessen im Browser. Unter Windows
+spricht die Box mit Gemini (eigener Schlüssel); „Hey Box“ gibt es nur aus dem Quelltext.
+
+> Das Windows-Programm wurde in einer virtuellen Maschine (Windows 11 auf ARM) gebaut und
+> gestartet: Fenster, Symbol, zweiter Start, Nachbau der Konsole. **Auf einem echten
+> Windows-PC ist es ungetestet**, ebenso Ton, Mikrofon und eine echte PlayStation dort. Wenn
+> etwas hakt, melde es bitte als Issue: <https://github.com/qshiqshi/gt7-companion-by-qshi/issues>.
+
+## Aus dem Quelltext (Mac, Windows, Linux)
+
+Die Schritte 1 bis 3 sind für alle, die das Programm lieber aus dem Quelltext starten. Sie
+dauern etwa zehn Minuten; außerhalb des Programmordners wird nichts installiert (außer Python
+selbst).
+
+> Die Mac-Schritte sind auf einem Mac mit Apple-Chip durchgelaufen. **Die Windows-Schritte aus
+> dem Quelltext sind ungetestet** – sie sollten funktionieren, aber noch niemand hat sie an
+> einem echten Windows-PC ausprobiert.
 
 ## 1. Python installieren (einmalig)
 
@@ -54,7 +82,7 @@ Die ZIP-Datei entpacken und den Ordner dorthin legen, wo er bleiben kann, zum Be
 
 Der erste Start richtet alles ein und dauert ein paar Minuten. Dann erscheint ein kleines
 Symbol – am Mac oben rechts in der Menüleiste, unter Windows neben der Uhr – und das
-Dashboard öffnet sich im Browser mit einer Demo-Runde.
+Dashboard öffnet sich im Browser mit einer Demo-Fahrt.
 
 Beenden: auf das Symbol klicken → **Beenden**. Wieder starten: Doppelklick auf dieselbe Datei.
 
@@ -104,8 +132,8 @@ http://127.0.0.1:8707/?obs=1
 
 **In der Mac-App (ab macOS 26)** braucht die Box nichts weiter: Symbol → **Einstellungen** →
 *Die Box*: **Ansagen einschalten** ankreuzen, **Speichern**, dann **Probeansage**. Stimme,
-Spracherkennung und Antworten kommen vom Mac selbst – ohne Internet, ohne Schlüssel, ohne
-Kosten.
+Spracherkennung und Antworten kommen vom Mac selbst – ohne Schlüssel, ohne Kosten. (Beim
+ersten Mal lädt macOS unter Umständen Sprachdaten; danach geht es ohne Internet.)
 
 **Überall sonst – oder wenn du es so wählst – spricht Gemini von Google:**
 
@@ -139,6 +167,7 @@ Damit du ohne Knopfdruck fragen kannst: in den Einstellungen **Auf „Hey Box“
 ## Aktualisieren
 
 - **Mac-App:** die neue Fassung laden und die App in „Programme“ ersetzen.
+- **Windows-Programm:** beenden, die neue ZIP-Datei laden und den Ordner ersetzen.
 - **Aus dem Quelltext:** die ZIP-Datei neu laden und den Ordner ersetzen (oder `git pull`).
   Meldet die Startdatei danach ein Problem: den Ordner `.venv` im Programmordner löschen und
   neu starten.

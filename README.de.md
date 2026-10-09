@@ -8,7 +8,7 @@ Ein kleines Programm läuft auf deinem PC oder Mac. Es empfängt die Fahrdaten d
 deiner PlayStation im Heimnetz und liefert das Dashboard als Webseite aus: für denselben
 Rechner, für ein Tablet neben dem Rig oder als Browser-Quelle in OBS.
 
-![Das Dashboard auf einem 16:9-Bildschirm mit der Demo-Runde](docs/images/de/dashboard.png)
+![Das Dashboard auf einem 16:9-Bildschirm mit der Demo-Fahrt](docs/images/de/dashboard.png)
 
 *English version: [README.md](README.md)*
 
@@ -32,7 +32,8 @@ Rechner, für ein Tablet neben dem Rig oder als Browser-Quelle in OBS.
 - **Die Box** (wer mag): ein Renningenieur am Funk, der Bestzeiten und Sprit ansagt und Fragen
   beantwortet – auf einem Mac ganz ohne Dienst und Schlüssel, sonst mit deinem eigenen Schlüssel
   für Google Gemini.
-- **Eine Demo-Runde** ist eingebaut; du kannst alles ohne Konsole ausprobieren.
+- **Eine Demo-Fahrt** ist eingebaut: eine aufgezeichnete Fahrt über vier Runden. Du kannst alles
+  ohne Konsole ausprobieren, auch die Rundenzeiten und den Untergrund-Ring.
 
 <p>
   <img src="docs/images/milk.gif" width="170" alt="Ein Glas Milch, das mit den Kräften im Auto schwappt">
@@ -41,8 +42,8 @@ Rechner, für ein Tablet neben dem Rig oder als Browser-Quelle in OBS.
 </p>
 
 *Aufgenommen bei einer echten Fahrt: das Glas Milch, der Wackeldackel und die Reifen mit dem
-Untergrund-Ring, der auf dem Randstein blinkt (der Ring braucht die echte Konsole; die Demo-Runde enthält keine
-Untergrund-Daten).*
+Untergrund-Ring, der auf dem Randstein blinkt. Auch die Demo-Fahrt enthält die Untergrund-Daten,
+den Ring siehst du also ohne Konsole.*
 
 | Dashboard auf einem 4:3-Tablet | Layout für den Stream (in OBS durchsichtig) |
 |---|---|
@@ -60,13 +61,20 @@ eigenen Fenster, mit einem Symbol im Dock und in der Menüleiste. Das Fenster zu
 beendet sie nicht – Tablets und OBS bekommen weiter ihre Daten; beendet wird mit ⌘Q oder über
 das Symbol.
 
-**Windows und alle anderen: aus dem Quelltext.** Die Anleitung Schritt für Schritt steht in
+**Windows 10 oder 11: das Programm als ZIP.** [GT7-Companion-by-qshi-windows-x64.zip](https://github.com/qshiqshi/gt7-companion-by-qshi/releases/latest/download/GT7-Companion-by-qshi-windows-x64.zip)
+laden, entpacken und im Ordner `gt7companion.exe` starten. Es zeigt das Dashboard in einem
+eigenen Fenster, mit einem Symbol neben der Uhr. Es ist nicht signiert: Windows fragt beim
+ersten Start nach (**Weitere Informationen** → **Trotzdem ausführen**).
+
+**Alle anderen: aus dem Quelltext.** Die Anleitung Schritt für Schritt steht in
 [docs/INSTALL.de.md](docs/INSTALL.de.md) (Doppelklick auf `start-windows.bat` bzw.
 `start-mac.command`).
 
 > **Frühe Fassung.** Geprüft mit automatischen Tests, mit einem Nachbau der Konsole und des
-> Sprachdienstes und – die App und die Box auf dem Mac – auf einem Mac mit macOS 27. Der Weg
-> unter Windows ist ungetestet.
+> Sprachdienstes und – die App und die Box auf dem Mac – auf einem Mac mit macOS 27 und einer
+> echten PlayStation. Das Windows-Programm wurde in einer virtuellen Maschine (Windows 11 auf
+> ARM) gebaut und gestartet; auf einem echten Windows-PC, mit Ton, Mikrofon und echter
+> PlayStation ist es ungetestet.
 
 Von Hand – benötigt Python 3.12 oder neuer:
 
@@ -82,13 +90,14 @@ Ohne Symbol: `python -m gt7companion` und <http://127.0.0.1:8707/> öffnen.
 
 | Option von `python -m gt7companion` | Bedeutung |
 |---|---|
-| `--demo` | die aufgezeichnete Demo-Runde in Schleife (Standard, bis du etwas anderes wählst) |
+| `--demo` | die aufgezeichnete Demo-Fahrt (vier Runden) in Schleife (Standard, bis du etwas anderes wählst) |
 | `--live` | der PlayStation im Heimnetz zuhören |
 | `--lan` / `--no-lan` | anderen Geräten im Heimnetz das Dashboard freigeben (Standard: wie in den Einstellungen) |
 | `--port 8707` | Port der Webseiten |
 | `--ps5 IP` | Adresse der Konsole; ohne Angabe wird sie gesucht |
 
-Die App selbst baut `python packaging/build.py` (braucht [uv](https://docs.astral.sh/uv/);
+Die App selbst baut `python packaging/build.py` (braucht [uv](https://docs.astral.sh/uv/) und
+am Mac Xcode 27 oder neuer für das Hilfsprogramm der Box – `--no-box-helper` baut ohne es;
 Hinweise in der Datei, auch zum Signieren).
 
 ## Deine PlayStation
@@ -139,8 +148,9 @@ Ein Renningenieur am Funk: Eine Stimme sagt Bestzeiten, Sprit und Rennverlauf an
 Fragen. Unter *Einstellungen* → „Wer spricht?“ gibt es zwei Wege:
 
 - **Dieser Mac** (in der App, ab macOS 26): Stimme, Spracherkennung und Sprachmodell kommen vom
-  Mac selbst. Kein Schlüssel, kein Internet, keine Kosten – und nichts verlässt den Rechner.
-  Das ist die Voreinstellung, wo es geht.
+  Mac selbst. Kein Schlüssel, keine Kosten, und nichts verlässt den Rechner; Internet braucht
+  er nur, bis macOS die Sprachdaten einmal geladen hat. Das ist die Voreinstellung, wo es
+  geht.
 - **Gemini von Google** (überall): gesprochen von Googles Gemini Live API mit **deinem eigenen
   API-Schlüssel** aus Google AI Studio, den du am Rechner mit dem Programm einträgst. Jede
   Ansage wird über deinen Schlüssel abgerechnet; deshalb gibt es hier eine Grenze pro Minute
@@ -210,7 +220,8 @@ node --test tests/js/
 ```
 
 Am Mac baut `python tools/build_box_helper.py` das Hilfsprogramm, mit dem die Box ohne Dienst
-läuft (Swift, `native/box-helper`); danach laufen auch die Tests dazu.
+läuft (Swift, `native/box-helper`); danach laufen auch die Tests dazu. Zum Bauen braucht es
+Xcode 27 oder neuer; das Hilfsprogramm selbst läuft ab macOS 26.
 
 Siehe [CONTRIBUTING.md](CONTRIBUTING.md) (englisch).
 
