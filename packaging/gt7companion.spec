@@ -41,9 +41,31 @@ analysis = Analysis(
     excludes=["tkinter", "numpy", "playwright", "fontTools", "PyInstaller", "mlx", "mlx_whisper", "torch",
               "faster_whisper", "numba", "scipy"],
 )
+details = None
+if sys.platform == "win32":
+    # What Windows shows for the program: in the question of the firewall, the task manager, the file's properties.
+    from PyInstaller.utils.win32.versioninfo import (FixedFileInfo, StringFileInfo, StringStruct, StringTable,
+                                                     VarFileInfo, VarStruct, VSVersionInfo)
+
+    numbers = tuple(int(part) for part in (__version__.split(".") + ["0"] * 4)[:4])
+    details = VSVersionInfo(
+        ffi=FixedFileInfo(filevers=numbers, prodvers=numbers, mask=0x3F, flags=0x0, OS=0x40004, fileType=0x1,
+                          subtype=0x0, date=(0, 0)),
+        kids=[StringFileInfo([StringTable("040904B0", [
+                  StringStruct("CompanyName", "qshi"),
+                  StringStruct("FileDescription", WINDOW_TITLE),
+                  StringStruct("FileVersion", __version__),
+                  StringStruct("InternalName", "gt7companion"),
+                  StringStruct("LegalCopyright", "GPL-3.0-or-later. Not affiliated with Sony Interactive "
+                                                 "Entertainment or Polyphony Digital."),
+                  StringStruct("OriginalFilename", "gt7companion.exe"),
+                  StringStruct("ProductName", APP_NAME),
+                  StringStruct("ProductVersion", __version__)])]),
+              VarFileInfo([VarStruct("Translation", [0x0409, 1200])])])
+
 archive = PYZ(analysis.pure)
 program = EXE(archive, analysis.scripts, [], exclude_binaries=True, name="gt7companion",
-              console=False, upx=False,
+              console=False, upx=False, version=details,
               icon=str(PACKAGING / ("icon.icns" if sys.platform == "darwin" else "icon.ico")))
 folder = COLLECT(program, analysis.binaries, analysis.datas, name="gt7companion", upx=False)
 

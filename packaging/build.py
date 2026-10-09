@@ -9,8 +9,10 @@ Windows    dist/gt7companion/           the program in a folder, and the same as
 The build has an environment of its own in build/venv-<system>, with a Python that uv
 downloads (python-build-standalone). Unlike the Python of Homebrew, which is built for
 the macOS it is installed on, that one also runs on older systems; the build checks this
-for every file it packs. ``--here`` uses the Python that runs this script instead
-(install ``-e ".[app,window,box]" pyinstaller`` into it first).
+for every file it packs. The packages come in the versions of packaging/constraints.txt,
+so every build packs the same code. ``--here`` uses the Python that runs this script
+instead (install ``-c packaging/constraints.txt -e ".[app,window,box]" pyinstaller`` into
+it first).
 
 Without more the result is not signed: macOS and Windows will ask on first start.
 For a Mac app that others can simply open (needs a paid Apple developer account):
@@ -37,7 +39,8 @@ BUILD = ROOT / "build"
 DIST = ROOT / "dist"
 SYSTEM = {"darwin": "mac", "win32": "windows"}.get(sys.platform, "linux")
 # Windows: always the x64 Python, also on ARM computers – the window needs libraries that only exist for x64.
-PYTHON = {"mac": "3.13", "windows": "cpython-3.13-windows-x86_64-none"}.get(SYSTEM, "3.13")
+PYTHON = {"mac": "3.13.12", "windows": "cpython-3.13.12-windows-x86_64-none"}.get(SYSTEM, "3.13.12")
+CONSTRAINTS = ROOT / "packaging" / "constraints.txt"   # the exact versions of all packages
 MINIMUM_MACOS = "14.0"                   # the oldest macOS the app claims to run on (LSMinimumSystemVersion)
 PRODUCT = "GT7 Companion by qshi"        # name of the app and the disk image, as in gt7companion.launcher
 DISK_IMAGE = "GT7-Companion-by-qshi-mac-arm64.dmg"     # no spaces: the name survives a download link
@@ -64,10 +67,7 @@ def environment(fresh: bool) -> Path:
         shutil.rmtree(folder)
     if not python.exists():
         run(uv, "venv", "--python", PYTHON, "--python-preference", "only-managed", folder)
-    wanted = ["-e", f"{ROOT}[app,window,box]", "pyinstaller"]
-    if SYSTEM == "windows":
-        wanted.append("pythonnet<3.2")       # the bridge to .NET under the window: the series the build was tried with
-    run(uv, "pip", "install", "--python", python, *wanted)
+    run(uv, "pip", "install", "--python", python, "-c", CONSTRAINTS, "-e", f"{ROOT}[app,window,box]", "pyinstaller")
     return python
 
 
@@ -122,7 +122,9 @@ def sign(app: Path, identity: str) -> None:
     base = ["codesign", "--force", "--timestamp", "--options", "runtime", "--sign", identity]
     print(f"+ codesign: {len(inner)} program files, then the app", flush=True)
     for start in range(0, len(inner), 20):
-        subprocess.run(base + [str(path) for path in inner[start:start + 20]], check=True, capture_output=True)
+        done = subprocess.run(base + [str(path) for path in inner[start:start + 20]], capture_output=True, text=True)
+        if done.returncode:
+            sys.exit(f"codesign failed:\n{done.stderr.strip()}")
     run(*base, "--entitlements", ENTITLEMENTS, app)
     run("codesign", "--verify", "--deep", "--strict", app)
 
@@ -175,13 +177,14 @@ def windows_zip(folder: Path) -> Path:
     return target
 
 
-def main(argv: list[str] | None = None) -> int:
+def options(argv: list[str] | None) -> tuple[argparse.Namespace, str | None]:
+    """What was asked for on the command line, and the certificate to sign with (or ``None``)."""
     parser = argparse.ArgumentParser(description=__doc__.split("\n\n")[0])
     parser.add_argument("--here", action="store_true", help="use the Python that runs this script")
     parser.add_argument("--fresh", action="store_true", help="make the build environment anew")
     parser.add_argument("--no-box-helper", action="store_true",
                         help="macOS: leave out the helper that lets the Box run on the Mac alone "
-                             "(it needs the Xcode tools of macOS 26 or newer to build)")
+                             "(building it needs Xcode 27 or newer)")
     parser.add_argument("--sign", metavar="IDENTITY", nargs="?", const="", default=None,
                         help="macOS: sign with this certificate (default: $GT7C_SIGN_IDENTITY)")
     parser.add_argument("--notarize", metavar="PROFILE", help="macOS: have Apple check the signed result")
@@ -196,39 +199,54 @@ def main(argv: list[str] | None = None) -> int:
         parser.error("--sign, --notarize and --dmg are for macOS")
     if args.notarize and not identity:
         parser.error("--notarize needs --sign")
+    return args, identity
 
+
+def box_helper(wanted: bool) -> None:
+    """macOS: compile the helper of the Box where the recipe looks for it – or make sure none is packed."""
+    helper = BUILD / BOX_HELPER
+    helper.unlink(missing_ok=True)
+    if not wanted:
+        return
+    sys.path.insert(0, str(ROOT / "tools"))
+    from build_box_helper import build as build_box_helper
+
+    try:
+        print("+ swiftc", build_box_helper(helper).relative_to(ROOT), flush=True)
+    except RuntimeError as problem:
+        sys.exit(f"{problem}\n\nThe helper of the Box could not be built; --no-box-helper builds without it.")
+
+
+def finish_mac(args: argparse.Namespace, identity: str | None) -> int:
+    """Check the app, then sign, notarise and pack it as far as that was asked for."""
+    app = DIST / f"{PRODUCT}.app"
+    problems = check_macos_files(app)
+    if problems:
+        print(f"\nNot fit for macOS {MINIMUM_MACOS}:\n  " + "\n  ".join(problems), file=sys.stderr)
+        return 1
+    print(f"\n{app.relative_to(ROOT)}: every program file runs on macOS {MINIMUM_MACOS} or newer.")
+    if identity:
+        sign(app, identity)
+    if args.notarize:
+        notarize(app, args.notarize)
+    if args.dmg:
+        image = disk_image(app, identity)
+        if args.notarize:
+            notarize(image, args.notarize)
+        print(f"\n{image.relative_to(ROOT)}")
+    return 0
+
+
+def main(argv: list[str] | None = None) -> int:
+    args, identity = options(argv)
     python = Path(sys.executable) if args.here else environment(args.fresh)
     if SYSTEM == "mac":
-        helper = BUILD / BOX_HELPER                  # the recipe packs it if it is there
-        helper.unlink(missing_ok=True)
-        if not args.no_box_helper:
-            sys.path.insert(0, str(ROOT / "tools"))
-            from build_box_helper import build as build_box_helper
-
-            try:
-                print("+ swiftc", build_box_helper(helper).relative_to(ROOT), flush=True)
-            except RuntimeError as problem:
-                sys.exit(f"{problem}\n\nThe helper of the Box could not be built; --no-box-helper builds without it.")
+        box_helper(not args.no_box_helper)
     run(python, "-m", "PyInstaller", "--noconfirm", "--clean", "--distpath", DIST,
         "--workpath", BUILD / "pyinstaller", ROOT / "packaging" / "gt7companion.spec")
-
     if SYSTEM == "mac":
-        app = DIST / f"{PRODUCT}.app"
-        problems = check_macos_files(app)
-        if problems:
-            print(f"\nNot fit for macOS {MINIMUM_MACOS}:\n  " + "\n  ".join(problems), file=sys.stderr)
-            return 1
-        print(f"\n{app.relative_to(ROOT)}: every program file runs on macOS {MINIMUM_MACOS} or newer.")
-        if identity:
-            sign(app, identity)
-        if args.notarize:
-            notarize(app, args.notarize)
-        if args.dmg:
-            image = disk_image(app, identity)
-            if args.notarize:
-                notarize(image, args.notarize)
-            print(f"\n{image.relative_to(ROOT)}")
-    elif SYSTEM == "windows":
+        return finish_mac(args, identity)
+    if SYSTEM == "windows":
         print(f"\n{windows_zip(DIST / 'gt7companion').relative_to(ROOT)}")
     else:
         print(f"\n{(DIST / 'gt7companion').relative_to(ROOT)}")

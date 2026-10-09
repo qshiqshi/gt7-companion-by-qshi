@@ -1,0 +1,61 @@
+# The exact packages the program is built with, on macOS and on Windows alike. packaging/build.py hands
+# this file to "uv pip install -c", so a build today and a build next month pack the same code.
+#
+# The versions are what resolved on 2026-10-09 with nothing newer than 2026-09-24 allowed (packages get
+# two weeks to show their faults). The app was built, started and tested with exactly these.
+# To move them: install with "--exclude-newer <date>" in a fresh environment on both systems, run the
+# tests and the built program there, then write the output of "uv pip freeze" down here.
+
+# on both systems
+altgraph==0.17.5
+annotated-doc==0.0.5
+annotated-types==0.8.0
+anyio==4.15.1
+bottle==0.13.4
+cffi==2.1.1
+click==8.5.0
+fastapi==0.141.1
+h11==0.16.0
+idna==3.20
+ifaddr==0.2.0
+packaging==26.3
+pillow==12.3.0
+platformdirs==4.11.12
+proxy-tools==0.1.0
+pycparser==3.0
+pycryptodome==3.23.0
+pydantic==2.13.5
+pydantic-core==2.46.5
+pyinstaller==6.22.3
+pyinstaller-hooks-contrib==2026.7
+pystray==0.19.5
+pywebview==6.2.1
+segno==1.6.6
+setuptools==84.0.0
+six==1.17.0
+sounddevice==0.5.6
+starlette==1.7.0
+typing-extensions==4.16.0
+typing-inspection==0.4.4
+uvicorn==0.53.0
+websockets==17.1
+
+# macOS only
+macholib==1.16.4
+pyobjc-core==12.2.2
+pyobjc-framework-cocoa==12.2.2
+pyobjc-framework-quartz==12.2.2
+pyobjc-framework-security==12.2.2
+pyobjc-framework-uniformtypeidentifiers==12.2.2
+pyobjc-framework-webkit==12.2.2
+
+# Windows only
+clr-loader==0.3.1
+pefile==2024.8.26
+pythonnet==3.1.0
+pywin32-ctypes==0.2.3
+
+# for the tests (extra "dev")
+httpcore2==2.13.1
+httpx2==2.13.1
+truststore==0.10.4
