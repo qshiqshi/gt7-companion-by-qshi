@@ -70,6 +70,20 @@ class PagesAndStatus(AppCase):
         self.assertEqual(script.status_code, 200)
         self.assertEqual(script.headers["cache-control"], "no-cache")
 
+    def test_the_start_page_is_served_and_only_the_computer_itself_switches_it_off(self):
+        client = self.client()
+        page = client.get("/start")
+        self.assertEqual((page.status_code, page.headers["cache-control"]), (200, "no-store"))
+        self.assertIn("/static/js/pages/start.js", page.text)
+        self.assertIn("script-src 'self'", page.headers["content-security-policy"])
+        self.assertIs(client.get("/api/settings").json()["start_screen"], True)          # shown unless switched off
+        self.assertIs(client.post("/api/settings", json={"start_screen": False}).json()["start_screen"], False)
+        self.assertEqual(client.post("/api/settings", json={"start_screen": "no"}).status_code, 400)
+        tablet = self.client(TABLET, base="http://192.168.1.20:8707")
+        self.assertEqual(tablet.get("/start").status_code, 200)                         # anyone may look at it
+        self.assertEqual(tablet.post("/api/settings", json={"start_screen": True}).status_code, 403)
+        self.assertEqual(tablet.post("/api/source", json={"source": "live"}).status_code, 403)
+
     def test_status_names_source_and_role(self):
         status = self.client().get("/api/status").json()
         self.assertEqual(status["source"], "demo")

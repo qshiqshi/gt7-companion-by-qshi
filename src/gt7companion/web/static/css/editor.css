@@ -141,3 +141,12 @@ body.editor-mode .widget, body.editor-mode #canvas { touch-action:none; }
   #style-popup .sp-row.is-sensitivity .st-name { display:block; grid-column:1 / -1; }
   .sp-font, #style-font-global { font-size:16px; }
 }
+
+/* Toolbar in groups: looks | data, then the layout tools and, on the right, help and the ways out.
+   A group moves to the next row as a whole; only where a row is too narrow for it, it wraps inside. */
+#editor-toolbar .tb-group { display:flex; flex-wrap:wrap; align-items:center; gap:8px; min-width:0; }
+#editor-toolbar .tb-right { margin-left:auto; }
+#editor-toolbar #btn-save { border-color:#83b7fa; }
+#editor-toolbar button:focus-visible, #editor-toolbar .tb-link:focus-visible, #editor-toolbar select:focus-visible { outline:2px solid #83b7fa; outline-offset:2px; }
+#editor-toolbar button:disabled { opacity:.5; cursor:default; }
+@media(max-width:900px) { #editor-toolbar .tb-sep { display:none; } }

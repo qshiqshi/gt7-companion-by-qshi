@@ -48,8 +48,8 @@ TEST_MESSAGES: dict[str, dict] = {
     "surface_sweep": {},               # every surface colour runs once around the car
 }
 _NO_STORE = {"Cache-Control": "no-store"}
-_PAGES = {"/": "index.html", "/connect": "connect.html", "/settings": "settings.html", "/game": "game.html",
-          "/game/credits": "game-credits.html"}
+_PAGES = {"/": "index.html", "/start": "start.html", "/connect": "connect.html", "/settings": "settings.html",
+          "/game": "game.html", "/game/credits": "game-credits.html"}
 
 
 def _content_security_policy() -> str:
@@ -219,6 +219,11 @@ def create_app(settings: Settings | None = None, *, layouts: LayoutStore | None 
     @app.get("/")
     async def index():
         return FileResponse(WEB / "index.html", headers=_NO_STORE)
+
+    @app.get("/start")
+    async def start_page():
+        """Where the program opens: what feeds the dashboard, and the ways on from there."""
+        return FileResponse(WEB / "start.html", headers=_NO_STORE)
 
     @app.get("/connect")
     async def connect_page():

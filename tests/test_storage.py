@@ -30,7 +30,8 @@ class SettingsTests(Folder):
         self.assertEqual(Settings(path).as_dict(),
                          {**DEFAULTS, "source": "live", "ps5_ip": "192.168.1.30", "packet": "A", "telemetry_hz": 60})
         for bad in ({"source": "tv"}, {"ps5_ip": "not an address"}, {"packet": "Z"},
-                    {"telemetry_hz": "fast"}, {"unknown": 1}, {"source": "demo", "packet": 7}, {"lan": "yes"}):
+                    {"telemetry_hz": "fast"}, {"unknown": 1}, {"source": "demo", "packet": 7}, {"lan": "yes"},
+                    {"start_screen": "no"}):
             with self.subTest(bad=bad), self.assertRaises(ValueError):
                 settings.update(bad)
         self.assertEqual(settings["source"], "live")            # a refused change changes nothing

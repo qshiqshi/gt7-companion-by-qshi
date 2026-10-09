@@ -19,7 +19,8 @@ WEB = Path(__file__).resolve().parents[1] / "src/gt7companion/web"
 DICTIONARY = WEB / "static/i18n/en.js"
 SCRIPTS = ["static/overlay-style.js", "static/overlay-telemetry.js", "static/telemetry-charts.js",
            "static/js/editor.js", "static/js/widgets.js", "static/js/layout.js", "static/js/viewer.js",
-           "static/js/figure.js", "static/js/pages/connect.js", "static/js/pages/settings.js",
+           "static/js/figure.js", "static/js/tour.js", "static/js/tours.js", "static/js/pages/connect.js",
+           "static/js/pages/settings.js", "static/js/pages/start.js",
            "static/game/src/main.js", "static/game/src/panel.js", "static/game/src/record.js",
            "static/game/src/render/hud.js", "static/game/src/world/notes.js"]
 ATTRIBUTES = ("title", "placeholder", "aria-label", "alt")
@@ -99,7 +100,7 @@ FRAGMENTS = {"zurücksetzen", "Farben für", "Stil:", "Farben gelten für den", 
              "Gas & Bremse 20 Sekunden Gas — % Bremse — %", "Streckenlinie Eigene Runde",
              "Fahrdynamik Berechnet Längs — Quer —", "Antrieb Ladedruck — Kupplung —", "TCS ASM Handbremse"}
 # Not for people: names of keys, tags, fonts, classes, functions.
-NOT_TEXT = re.compile(r"^[a-z]+([A-Z][a-z0-9]*)+$|^(use strict|Escape|INPUT|SELECT|TEXTAREA|Arrow\w+)$"
+NOT_TEXT = re.compile(r"^[a-z]+([A-Z][a-z0-9]*)+$|^(use strict|Escape|Tab|INPUT|SELECT|TEXTAREA|Arrow\w+)$"
                       r"|Helvetica|^[a-z-]+( [a-z-]+)+$")
 
 

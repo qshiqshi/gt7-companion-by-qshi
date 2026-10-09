@@ -36,5 +36,6 @@ onTopic('layout_gone', function() {
   location.replace(urlFor(MODE, ''));
 });
 
+await import('./tours.js');          // listens for the first layout, so before the connection is made
 wsConnect();
 updateStatusDot();

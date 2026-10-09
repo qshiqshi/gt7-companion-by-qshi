@@ -109,6 +109,8 @@ def main() -> int:
             context = browser.new_context(viewport={"width": width, "height": height}, device_scale_factor=SCALE,
                                           locale="de-DE" if language == "de" else "en-US", **more)
             context.set_default_timeout(PATIENCE)
+            # The dashboard as in a real drive: without the strip that says the demo drive is playing.
+            context.add_init_script("try { sessionStorage.setItem('gt7c.demo-note', 'off'); } catch (e) {}")
             return context.new_page()
 
         def shoot(page, language: str, name: str, **how) -> None:

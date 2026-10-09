@@ -5,6 +5,7 @@ import { fitStage, stageSizeOf } from './stage-fit.js';
 
 const canvas = document.getElementById('canvas');
 const toolbar = document.getElementById('editor-toolbar');
+const banner = document.getElementById('source-banner');
 let size = { width: 1920, height: 1080 };
 let current = { scale: 1, x: 0, y: 0 };
 
@@ -26,7 +27,9 @@ function viewport() {
 export function refit() {
   /* In the editor the stage sits below the toolbar and is never enlarged (pixel-true editing). */
   const top = IS_EDITOR && toolbar ? toolbar.offsetHeight + 10 : 0;
-  const next = fitStage(viewport(), size, { top: top, maxScale: IS_EDITOR ? 1 : Infinity });
+  /* The dashboard stays clear of the strip that says the demo drive is playing. */
+  const bottom = banner && !banner.hidden ? banner.offsetHeight : 0;
+  const next = fitStage(viewport(), size, { top: top, bottom: bottom, maxScale: IS_EDITOR ? 1 : Infinity });
   const changed = next.scale !== current.scale;
   current = next;
   canvas.style.width = size.width + 'px';
@@ -49,4 +52,5 @@ window.addEventListener('orientationchange', refit);
 if (window.visualViewport) window.visualViewport.addEventListener('resize', refit);
 /* The editor toolbar wraps on narrow screens; the stage follows its height. */
 if (toolbar && window.ResizeObserver) new ResizeObserver(refit).observe(toolbar);
+if (banner && window.ResizeObserver) new ResizeObserver(refit).observe(banner);     // it comes and goes with the source
 refit();

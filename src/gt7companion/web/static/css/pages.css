@@ -65,3 +65,34 @@ details { margin-bottom: 16px; }
 details summary { cursor: pointer; margin-bottom: 12px; color: #b5bac5; }
 input[type="password"] { width: 100%; min-height: 44px; padding: 0 12px; border: 1px solid #3a3e48; border-radius: 8px; background: #0e0f13; color: #f2f2f2; font: inherit; }
 #box-key .row { margin-bottom: 18px; }
+
+/* start */
+a.button.primary { border-color: #e10600; background: #e10600; color: #fff; }
+a.button.primary:hover { background: #f21b15; }
+.sr-only { position: absolute; width: 1px; height: 1px; margin: -1px; padding: 0; overflow: hidden; clip-path: inset(50%); white-space: nowrap; border: 0; }
+body.start a:not(.button) { color: #a9cbff; text-underline-offset: 3px; }
+h2.stepped { display: flex; align-items: center; gap: 12px; margin-bottom: 16px; }
+.step { display: inline-flex; align-items: center; justify-content: center; flex: none; width: 28px; height: 28px; border-radius: 50%; background: #2a2e37; color: #e9eaee; font-size: 15px; font-weight: 600; }
+fieldset.choices { min-width: 0; margin: 0 0 16px; padding: 0; border: 0; }
+.choice-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 12px; }
+label.choice { position: relative; display: block; padding: 16px 16px 16px 50px; border: 1px solid #3a3e48; border-radius: 10px; background: #0e0f13; cursor: pointer; }
+label.choice:hover { border-color: #5a606c; }
+label.choice input { position: absolute; left: 16px; top: 18px; width: 22px; height: 22px; margin: 0; accent-color: #e10600; }
+label.choice .choice-title { display: block; font-size: 18px; font-weight: 600; }
+label.choice .choice-text { display: block; margin-top: 4px; color: #9aa1ad; font-size: 14px; }
+label.choice.on { border-color: #e10600; background: #1c1214; }
+label.choice:focus-within { outline: 2px solid #83b7fa; outline-offset: 2px; }
+label.choice input:focus-visible { outline: none; }
+fieldset.choices:disabled label.choice { cursor: default; }
+fieldset.choices:disabled label.choice:not(.on) { opacity: 0.6; }
+fieldset.choices:disabled label.choice:hover { border-color: #3a3e48; }
+fieldset.choices:disabled label.choice.on:hover { border-color: #e10600; }
+.after-row { margin: 14px 0 0; }
+ul.ways { list-style: none; margin: 0; padding: 0; }
+ul.ways li { padding: 12px 0; border-top: 1px solid #262931; }
+ul.ways li:first-child { padding-top: 0; border-top: 0; }
+ul.ways li:last-child { padding-bottom: 0; }
+ul.ways a { font-weight: 500; }
+ul.ways span { display: block; margin-top: 2px; color: #9aa1ad; font-size: 14px; }
+body.start label.check { margin-top: 26px; }
+@media (max-width: 520px) { .choice-grid { grid-template-columns: 1fr; } }

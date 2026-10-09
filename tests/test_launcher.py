@@ -274,6 +274,11 @@ class TheWindow(unittest.TestCase):
         self.assertEqual(self.webview.started["storage_path"], "somewhere")
         self.assertEqual(self.webview.created["url"], "http://127.0.0.1:8707/")
 
+    def test_it_opens_with_the_page_it_is_given(self):
+        webview = FakeWebview()
+        Window("http://127.0.0.1:8707/", title="Dashboard", backend=webview, page="start")
+        self.assertEqual(webview.created["url"], "http://127.0.0.1:8707/start")
+
     def test_show_can_open_another_page_first(self):
         self.window.show()
         self.window.show("settings")
@@ -407,7 +412,8 @@ class WindowAndSymbol(unittest.TestCase):
         home.start()
         self.addCleanup(home.stop)
         self.stopped = []
-        self.server = SimpleNamespace(url="http://127.0.0.1:8707/", port=8707, settings={"lan": False}, window=None,
+        self.server = SimpleNamespace(url="http://127.0.0.1:8707/", port=8707, window=None,
+                                      settings={"lan": False, "start_screen": True},
                                       restart=lambda: True, stop=lambda: self.stopped.append("server"))
 
     def close_it(self, platform: str, symbol=None) -> list:
@@ -451,6 +457,13 @@ class WindowAndSymbol(unittest.TestCase):
     def test_on_a_mac_the_dock_brings_the_window_back_so_it_is_only_hidden(self):
         self.assertEqual(self.close_it("darwin", ImportError("No module named 'pystray'")), [False])
         self.assertEqual((self.webview.calls, self.stopped), ([("hide",)], ["server"]))
+
+    def test_the_window_opens_with_the_start_page_unless_that_was_switched_off(self):
+        self.close_it("darwin")
+        self.assertEqual(self.webview.created["url"], "http://127.0.0.1:8707/start")
+        self.server.settings["start_screen"] = False
+        self.close_it("darwin")
+        self.assertEqual(self.webview.created["url"], "http://127.0.0.1:8707/")
 
     def test_the_watch_over_the_display_ends_with_the_window(self):
         self.close_it("darwin")
@@ -514,28 +527,29 @@ class TheMenu(unittest.TestCase):
     def test_with_a_window_the_pages_open_in_it(self):
         entries = self.entries("de", self.window)
         self.assertEqual([entry.text if entry else None for entry in entries],
-                         ["Fenster zeigen", "Vollbild", "Im Browser öffnen", None, "Tisch Turismo (Spiel)",
-                          "Geräte verbinden …", "Einstellungen …", None, "Im Heimnetz freigeben", None, "Beenden"])
+                         ["Fenster zeigen", "Vollbild", "Im Browser öffnen", None, "Startseite",
+                          "Tisch Turismo (Spiel)", "Geräte verbinden …", "Einstellungen …", None,
+                          "Im Heimnetz freigeben", None, "Beenden"])
         self.assertEqual([entry.text for entry in entries if entry and entry.default], ["Fenster zeigen"])
         with patch.object(launcher.webbrowser, "open") as browser:
             for entry in entries:
                 if entry is not None and entry.text != "Im Heimnetz freigeben":
                     entry.action()
-        self.assertEqual(self.window.calls, [("show",), ("toggle_fullscreen",), ("show", "game"), ("show", "connect"),
-                                             ("show", "settings"), ("quit",)])
+        self.assertEqual(self.window.calls, [("show",), ("toggle_fullscreen",), ("show", "start"), ("show", "game"),
+                                             ("show", "connect"), ("show", "settings"), ("quit",)])
         browser.assert_called_once_with("http://127.0.0.1:8707/")
 
     def test_without_a_window_the_pages_open_in_the_browser(self):
         entries = self.entries("en")
         self.assertEqual([entry.text if entry else None for entry in entries],
-                         ["Open dashboard", "Tisch Turismo (game)", "Connect devices …", "Settings …", None,
-                          "Share in the home network", None, "Quit"])
+                         ["Open dashboard", "Start page", "Tisch Turismo (game)", "Connect devices …", "Settings …",
+                          None, "Share in the home network", None, "Quit"])
         with patch.object(launcher.webbrowser, "open") as browser:
-            for entry in entries[:4]:
+            for entry in entries[:5]:
                 entry.action()
         self.assertEqual([call.args[0] for call in browser.call_args_list],
-                         ["http://127.0.0.1:8707/", "http://127.0.0.1:8707/game", "http://127.0.0.1:8707/connect",
-                          "http://127.0.0.1:8707/settings"])
+                         ["http://127.0.0.1:8707/", "http://127.0.0.1:8707/start", "http://127.0.0.1:8707/game",
+                          "http://127.0.0.1:8707/connect", "http://127.0.0.1:8707/settings"])
 
     def test_sharing_in_the_home_network_restarts_the_server_and_says_if_that_failed(self):
         said = []

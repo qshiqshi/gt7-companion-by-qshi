@@ -39,14 +39,21 @@ WINDOW_TITLE = "GT7 Companion by qshi"
 LOG_FILE = "companion.log"             # in the user folder; only the packaged app writes it
 TEXTS = {
     "de": {"open": "Dashboard öffnen", "show": "Fenster zeigen", "fullscreen": "Vollbild",
-           "browser": "Im Browser öffnen", "game": "Tisch Turismo (Spiel)", "connect": "Geräte verbinden …",
+           "browser": "Im Browser öffnen", "start": "Startseite", "game": "Tisch Turismo (Spiel)",
+           "connect": "Geräte verbinden …",
            "settings": "Einstellungen …", "lan": "Im Heimnetz freigeben", "quit": "Beenden",
            "busy": "Port {port} ist belegt"},
     "en": {"open": "Open dashboard", "show": "Show window", "fullscreen": "Full screen",
-           "browser": "Open in the browser", "game": "Tisch Turismo (game)", "connect": "Connect devices …",
+           "browser": "Open in the browser", "start": "Start page", "game": "Tisch Turismo (game)",
+           "connect": "Connect devices …",
            "settings": "Settings …", "lan": "Share in the home network", "quit": "Quit",
            "busy": "Port {port} is in use"},
 }
+
+
+def first_page(settings) -> str:
+    """What the program opens with: the start page, or the dashboard for those who switched that off."""
+    return "start" if settings["start_screen"] else ""
 
 
 class Server:
@@ -168,6 +175,7 @@ def menu(server: Server, texts: dict, *, on_quit: Callable[[], None], window=Non
     else:
         first = [Entry(texts["open"], page(""), default=True)]
     return first + [
+        Entry(texts["start"], page("start")),
         Entry(texts["game"], page("game")),
         Entry(texts["connect"], page("connect")),
         Entry(texts["settings"], page("settings")),
@@ -230,7 +238,7 @@ def run_with_tray(server: Server, *, open_browser: bool = True) -> int:
     icon = _tray_icon(menu(server, texts, on_quit=lambda: icon.stop(),
                            notify=lambda message: icon.notify(message, APP_NAME)))
     if open_browser:
-        threading.Timer(0.5, webbrowser.open, args=(server.url,)).start()
+        threading.Timer(0.5, webbrowser.open, args=(server.url + first_page(server.settings),)).start()
 
     def show(icon) -> None:
         icon.visible = True
@@ -291,7 +299,7 @@ def run_with_window(server: Server, *, show: bool = True) -> int:
         server.stop()
 
     window = Window(server.url, title=WINDOW_TITLE, language=language, storage=user_dir() / "webview",
-                    hidden=not show, on_quit=on_quit)
+                    hidden=not show, on_quit=on_quit, page=first_page(server.settings))
     server.window = window.show
     log.info("Window%s, menus in %s", "" if show else " (hidden at start)", language)
     icon = _symbol_beside(window, server, TEXTS[language])

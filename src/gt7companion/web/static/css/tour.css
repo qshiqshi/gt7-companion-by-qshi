@@ -1,0 +1,50 @@
+/* The guided tour (static/js/tour.js): a ring around one control, everything else dimmed,
+   and a speech bubble beside it. */
+.tour {
+  position: fixed; inset: 0; z-index: 30000;
+  font: 400 15px/1.45 system-ui, -apple-system, "Segoe UI", Roboto, "Helvetica Neue", Arial, sans-serif;
+  color: #e9eaee; text-align: left; letter-spacing: 0; text-transform: none;
+  user-select: none; -webkit-user-select: none;
+}
+.tour-shade { position: absolute; inset: 0; background: rgba(8, 8, 10, 0.66); }
+.tour.has-target .tour-shade { background: transparent; }      /* the ring's shadow dims the rest */
+.tour-spot {
+  position: absolute; border-radius: 10px; pointer-events: none;
+  box-shadow: 0 0 0 2px #83b7fa, 0 0 0 200vmax rgba(8, 8, 10, 0.66);
+}
+.tour-spot[hidden] { display: none; }
+.tour-bubble {
+  position: absolute; box-sizing: border-box; width: min(350px, calc(100vw - 24px)); margin: 0; padding: 16px 18px 14px;
+  border: 1px solid #454a55; border-radius: 14px; background: #1b1d23; box-shadow: 0 18px 50px rgba(0, 0, 0, 0.6);
+}
+/* The tail: a square on its corner, half of it behind the bubble's edge. */
+.tour-bubble::after {
+  content: ""; position: absolute; width: 14px; height: 14px; background: #1b1d23;
+  border: 1px solid #454a55; transform: rotate(45deg);
+}
+.tour-bubble[data-side="bottom"]::after { top: -8px; left: calc(var(--tail, 50%) - 7px); border-right-color: transparent; border-bottom-color: transparent; }
+.tour-bubble[data-side="top"]::after { bottom: -8px; left: calc(var(--tail, 50%) - 7px); border-left-color: transparent; border-top-color: transparent; }
+.tour-bubble[data-side="right"]::after { left: -8px; top: calc(var(--tail, 50%) - 7px); border-right-color: transparent; border-top-color: transparent; }
+.tour-bubble[data-side="left"]::after { right: -8px; top: calc(var(--tail, 50%) - 7px); border-left-color: transparent; border-bottom-color: transparent; }
+.tour-bubble[data-side="none"]::after { display: none; }
+.tour-count { margin: 0 0 4px; font-size: 12px; font-weight: 600; letter-spacing: 0.08em; text-transform: uppercase; color: #9aa1ad; }
+.tour-title { margin: 0 0 6px; font-size: 18px; font-weight: 650; line-height: 1.25; color: #fff; }
+.tour-text { margin: 0 0 14px; color: #cfd3db; }
+.tour-actions { display: flex; align-items: center; gap: 8px; }
+.tour-actions button {
+  min-height: 44px; padding: 0 16px; border: 1px solid #454a55; border-radius: 8px; background: #25282f; color: #f2f2f2;
+  font: inherit; font-weight: 500; cursor: pointer; white-space: nowrap;
+}
+.tour-actions button[hidden] { display: none; }
+.tour-actions button:hover { background: #343944; }
+.tour-actions button:focus-visible { outline: 2px solid #83b7fa; outline-offset: 2px; }
+.tour-actions .tour-skip { margin-right: auto; padding: 0 6px; border-color: transparent; background: transparent; color: #b5bac5; }
+.tour-actions .tour-skip:hover { background: transparent; color: #fff; text-decoration: underline; }
+.tour-actions .tour-next { border-color: #e10600; background: #e10600; color: #fff; }
+.tour-actions .tour-next:hover { background: #f21b15; }
+/* The dashboard's menu hides by itself; while the tour talks about it, it stays. */
+body.tour-open #view-menu { opacity: 1; pointer-events: auto; }
+@media (prefers-reduced-motion: no-preference) {
+  .tour-bubble { transition: left 0.25s ease, top 0.25s ease; }
+  .tour-spot { transition: left 0.25s ease, top 0.25s ease, width 0.25s ease, height 0.25s ease; }
+}

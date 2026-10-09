@@ -22,6 +22,7 @@ DEFAULTS: dict = {
     "lan": False,            # other devices in the home network may open the dashboard
     "language": "auto",      # "de", "en" or "auto": the language of each device
     "units": "metric",       # "metric" (km/h, °C) or "imperial" (mph, °F)
+    "start_screen": True,    # the program opens with the start page; False: straight into the dashboard
     # The Box (race engineer on the radio); the API key itself is in keystore.py
     "box_enabled": False,
     "box_engine": "auto",    # who speaks and answers: "local" (this Mac, no key), "gemini" (own key) or "auto"
@@ -113,7 +114,8 @@ _CHECKS = {"box_enabled": _flag, "box_speaker": _flag, "box_wake": _flag, "box_d
            "box_voice": _text(40, r"[A-Za-z][A-Za-z0-9 _-]*"), "box_model": _text(80, r"[A-Za-z0-9][A-Za-z0-9._-]*"),
            "box_announce": _kinds, "box_per_minute": _number(1, 20), "box_per_session": _number(1, 2000),
            "source": _source, "ps5_ip": _ps5_ip, "packet": _packet, "telemetry_hz": _telemetry_hz,
-           "lan": _flag, "language": _one_of("auto", "de", "en"), "units": _one_of("metric", "imperial")}
+           "lan": _flag, "language": _one_of("auto", "de", "en"), "units": _one_of("metric", "imperial"),
+           "start_screen": _flag}
 
 
 class Settings:

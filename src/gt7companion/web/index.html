@@ -24,6 +24,7 @@
 <link rel="stylesheet" href="/static/overlay-telemetry.css">
 <link rel="stylesheet" href="/static/overlay-reel.css">
 <link rel="stylesheet" href="/static/css/editor.css">
+<link rel="stylesheet" href="/static/css/tour.css">
 </head>
 <body>
 <script src="/static/js/early.js"></script>
@@ -57,22 +58,6 @@
       <div id="style-menu"></div>
     </div>
   </details>
-  <select id="layout-select-edit" aria-label="Layout" title="Welches Layout bearbeitet wird"></select>
-  <details class="toolbar-background" id="own-layouts">
-    <summary>Eigenes Layout</summary>
-    <div class="background-panel">
-      <h3 class="st-h">Kopie anlegen</h3>
-      <p>Legt eine Kopie des gezeigten Layouts unter eigenem Namen an. Die Vorlagen bleiben, wie sie sind.</p>
-      <label class="own-name"><span>Name</span><input id="new-layout-name" type="text" maxlength="40" placeholder="Mein Tablet" autocomplete="off"></label>
-      <button id="btn-layout-copy" type="button">Kopie anlegen</button>
-      <button id="btn-layout-delete" type="button" hidden>Dieses Layout löschen</button>
-      <button id="btn-preset" type="button" title="Positionen und Styling der mitgelieferten Vorlage wiederherstellen">Vorlage wiederherstellen</button>
-      <p id="own-layouts-note" role="status"></p>
-    </div>
-  </details>
-  <button id="btn-save">Layout speichern</button>
-  <button id="btn-reset" title="Zum zuletzt mit „Layout speichern“ gesicherten Stand zurückkehren">Zurücksetzen</button>
-  <button id="btn-undo" type="button" disabled title="Letzte Änderung rückgängig machen (Strg/⌘+Z)">Rückgängig</button>
   <button id="btn-widgets">Widgets ein/aus</button>
   <button id="btn-look" title="Darstellung umschalten: Standard oder Reel-Look">Look: Standard</button>
   <label class="tb-radius" for="widget-radius" title="Eckenradius aller Widgets">
@@ -80,6 +65,8 @@
     <input id="widget-radius" type="range" min="0" max="30" step="1" value="2">
     <output id="widget-radius-value" for="widget-radius">2 px</output>
   </label>
+  <span class="tb-sep" aria-hidden="true"></span>
+  <button id="btn-source" type="button" disabled title="Woher die Fahrdaten kommen: aufgezeichnete Demo-Fahrt oder die PlayStation im Heimnetz">Daten: …</button>
 <details class="toolbar-tests"><summary>Tests</summary><div>
   <button data-test="best_lap">Test Bestzeit</button>
   <button data-test="spin">Test Dreher</button>
@@ -87,13 +74,35 @@
   <button data-test="tyre_sweep">Test Reifen</button>
   <button data-test="surface_sweep">Test Untergrund</button>
 </div></details>
-  <button id="btn-source" type="button" disabled title="Woher die Fahrdaten kommen: aufgezeichnete Demo-Fahrt oder die PlayStation im Heimnetz">Daten: …</button>
-  <a class="tb-link" id="btn-view" href="/">Zur Ansicht</a>
-  <a class="tb-link tb-next" href="/connect">Geräte verbinden</a>
-  <a class="tb-link tb-next" href="/settings">Einstellungen</a>
-  <div class="ws-indicator">
-    <span class="ws-dot" id="ws-dot"></span>
-    <span id="ws-label">Getrennt</span>
+  <!-- Layout: which one, a copy of your own, and the saved state to return to -->
+  <div class="tb-group" id="layout-tools">
+    <select id="layout-select-edit" aria-label="Layout" title="Welches Layout bearbeitet wird"></select>
+    <details class="toolbar-background" id="own-layouts">
+      <summary>Eigenes Layout</summary>
+      <div class="background-panel">
+        <h3 class="st-h">Kopie anlegen</h3>
+        <p>Legt eine Kopie des gezeigten Layouts unter eigenem Namen an. Die Vorlagen bleiben, wie sie sind.</p>
+        <label class="own-name"><span>Name</span><input id="new-layout-name" type="text" maxlength="40" placeholder="Mein Tablet" autocomplete="off"></label>
+        <button id="btn-layout-copy" type="button">Kopie anlegen</button>
+        <button id="btn-layout-delete" type="button" hidden>Dieses Layout löschen</button>
+        <button id="btn-preset" type="button" title="Positionen und Styling der mitgelieferten Vorlage wiederherstellen">Vorlage wiederherstellen</button>
+        <p id="own-layouts-note" role="status"></p>
+      </div>
+    </details>
+    <button id="btn-save">Layout speichern</button>
+    <button id="btn-reset" title="Zum zuletzt mit „Layout speichern“ gesicherten Stand zurückkehren">Zurücksetzen</button>
+    <button id="btn-undo" type="button" disabled title="Letzte Änderung rückgängig machen (Strg/⌘+Z)">Rückgängig</button>
+  </div>
+  <!-- Help and the ways out -->
+  <div class="tb-group tb-right">
+    <button id="btn-tour" type="button" title="Rundgang: zeigt in wenigen Schritten, was wo ist">Hilfe</button>
+    <a class="tb-link tb-next" id="btn-view" href="/">Zur Ansicht</a>
+    <a class="tb-link tb-next" href="/connect">Geräte verbinden</a>
+    <a class="tb-link tb-next" href="/settings">Einstellungen</a>
+    <div class="ws-indicator">
+      <span class="ws-dot" id="ws-dot"></span>
+      <span id="ws-label">Getrennt</span>
+    </div>
   </div>
 </div>
 
@@ -359,13 +368,21 @@
     <div class="wait-text"></div>
   </div>
 </div>
+<!-- Dashboard only: a strip while the demo drive plays, so nobody takes it for the real car -->
+<div id="source-banner" hidden>
+  <p class="sb-text" role="status"><strong>Demo-Fahrt</strong><span>Aufgezeichnete Runden, keine Live-Daten.</span></p>
+  <a id="sb-choose" href="/start">Datenquelle wählen</a>
+  <button id="sb-close" type="button" aria-label="Hinweis ausblenden" title="Hinweis ausblenden">×</button>
+</div>
 <nav id="view-menu" hidden>
+  <a id="btn-start" href="/start" title="Zur Startseite: Datenquelle, Geräte, Einstellungen">Start</a>
   <button id="btn-talk" type="button" hidden title="Gedrückt halten und mit der Box sprechen (Mikrofon am Computer)">Sprechen</button>
   <button id="btn-sound" type="button" hidden>Ton an</button>
   <select id="layout-select" aria-label="Layout" hidden></select>
   <a id="btn-game" href="/game" title="Ein Spielzeugauto fährt auf dem Schreibtisch nach, was du gerade fährst">Tisch Turismo</a>
   <a id="btn-edit" href="?edit=1" hidden>Bearbeiten</a>
   <button id="btn-fullscreen" type="button">Vollbild</button>
+  <button id="btn-help" type="button" title="Rundgang: zeigt in wenigen Schritten, was wo ist">Hilfe</button>
 </nav>
 
 <script src="/static/telemetry-charts.js"></script>

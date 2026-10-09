@@ -102,8 +102,10 @@ class Window:
     """
 
     def __init__(self, url: str, *, title: str, language: str = "en", storage: Path | None = None,
-                 hidden: bool = False, on_quit: Callable[[], None] | None = None, backend=None) -> None:
-        """``backend`` stands in for the pywebview module in tests."""
+                 hidden: bool = False, on_quit: Callable[[], None] | None = None, backend=None,
+                 page: str = "") -> None:
+        """``page`` is what the window opens with (``url`` alone is the dashboard); ``backend``
+        stands in for the pywebview module in tests."""
         self.url = url
         self.hide_on_close = True
         self._language = language if language in _MAC_MENUS else "en"
@@ -120,7 +122,7 @@ class Window:
         self._awake = None                           # macOS: what keeps the display on, see keep_awake()
         self._keep: list = []                        # Cocoa holds its delegates weakly
         # On macOS the window appears once its remembered place is known (see _prepare_mac).
-        self._window = backend.create_window(title, url, width=SIZE[0], height=SIZE[1], min_size=MINIMUM,
+        self._window = backend.create_window(title, url + page, width=SIZE[0], height=SIZE[1], min_size=MINIMUM,
                                              hidden=hidden or self._mac, background_color=BACKGROUND)
         self._window.events.closing += self._closing
         self._window.events.minimized += self._now_minimized

@@ -57,6 +57,20 @@ test('the editor keeps room for its toolbar and never enlarges the stage', () =>
   assert.ok(tall.bottom <= 1100 + 1e-9);
 });
 
+test('the dashboard keeps clear of the strip of the demo drive below it', () => {
+  const same = placed({ width: 1280, height: 720 }, HD, { bottom: 44 });
+  close(same.fit.scale, (720 - 44) / 1080);              // the height decides now
+  close(same.top, 0);
+  close(same.bottom, 720 - 44);
+  close(same.left, 1280 - same.right);                   // still centred
+  const bars = placed({ width: 1024, height: 768 }, HD, { bottom: 44 });
+  close(bars.fit.scale, 1024 / 1920);                    // bars above and below anyway: only their middle moves
+  close(bars.top, (768 - 44 - 576) / 2);
+  assert.ok(bars.bottom <= 768 - 44 + 1e-9);
+  const editor = placed({ width: 1440, height: 900 }, HD, { top: 70, bottom: 44, maxScale: 1 });
+  assert.ok(editor.top >= 70 && editor.bottom <= 900 - 44 + 1e-9);
+});
+
 test('a screen of no size does not break the page', () => {
   for (const view of [{ width: 0, height: 0 }, { width: 500, height: 40 }]) {
     const fit = fitStage(view, HD, { top: 70 });

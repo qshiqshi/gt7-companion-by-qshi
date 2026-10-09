@@ -98,7 +98,11 @@ class Pages(unittest.TestCase):
         for are always given as functions: ``"() => …"``."""
         self.close_pages()                            # one page at a time: 3D in software is slow
         context_options.setdefault("locale", "de-DE")            # the pages follow the device's language
+        demo_note = context_options.pop("demo_note", False)
         context = self.browser.new_context(viewport={"width": size[0], "height": size[1]}, **context_options)
+        if not demo_note:
+            # As for someone who put the strip of the demo drive away: the dashboard has the whole screen.
+            context.add_init_script("try { sessionStorage.setItem('gt7c.demo-note', 'off'); } catch (e) {}")
         page = context.new_page()
         problems = []
         page.on("pageerror", lambda error: problems.append(str(error)))
@@ -156,7 +160,7 @@ class BrowserCase(Pages):
         page.goto(f"http://127.0.0.1:{self.port}/")                  # plain address again: the choice stays
         page.wait_for_function("() => document.getElementById('canvas').style.width === '1440px'")
         self.assertEqual(page.evaluate("document.getElementById('btn-edit').getAttribute('href')"),
-                         "/?layout=dashboard-4x3&edit=1")
+                         "/?layout=dashboard-4x3&edit=1&tour=1")     # the first time on this device: with the tour
 
     def test_stage_follows_the_window(self):
         page = self.open(size=(1920, 1080))
@@ -598,6 +602,210 @@ class LocalBoxInTheBrowser(Pages):
         self.assertEqual(page.evaluate("[...document.getElementById('box_engine').options].map(o => o.textContent).join('|')"),
                          "Automatic: this computer, if it can|This Mac – no key and no cost|"
                          "Gemini by Google – with a key of your own")
+
+
+class StartPageAndTour(Pages):
+    """The start page, the strip that says the demo drive is playing, and the two tours."""
+
+    VIEW_TOUR = ["Willkommen im Dashboard", "Gerade läuft die Demo-Fahrt", "Das Menü", "Alles lässt sich anpassen",
+                 "Hilfe und Start"]
+    EDIT_TOUR = ["Anzeigen anordnen", "Ein- und ausblenden", "Aussehen für alle", "Sichern und zurück", "Fertig?"]
+    OTHER_DEVICE = {"extra_http_headers": {"X-Forwarded-For": "192.168.1.50"}}
+
+    @classmethod
+    def app_options(cls, home: Path) -> dict:
+        def udp_port() -> int:
+            with socket.socket(socket.AF_INET, socket.SOCK_DGRAM) as probe:
+                probe.bind(("127.0.0.1", 0))
+                return probe.getsockname()[1]
+
+        return {"ports": (udp_port(), udp_port())}                # never the real ports of the console
+
+    def ask(self, path: str, body: dict | None = None) -> dict:
+        import json
+        from urllib.request import ProxyHandler, Request, build_opener
+        request = Request(f"http://127.0.0.1:{self.port}{path}", method="GET" if body is None else "POST",
+                          data=None if body is None else json.dumps(body).encode(),
+                          headers={"Content-Type": "application/json"})
+        with build_opener(ProxyHandler({})).open(request, timeout=10) as response:
+            return json.load(response)
+
+    def setUp(self):
+        super().setUp()
+        self.addCleanup(self.ask, "/api/source", {"source": "demo"})     # every test finds the demo drive playing
+
+    def walk(self, page) -> list:
+        """Go through the tour that is open with "Weiter" to its last step; returns (count, title) of each step
+        and checks that the bubble is on the screen and the ring around what it talks about."""
+        steps = []
+        while True:
+            count = page.text_content(".tour-count")
+            steps.append((count, page.text_content(".tour-title")))
+            box = page.evaluate("""() => { const b = document.querySelector('.tour-bubble').getBoundingClientRect();
+                                           return [b.left, b.top, innerWidth - b.right, innerHeight - b.bottom]; }""")
+            self.assertGreaterEqual(min(box), 0, steps[-1])
+            if page.text_content(".tour-next") == "Fertig":
+                return steps
+            page.click(".tour-next")
+            page.wait_for_function("(old) => document.querySelector('.tour-count').textContent !== old", arg=count)
+
+    # ---------------------------------------------------------------- start page
+    def test_the_start_page_says_what_runs_and_switches_the_source(self):
+        page = self.open_plain("start", size=(1280, 748))
+        page.wait_for_function("() => !document.getElementById('choices').disabled")
+        self.assertTrue(page.is_checked("input[value=demo]"))
+        self.assertIn("Demo-Fahrt", page.text_content("#source-state"))
+        self.assertTrue(page.evaluate("document.getElementById('source-locked').hidden"))
+        self.assertEqual(page.text_content("#version").strip(), "Version " + self.ask("/api/status")["version"])
+        page.check("input[value=live]")
+        page.wait_for_function("() => document.getElementById('source-state').textContent.includes('wird gesucht')")
+        self.assertEqual(self.ask("/api/status")["source"], "live")
+        self.assertTrue(page.is_checked("input[value=live]"))
+        page.check("input[value=demo]")
+        page.wait_for_function("() => document.getElementById('source-state').textContent.includes('Demo-Fahrt')")
+        self.assertEqual(self.ask("/api/status")["source"], "demo")
+
+    def test_the_start_page_leads_on_with_the_tour_only_the_first_time(self):
+        page = self.open_plain("start")
+        page.wait_for_function("() => !document.getElementById('choices').disabled")
+        self.assertEqual([page.get_attribute(link, "href") for link in ("#open-dashboard", "#open-editor")],
+                         ["/?tour=1", "/?edit=1&tour=1"])
+        self.assertFalse(page.evaluate("document.getElementById('tour-note').hidden"))
+        page.evaluate("localStorage.setItem('gt7c.tour.view', '1'); localStorage.setItem('gt7c.tour.edit', '1')")
+        page.reload()
+        page.wait_for_function("() => !document.getElementById('choices').disabled")
+        self.assertEqual([page.get_attribute(link, "href") for link in ("#open-dashboard", "#open-editor")],
+                         ["/", "/?edit=1"])
+        self.assertTrue(page.evaluate("document.getElementById('tour-note').hidden"))
+
+    def test_the_computer_itself_decides_whether_the_program_opens_with_the_start_page(self):
+        self.addCleanup(self.ask, "/api/settings", {"start_screen": True})
+        page = self.open_plain("start")
+        page.wait_for_selector("#start-screen-row", state="visible")
+        self.assertTrue(page.is_checked("#start_screen"))
+        page.uncheck("#start_screen")
+        page.wait_for_function("() => fetch('/api/settings').then(r => r.json()).then(d => d.start_screen === false)")
+        page.check("#start_screen")
+        page.wait_for_function("() => fetch('/api/settings').then(r => r.json()).then(d => d.start_screen === true)")
+
+    def test_another_device_sees_the_start_page_but_switches_nothing(self):
+        page = self.open_plain("start", **self.OTHER_DEVICE)
+        page.wait_for_selector("#source-locked", state="visible")
+        self.assertTrue(page.evaluate("document.getElementById('choices').disabled"))
+        self.assertTrue(page.is_checked("input[value=demo]"))
+        self.assertIn("Demo-Fahrt", page.text_content("#source-state"))
+        self.assertTrue(page.evaluate("document.getElementById('start-screen-row').hidden"))
+        self.assertEqual(page.get_attribute("#source-locked a", "href"), "/connect?next=/start")
+
+    def test_the_start_page_in_english_on_a_phone(self):
+        page = self.open_plain("start", size=(390, 844), locale="en-US")
+        page.wait_for_function("() => !document.getElementById('choices').disabled")
+        self.assertEqual(page.text_content("h1"), "Ready to drive?")
+        self.assertIn("demo drive is playing", page.text_content("#source-state"))
+        self.assertEqual(page.text_content("#open-dashboard"), "Open the dashboard")
+        self.assertLessEqual(page.evaluate("document.documentElement.scrollWidth"), 390)       # nothing runs out of the screen
+
+    # ---------------------------------------------------------------- the strip of the demo drive
+    def test_the_strip_says_the_demo_drive_is_playing_and_the_stage_keeps_clear_of_it(self):
+        touching = """() => Math.abs(document.getElementById('canvas').getBoundingClientRect().bottom
+                                    - document.getElementById('source-banner').getBoundingClientRect().top) < 1"""
+        page = self.open(size=(1280, 720), figure=False, demo_note=True)
+        page.wait_for_selector("#source-banner", state="visible")
+        self.assertIn("Demo-Fahrt", page.text_content("#source-banner"))
+        self.assertEqual(page.get_attribute("#sb-choose", "href"), "/start")
+        page.wait_for_function(touching)
+        # the real console takes over: the strip goes, the dashboard has the whole screen
+        self.ask("/api/source", {"source": "live"})
+        page.wait_for_selector("#source-banner", state="hidden")
+        page.wait_for_function("() => document.getElementById('canvas').getBoundingClientRect().bottom > 719")
+        self.ask("/api/source", {"source": "demo"})
+        page.wait_for_selector("#source-banner", state="visible")
+        page.wait_for_function(touching)
+        # put away, it stays away while this page is in use
+        page.click("#sb-close")
+        page.wait_for_function("() => document.getElementById('canvas').getBoundingClientRect().bottom > 719")
+        page.reload()
+        page.wait_for_function("() => Number(document.querySelector('#w-speed .speed-val').textContent) > 0", timeout=10000)
+        self.assertTrue(page.evaluate("document.getElementById('source-banner').hidden"))
+
+    def test_an_overlay_for_the_stream_shows_neither_strip_nor_tour(self):
+        page = self.open("?obs=1&tour=1", size=(1920, 1080), figure=False, demo_note=True)
+        page.wait_for_function("() => Number(document.querySelector('#w-speed .speed-val').textContent) > 0", timeout=10000)
+        page.wait_for_timeout(700)                                   # the tour would be there by now
+        self.assertTrue(page.evaluate("document.getElementById('source-banner').hidden"))
+        self.assertIsNone(page.query_selector(".tour"))
+        self.assertAlmostEqual(page.evaluate(STAGE)["bottom"], 1080, delta=1)
+
+    # ---------------------------------------------------------------- tours
+    def test_the_tour_of_the_dashboard_runs_through_once_and_help_brings_it_back(self):
+        page = self.open("?tour=1", size=(1280, 748), figure=False, demo_note=True)
+        page.wait_for_selector(".tour-bubble")
+        self.assertTrue(page.url.endswith("/"), page.url)                      # a reload does not start it again
+        self.assertTrue(page.evaluate("document.activeElement.classList.contains('tour-next')"))
+        steps = self.walk(page)
+        self.assertEqual([title for _, title in steps], self.VIEW_TOUR)
+        self.assertEqual([count for count, _ in steps], [f"Schritt {n} von 5" for n in range(1, 6)])
+        page.click(".tour-back")                                               # the step about the editor button
+        page.wait_for_function("() => document.querySelector('.tour-count').textContent === 'Schritt 4 von 5'")
+        # the ring moves there and ends up around the button
+        page.wait_for_function("""() => { const r = document.querySelector('.tour-spot').getBoundingClientRect();
+                                          const b = document.getElementById('btn-edit').getBoundingClientRect();
+                                          return r.left <= b.left && r.top <= b.top && r.right >= b.right && r.bottom >= b.bottom
+                                              && r.width < b.width + 20 && r.height < b.height + 20; }""", timeout=5000)
+        self.assertEqual(page.evaluate("getComputedStyle(document.getElementById('view-menu')).opacity"), "1")
+        page.click(".tour-next")
+        page.wait_for_function("() => document.querySelector('.tour-next').textContent === 'Fertig'")
+        page.click(".tour-next")
+        page.wait_for_selector(".tour", state="detached")
+        self.assertEqual(page.evaluate("[localStorage.getItem('gt7c.tour.view'), document.body.classList.contains('tour-open')]"),
+                         ["1", False])
+        self.assertTrue(page.get_attribute("#btn-edit", "href").endswith("&edit=1&tour=1"))     # the editor's tour is still to come
+        # "Hilfe" in the menu shows it again; Escape puts it away
+        page.mouse.move(300, 300)
+        page.wait_for_function("() => document.getElementById('view-menu').classList.contains('show')")
+        page.click("#btn-help")
+        page.wait_for_selector(".tour-bubble")
+        self.assertEqual(page.text_content(".tour-title"), self.VIEW_TOUR[0])
+        page.keyboard.press("Escape")
+        page.wait_for_selector(".tour", state="detached")
+
+    def test_without_the_strip_the_tour_of_the_dashboard_leaves_its_step_out(self):
+        page = self.open("?tour=1", size=(1280, 748), figure=False)            # the strip was put away
+        page.wait_for_selector(".tour-bubble")
+        steps = self.walk(page)
+        self.assertEqual([title for _, title in steps], [t for t in self.VIEW_TOUR if "Demo" not in t])
+        self.assertEqual(steps[-1][0], "Schritt 4 von 4")
+
+    def test_the_tour_of_the_editor_points_at_its_tools_and_keeps_the_keys_to_itself(self):
+        page = self.open("?edit=1&tour=1", size=(1440, 900), figure=False)
+        page.wait_for_selector(".tour-bubble")
+        self.assertEqual(page.text_content(".tour-title"), self.EDIT_TOUR[0])
+        place = lambda: self.ask("/api/layout?name=dashboard-16x10")["widgets"]["speed"]["x"]
+        before = place()
+        page.click("#w-speed", force=True, position={"x": 20, "y": 20})         # the tour is in front: nothing is selected
+        self.assertEqual(page.evaluate("document.querySelectorAll('.widget.selected').length"), 0)
+        page.keyboard.press("ArrowRight")                                       # the next step, not a widget moved
+        page.wait_for_function("() => document.querySelector('.tour-count').textContent === 'Schritt 2 von 5'")
+        page.keyboard.press("ArrowLeft")
+        page.wait_for_function("() => document.querySelector('.tour-count').textContent === 'Schritt 1 von 5'")
+        self.assertEqual([title for _, title in self.walk(page)], self.EDIT_TOUR)
+        page.keyboard.press("Escape")
+        page.wait_for_selector(".tour", state="detached")
+        self.assertEqual(page.evaluate("localStorage.getItem('gt7c.tour.edit')"), "1")
+        self.assertEqual(place(), before)
+        page.click("#btn-tour")                                                 # "Hilfe" in the toolbar
+        page.wait_for_selector(".tour-bubble")
+        page.click(".tour-skip")
+        page.wait_for_selector(".tour", state="detached")
+
+    def test_the_tour_in_english(self):
+        page = self.open("?tour=1", size=(1024, 768), figure=False, locale="en-US", demo_note=True)
+        page.wait_for_function("() => document.querySelector('.tour-count')?.textContent === 'Step 1 of 5'")
+        self.assertEqual([page.text_content(name) for name in (".tour-title", ".tour-skip", ".tour-next")],
+                         ["Welcome to the dashboard", "Skip", "Next"])
+        page.click(".tour-next")
+        page.wait_for_function("() => document.querySelector('.tour-title').textContent === 'The demo drive is playing'")
+        self.assertIn("Choose data source", page.text_content("#source-banner"))
 
 
 if __name__ == "__main__":

@@ -3,13 +3,15 @@
 
      view    { width, height }  the screen area that may be used
      stage   { width, height }  the stage in its own pixels
-     options { top, maxScale }  space kept free above the stage (editor toolbar), upper limit of the scale
+     options { top, bottom, maxScale }  space kept free above the stage (editor toolbar) and below it
+                                        (the strip of the demo drive), upper limit of the scale
 */
 export function fitStage(view, stage, options) {
   const top = (options && options.top) || 0;
+  const bottom = (options && options.bottom) || 0;
   const maxScale = (options && options.maxScale) || Infinity;
   const width = Math.max(1, view.width);
-  const height = Math.max(1, view.height - top);
+  const height = Math.max(1, view.height - top - bottom);
   const scale = Math.max(0.01, Math.min(width / stage.width, height / stage.height, maxScale));
   return {
     scale: scale,

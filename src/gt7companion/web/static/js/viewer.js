@@ -5,6 +5,7 @@ import { IS_VIEW, layoutLabel, layoutName, layouts, switchLayout, urlFor } from 
 import { onTopic, role, wsConnected, wsSend } from './net.js';
 import { setSound, soundOn, wantsSound } from './audio.js';
 import { screenKeeper } from './awake.js';
+import { tourSeen } from './tour.js';
 
 const wait = document.getElementById('wait');
 const menu = document.getElementById('view-menu');
@@ -14,7 +15,11 @@ if (IS_VIEW && wait && menu) {
   const text = wait.querySelector('.wait-text');
   const fullscreen = document.getElementById('btn-fullscreen');
   const edit = document.getElementById('btn-edit');
+  const banner = document.getElementById('source-banner');
   let status = {};
+  /* The strip of the demo drive can be put away; it is back when the page is opened the next time. */
+  let bannerOff = false;
+  try { bannerOff = sessionStorage.getItem('gt7c.demo-note') === 'off'; } catch (e) { /* no storage: it stays */ }
   let lastFrameAt = 0;
   let everConnected = false;
   const keepAwake = screenKeeper(navigator, document);     // the screen stays on while the console sends data
@@ -39,6 +44,7 @@ if (IS_VIEW && wait && menu) {
     title.textContent = head;
     text.textContent = body;
     wait.hidden = !head;
+    banner.hidden = bannerOff || !wsConnected || status.source !== 'demo';
     keepAwake(wsConnected && fresh && status.source === 'live');
   }
 
@@ -47,10 +53,17 @@ if (IS_VIEW && wait && menu) {
     render();
   });
   onTopic('status', function(d) { status = Object.assign({}, status, d || {}); render(); });
+  document.getElementById('sb-close').addEventListener('click', function() {
+    bannerOff = true;
+    try { sessionStorage.setItem('gt7c.demo-note', 'off'); } catch (e) { /* only until the page is left */ }
+    render();
+  });
+  /* The first way into the editor on this device comes with its short tour. */
+  function editUrl() { return urlFor('edit') + (tourSeen('edit') ? '' : '&tour=1'); }
   /* Everyone gets the button: a device that is not paired yet is asked for the PIN first. */
   onTopic('hello', function() {
     edit.hidden = false;
-    edit.href = (role === 'owner' || role === 'editor') ? urlFor('edit') : '/connect?next=' + encodeURIComponent(urlFor('edit'));
+    edit.href = (role === 'owner' || role === 'editor') ? editUrl() : '/connect?next=' + encodeURIComponent(editUrl());
   });
   window.addEventListener('gt7:telemetry', function() {
     const waiting = !wait.hidden;
@@ -71,7 +84,7 @@ if (IS_VIEW && wait && menu) {
   /* While the pointer rests on the menu, it stays. */
   menu.addEventListener('pointerenter', function() { menu.classList.add('show'); clearTimeout(hideTimer); });
   menu.addEventListener('pointerleave', showMenu);
-  edit.href = urlFor('edit');
+  edit.href = editUrl();
   const select = document.getElementById('layout-select');
   layouts.forEach(function(layout) {
     const option = document.createElement('option');

@@ -1,0 +1,75 @@
+<!DOCTYPE html>
+<html lang="de">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Start – Gran Turismo 7 Companion by qshi</title>
+<meta name="theme-color" content="#0b0b0e">
+<script src="/api/prefs.js"></script>
+<script src="/static/i18n/en.js"></script>
+<script src="/static/js/i18n-classic.js"></script>
+<link rel="icon" type="image/png" sizes="32x32" href="/static/icons/favicon-32.png">
+<link rel="stylesheet" href="/static/css/pages.css">
+</head>
+<body class="start">
+<main>
+  <header class="top">
+    <span class="brand">GT7 Companion by qshi</span>
+    <nav>
+      <a class="button" href="/connect">Geräte verbinden</a>
+      <a class="button" href="/settings">Einstellungen</a>
+    </nav>
+  </header>
+  <h1>Bereit zum Fahren?</h1>
+  <p class="lead">Das Dashboard zeigt live, was dein Auto in Gran Turismo 7 macht – auf diesem Bildschirm, auf dem Tablet und im Stream.</p>
+
+  <section class="card" aria-labelledby="step-source">
+    <h2 class="stepped" id="step-source"><span class="step" aria-hidden="true">1</span>Woher kommen die Daten?</h2>
+    <fieldset class="choices" id="choices" disabled>
+      <legend class="sr-only">Datenquelle</legend>
+      <div class="choice-grid">
+        <label class="choice">
+          <input type="radio" name="source" value="live">
+          <span class="choice-title">PlayStation</span>
+          <span class="choice-text">Live aus Gran Turismo 7. Konsole und Computer müssen im selben Heimnetz sein.</span>
+        </label>
+        <label class="choice">
+          <input type="radio" name="source" value="demo">
+          <span class="choice-title">Demo-Fahrt</span>
+          <span class="choice-text">Aufgezeichnete Runden zum Ausprobieren – ganz ohne Konsole.</span>
+        </label>
+      </div>
+    </fieldset>
+    <p class="note" id="source-state" role="status" hidden></p>
+    <p class="muted" id="source-locked" hidden>Umstellen lässt sich das am Computer mit dem Programm oder nach dem Koppeln. <a href="/connect?next=/start">Koppeln</a></p>
+  </section>
+
+  <section class="card" aria-labelledby="step-open">
+    <h2 class="stepped" id="step-open"><span class="step" aria-hidden="true">2</span>Los geht’s</h2>
+    <div class="row">
+      <a class="button primary" id="open-dashboard" href="/">Dashboard öffnen</a>
+      <a class="button" id="open-editor" href="/?edit=1">Layout bearbeiten</a>
+      <a class="button" href="/game">Tisch Turismo</a>
+    </div>
+    <p class="muted after-row" id="tour-note" hidden>Beim ersten Öffnen zeigt ein kurzer Rundgang, was wo ist.</p>
+  </section>
+
+  <section class="card" aria-labelledby="step-more">
+    <h2 class="stepped" id="step-more"><span class="step" aria-hidden="true">3</span>Mehr daraus machen</h2>
+    <ul class="ways">
+      <li><a href="/connect">Tablet, Handy oder zweiten Rechner verbinden</a><span>Das Dashboard läuft dort im Browser, ohne App.</span></li>
+      <li><a href="/settings#box">Die Box einschalten</a><span>Dein Renningenieur am Funk sagt Rundenzeiten und Sprit an.</span></li>
+      <li><a href="/settings">Sprache und Einheiten wählen</a><span>Deutsch oder Englisch, km/h oder mph.</span></li>
+    </ul>
+  </section>
+
+  <label class="check" id="start-screen-row" hidden>
+    <input id="start_screen" type="checkbox">
+    <span>Diese Seite beim Programmstart zeigen<small>Ohne Häkchen öffnet das Programm gleich das Dashboard. Hierher zurück führt „Start“ im Menü des Dashboards.</small></span>
+  </label>
+  <p class="note error" id="offline" hidden>Das Programm ist nicht erreichbar.</p>
+  <p class="muted" id="version"></p>
+</main>
+<script type="module" src="/static/js/pages/start.js"></script>
+</body>
+</html>
