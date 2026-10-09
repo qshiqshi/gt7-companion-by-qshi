@@ -3,9 +3,10 @@
    Eingang ist für beide specific_force_g aus der Telemetrie (g, Fahrzeugachsen x rechts, y oben, z hinten).
    Milch: schwappt, läuft über den Rand; frisch gefüllt bei jeder neuen Runde und wenn das Auto wieder auf die
    Strecke kommt. Dackel: Der Kopf hängt lose am Hals und nickt und wiegt sich.
-   Einstellbar im Layout: widgets.milk.config = { figure, fill: 0…1 (Standard 0.8, nur Milch), sensitivity: 1 }. */
+   Einstellbar im Layout: widgets.milk.config = { figure, fill: 0…1 (Standard 0.8, nur Milch), sensitivity }.
+   Standard-Empfindlichkeit: Milch 0.25, Dackel 1. Glasreflexe folgen der Fahrtrichtung. */
 const FIGURES = {
-  milk: { label: 'Milchglas', module: '/static/milkglass/milkglass.js?v=20261006', create: 'createMilkGlass',
+  milk: { label: 'Milchglas', module: '/static/milkglass/milkglass.js?v=20261009', create: 'createMilkGlass',
           model: '/static/milkglass/milkglass.glb?v=20261006' },
   dackel: { label: 'Wackeldackel', module: '/static/wackeldackel/wackeldackel.js?v=20261006-dackel', create: 'createWackeldackel',
             model: '/static/wackeldackel/wackeldackel.glb?v=20261006-dackel' },
@@ -22,7 +23,7 @@ if (box && stage) {
     const value = Number(config[name]);
     return Number.isFinite(value) && value >= low && value <= high ? value : fallback;
   };
-  const options = () => ({ fill: option('fill', 0.8, 0.05, 1), sensitivity: option('sensitivity', 1, 0.05, 5) });
+  const options = () => ({ fill: option('fill', 0.8, 0.05, 1), sensitivity: option('sensitivity', kind() === 'milk' ? 0.25 : 1, 0.05, 5) });
   const kind = () => (config.figure === 'dackel' ? 'dackel' : 'milk');
   const wanted = () => editor() || !box.classList.contains('hidden-widget');
   const running = () => editor() || !document.body.classList.contains('no-race');
@@ -68,6 +69,7 @@ if (box && stage) {
     const d = event.detail;
     if (!d || !figure) return;
     lastFrame = performance.now();
+    if (d.on_track && !d.paused) figure.setOrientation?.(d.orientation);
     const force = d.on_track && !d.paused ? d.specific_force_g : null;
     if (force && Number.isFinite(force.x) && Number.isFinite(force.y) && Number.isFinite(force.z)) {
       figure.setSpecificForce(force.x, force.y, force.z);

@@ -120,6 +120,18 @@ die PIN von derselben Seite eingeben.
 
 ## 6. Stream-Overlay in OBS
 
+Unter **Bearbeiten** werden Änderungen automatisch gespeichert. **Layout speichern** sichert
+einen Stand für dieses Layout; **Zurücksetzen** kehrt dorthin zurück. Bestehende Layouts werden
+vor dem ersten Autosave nach einem Update gesichert. Zur mitgelieferten Vorlage führt dagegen
+**Eigenes Layout** → **Vorlage wiederherstellen**, bestätigt mit einem zweiten Klick.
+
+**Rückgängig** oder Strg/Cmd+Z nimmt die letzte Änderung zurück (bis zu 100); ein Ziehen zählt
+als eine Änderung. Anzeige wählen, dann **Stil kopieren** / **Stil einfügen** oder Strg/Cmd+C/V,
+um Stil und Größe zu übertragen. Unter **Styling** steht die globale Schriftwahl, am Pinsel
+die Schrift einer einzelnen Anzeige. Für Milchglas und Dackel gibt es dort außerdem
+**Bewegung** → **Empfindlichkeit** (5–500%). Das Glas startet bei 25%, der Dackel bei 100%;
+bereits eingestellte eigene Werte bleiben erhalten.
+
 Eine Quelle der Art **Browser** anlegen, Breite 1920, Höhe 1080, Adresse:
 
 ```

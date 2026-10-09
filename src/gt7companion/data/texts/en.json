@@ -1,21 +1,216 @@
 {
-  "best_lap": ["New best lap: {time}.", "{time}. That is your fastest lap.", "Best lap, {time}. Keep it up."],
-  "first_lap": ["First time is on the board: {time}.", "Lap {lap}: {time}. That is the mark."],
-  "lap_slower": ["Lap {lap}: {time}. {delta} off your best.", "{time}. You are missing {delta}."],
-  "lap_equal": ["Lap {lap}: {time}. Right on your best.", "{time}. Consistent."],
-  "fuel_low": ["Fuel for about {laps} more laps.", "Roughly {laps} laps of fuel left."],
-  "fuel_critical": ["Fuel is almost gone. Come into the pits.", "Tank nearly empty. Box, box."],
-  "pit_call": ["Fuel for about {laps} laps. Plan your stop.", "{laps} laps of fuel left. Think about the pits."],
-  "race_start": ["Here we go. Keep it clean through the first corner.", "Start. Heads up, get the tyres warm."],
-  "final_lap": ["Final lap. Bring it home.", "Final lap. No mistakes now."],
-  "race_end": ["Chequered flag. Good work.", "That is it. Race over."],
-  "spin": ["Spin. Gather it up and carry on.", "The rear let go. Stay calm."],
-  "crash": ["Impact. Check that the car still runs straight.", "That was a hit. Everything all right?"],
-  "offtrack": ["You were off the track. Clean your tyres.", "Off track. Careful with dirty tyres."],
-  "tyre_hot": ["The {tyre} tyre is getting too hot, {temp} degrees.", "{temp} degrees on the {tyre} tyre. Go easy on it."],
-  "test": ["Radio check. The pit wall is listening, {driver}.", "This is the pit wall. I hear you well, {driver}."],
-  "no_answer": ["I have nothing on that.", "I can't tell you that."],
-  "not_understood": ["I didn't get that. Say again?", "Say again, please."],
+  "best_lap": [
+    "New personal best: {time}. Great driving, {driver}.",
+    "{time}. Your best lap so far. Very nice.",
+    "Personal best! {time}. Happy for you.",
+    "Your new personal best: {time}. Let's build on that.",
+    "{time}, a new personal best. You've earned it.",
+    "Nice work, {driver}. {time}. Your fastest lap yet.",
+    "New personal best with {time}. Keep your rhythm.",
+    "{time}. Another step forward. Nicely driven.",
+    "There's the personal best: {time}. Enjoy that feeling.",
+    "Excellent, {time}. Your best lap so far.",
+    "{time}. New personal best. We'll take that.",
+    "Personal best: {time}. Your work is paying off.",
+    "New personal best with {time}. The Box is happy for you.",
+    "Personal best, {time}. A moment to enjoy.",
+    "{time}. Your fastest lap. That's what we're here for.",
+    "Personal best: {time}. That's your new mark.",
+    "{time}, new personal best. Sounds good.",
+    "New personal best: {time}. Keep going at your own pace.",
+    "{time}. Personal best. Remember what helped on that lap.",
+    "Personal best: {time}. Good progress, {driver}.",
+    "Personal best, {time}. We'll celebrate after the race.",
+    "{time}. New personal best. You're finding more pace.",
+    "New personal best: {time}. Thumbs up from the crew.",
+    "Personal best: {time}. A good lap for you.",
+    "{time}. Personal best. Take a moment to enjoy it.",
+    "Personal best, {time}. A new mark on the clock.",
+    "Personal best: {time}. I like that, {driver}.",
+    "New personal best with {time}. Well done.",
+    "Personal best: {time}. You've improved on your previous mark.",
+    "{time}. Personal best. You've earned this moment.",
+    "New personal best: {time}. Finding your pace, lap by lap.",
+    "{time}. Personal best. Our new reference lap.",
+    "{time}. New personal best. Another step forward.",
+    "Personal best, {time}. The clock shows your progress.",
+    "{time}. Personal best. Take that feeling into the next lap.",
+    "New personal best: {time}. I'm happy for you.",
+    "Personal best: {time}. Good to see what you can do.",
+    "{time}, personal best. That deserves a smile inside the helmet.",
+    "Personal best with {time}. Something to be pleased with.",
+    "{time}. Personal best. That's gone well today.",
+    "Personal best, {time}. Good, {driver}. Really good.",
+    "Personal best: {time}. These are the laps we learn from.",
+    "{time}. New personal best. Glad you kept at it.",
+    "Personal best, {time}. A good entry in our lap book.",
+    "{time}. Personal best. Let that lap sink in.",
+    "{time}. New personal best. That's progress.",
+    "Personal best with {time}. A quiet celebration at the Box.",
+    "{time}. Personal best. As Michael Schumacher said: We did it. Well done, {driver}.",
+    "New personal best: {time}. Toto Wolff told Russell: You can win this, George. Your progress is on the clock today.",
+    "{time}. Personal best. Vettel's Box said: You just wait sunshine. Good moments take time."
+  ],
+  "first_lap": [
+    "First time is on the board: {time}.",
+    "Lap {lap}: {time}. That is the mark."
+  ],
+  "lap_slower": [
+    "Lap {lap}: {time}. {delta} off your best.",
+    "{time}. You are missing {delta}."
+  ],
+  "lap_equal": [
+    "Lap {lap}: {time}. Right on your best.",
+    "{time}. Consistent."
+  ],
+  "fuel_low": [
+    "Fuel for about {laps} more laps.",
+    "Roughly {laps} laps of fuel left."
+  ],
+  "fuel_critical": [
+    "Fuel is almost gone. Come into the pits.",
+    "Tank nearly empty. Box, box."
+  ],
+  "pit_call": [
+    "Fuel for about {laps} laps. Plan your stop.",
+    "{laps} laps of fuel left. Think about the pits."
+  ],
+  "race_start": [
+    "Here we go. Keep it clean through the first corner.",
+    "Start. Heads up, get the tyres warm."
+  ],
+  "final_lap": [
+    "Final lap. Bring it home.",
+    "Final lap. No mistakes now."
+  ],
+  "race_end": [
+    "Chequered flag. Good work.",
+    "That is it. Race over."
+  ],
+  "spin": [
+    "Spin. Stay calm, stabilise the car first.",
+    "Easy, {driver}. Get pointed safely in the right direction first.",
+    "The car is spinning. Take your time catching it.",
+    "Spin. Take a breath, I'm on the radio.",
+    "Catch the car first. We'll carry on after that.",
+    "Spin. Take your time rejoining.",
+    "Stay calm. Watch the traffic as you get going.",
+    "We can recover from this. Get the car straight first.",
+    "Spin. Let's get lined up again and carry on calmly.",
+    "The rear got ahead for a moment. Catch it gently, {driver}.",
+    "One full turn. Settle first, then find your rhythm again.",
+    "Spin. The next clean corner is waiting.",
+    "{driver}, we'll get this back on course.",
+    "A slip. Slow the car down, then carry on.",
+    "Spin. Get lined up calmly and look at the road ahead.",
+    "The rear wanted the lead for a moment. Take it back calmly.",
+    "Spin. Get a feel for the car again first.",
+    "A different view for a moment. Gently back towards the track now.",
+    "Calm hands, {driver}. We'll find the rhythm again.",
+    "Spin. The Box is still hopeful.",
+    "Stop and get lined up first. Then take the next corner.",
+    "Briefly sideways. We keep going.",
+    "Spin. Once you're driving safely again, look at the next corner.",
+    "{driver}, take a moment to get settled.",
+    "Spin. Back on course, one step at a time.",
+    "A lap to learn from. We'll keep working on the next one.",
+    "Lost the rear briefly. Correct gently, {driver}.",
+    "Spin. Give yourself some room as you get going.",
+    "Get straight first. Then find your line again.",
+    "Spin. A good next lap is still our goal.",
+    "{driver}, we'll take the lesson and carry on.",
+    "That was a spin. The race has other moments for you too.",
+    "Spin. Build the grip back up gently now.",
+    "A quick look the other way. Back in the right direction, no rush.",
+    "Spin. We'll start fresh at the next corner.",
+    "The clock keeps running. Don't let it rush you as you settle.",
+    "{driver}, a spin doesn't undo the progress of your last laps.",
+    "Easy on the throttle. Bring the car back onto its line first.",
+    "Spin. Small steering movements as you get going again.",
+    "We'll put that down to experience. Carry on when you're ready.",
+    "Spin. The Box still believes in a good lap.",
+    "Take your time settling the car. The pace comes afterwards.",
+    "One spin. Let's make a fresh start at the next corner.",
+    "{driver}, we'll find our rhythm again.",
+    "Spin. Focus on the line right in front of you.",
+    "A slip happens when you're practising. Take your time rejoining.",
+    "Murray Walker said: Anything can happen in Formula One, and it usually does. Take a moment to settle, {driver}.",
+    "Kimi Raikkonen: Leave me alone, I know what I'm doing. I trust you too, {driver}.",
+    "Colin Chapman: Simplify, then add lightness. We'll start with calm steering.",
+    "Steve McQueen in Le Mans: Racing is life. Anything before or after is just waiting. We carry on, {driver}."
+  ],
+  "crash": [
+    "Contact. Stay calm, check how the car feels.",
+    "That was an impact. Stabilise the car first.",
+    "Contact. Take a breath, then we'll look ahead.",
+    "Easy, {driver}. Watch the other cars now.",
+    "Impact. Take a moment to settle.",
+    "Contact. Get safely back on course first.",
+    "That was a tough moment. I'm staying on the radio.",
+    "Contact. Continue gently when it's safe.",
+    "Contact. Let's settle and take the next corner calmly.",
+    "Impact. Check how the car is driving now.",
+    "{driver}, stay calm. Let's look ahead.",
+    "That was a thump. Take your time getting the car under control.",
+    "Contact. The next clean lap is still our goal.",
+    "Impact. Let's settle the car first.",
+    "{driver}, a setback. We keep working at it.",
+    "Contact. Leave yourself some room until you're back in rhythm.",
+    "Check how the car feels first. Then carry on gently.",
+    "That was contact. Get a feel for the car first.",
+    "Impact. We'll take the lesson into the next lap.",
+    "{driver}, get comfortable at the wheel again first.",
+    "Contact. Calm hands now.",
+    "Impact. The Box is staying with you.",
+    "We'll get settled again. The car first, the pace afterwards.",
+    "Contact. Give yourself some room for the next corner.",
+    "{driver}, an impact doesn't undo your good laps.",
+    "Contact. Watch the traffic and get calmly back on course.",
+    "Drive cleanly again first. We have time to find the rhythm.",
+    "Impact. Don't put yourself under pressure as you carry on.",
+    "Contact. The Box is looking at the next lap with you.",
+    "That was a bump. Carry on once you have good control of the car.",
+    "{driver}, we'll leave that moment behind once everything's settled.",
+    "Contact. Take the next corner deliberately calmly.",
+    "Impact. A clear next step: check how the car feels.",
+    "Contact. We're still hopeful, {driver}.",
+    "That was a tough moment. A calm fresh start will help.",
+    "Get the control back first. We'll keep working on the next lap.",
+    "Contact. Keep the next clear line in sight.",
+    "{driver}, the race is more than this one moment.",
+    "Impact. Check the steering and brakes before increasing the pace.",
+    "Contact. Let's aim for a good next corner.",
+    "We'll continue when it feels right. You don't need to force it.",
+    "Impact. The Box has your back.",
+    "Contact. Take your time getting a feel for the grip again.",
+    "{driver}, we'll take the time for a clean restart.",
+    "Contact. Stay with the track right in front of you.",
+    "Impact. We're still aiming for a good next lap.",
+    "Fernando Alonso said: You always have to leave a space. A little room helps us get going again, {driver}.",
+    "Massa's engineer Rob Smedley said: Felipe, baby, stay cool. Good advice for us too, {driver}.",
+    "Daniel Ricciardo said: I never left. We're coming back too, {driver}.",
+    "Lewis Hamilton said: You can do it too. I still believe in you, {driver}."
+  ],
+  "offtrack": [
+    "You were off the track. Clean your tyres.",
+    "Off track. Careful with dirty tyres."
+  ],
+  "tyre_hot": [
+    "The {tyre} tyre is getting too hot, {temp} degrees.",
+    "{temp} degrees on the {tyre} tyre. Go easy on it."
+  ],
+  "test": [
+    "Radio check. The pit wall is listening, {driver}.",
+    "This is the pit wall. I hear you well, {driver}."
+  ],
+  "no_answer": [
+    "I have nothing on that.",
+    "I can't tell you that."
+  ],
+  "not_understood": [
+    "I didn't get that. Say again?",
+    "Say again, please."
+  ],
   "answers": {
     "no_data": "There is no data from the game right now.",
     "missing": "I don't have that value right now.",
@@ -41,12 +236,33 @@
     "incidents": "{spins}, {impacts} in this session."
   },
   "counts": {
-    "spins": ["no spins", "one spin", "{n} spins"],
-    "impacts": ["no impacts", "one impact", "{n} impacts"]
+    "spins": [
+      "no spins",
+      "one spin",
+      "{n} spins"
+    ],
+    "impacts": [
+      "no impacts",
+      "one impact",
+      "{n} impacts"
+    ]
   },
-  "spoken_time": {"minute": "{m} minute {s}", "minutes": "{m} minutes {s}", "seconds": "{s} seconds"},
-  "tyre_names": {"FL": "front left", "FR": "front right", "RL": "rear left", "RR": "rear right"},
-  "units": {"seconds": "{n} seconds", "tenths": "{n} tenths", "one_tenth": "one tenth"},
+  "spoken_time": {
+    "minute": "{m} minute {s}",
+    "minutes": "{m} minutes {s}",
+    "seconds": "{s} seconds"
+  },
+  "tyre_names": {
+    "FL": "front left",
+    "FR": "front right",
+    "RL": "rear left",
+    "RR": "rear right"
+  },
+  "units": {
+    "seconds": "{n} seconds",
+    "tenths": "{n} tenths",
+    "one_tenth": "one tenth"
+  },
   "read_aloud": "Read the following radio message aloud, word for word, adding and omitting nothing. Brisk pace:\n\n{text}",
   "fallback_driver": "driver"
 }

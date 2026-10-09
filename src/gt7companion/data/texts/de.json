@@ -1,21 +1,216 @@
 {
-  "best_lap": ["Neue Bestzeit: {time}.", "{time}. Das ist deine schnellste Runde.", "Bestzeit, {time}. Weiter so."],
-  "first_lap": ["Erste Zeit steht: {time}.", "Runde {lap}: {time}. Das ist die Marke."],
-  "lap_slower": ["Runde {lap}: {time}. {delta} über deiner Bestzeit.", "{time}. Dir fehlen {delta}."],
-  "lap_equal": ["Runde {lap}: {time}. Genau auf deiner Bestzeit.", "{time}. Konstant."],
-  "fuel_low": ["Sprit reicht noch für etwa {laps} Runden.", "Noch rund {laps} Runden Sprit."],
-  "fuel_critical": ["Sprit ist fast leer. Komm in die Box.", "Tank fast leer. Box, Box."],
-  "pit_call": ["Sprit für etwa {laps} Runden. Plane den Stopp.", "Noch {laps} Runden Sprit. Denk an die Box."],
-  "race_start": ["Los geht's. Sauber durch die erste Kurve.", "Start. Kopf oben, Reifen warm fahren."],
-  "final_lap": ["Letzte Runde. Bring es nach Hause.", "Letzte Runde. Keine Fehler jetzt."],
-  "race_end": ["Zielflagge. Gute Arbeit.", "Das war's. Rennen beendet."],
-  "spin": ["Dreher. Sammle dich und weiter.", "Das Heck war weg. Ruhig bleiben."],
-  "crash": ["Einschlag. Prüf, ob das Auto noch geradeaus läuft.", "Das war ein Treffer. Alles in Ordnung?"],
-  "offtrack": ["Du warst neben der Strecke. Reifen sauber fahren.", "Neben der Strecke. Vorsicht mit schmutzigen Reifen."],
-  "tyre_hot": ["Reifen {tyre} wird zu heiß, {temp} Grad.", "{temp} Grad am Reifen {tyre}. Schon ihn etwas."],
-  "test": ["Funkprobe. Die Box ist auf Empfang, {driver}.", "Hier ist die Box. Ich höre dich gut, {driver}."],
-  "no_answer": ["Dazu habe ich nichts.", "Das kann ich dir nicht sagen."],
-  "not_understood": ["Das habe ich nicht verstanden. Noch einmal?", "Wiederhole das bitte."],
+  "best_lap": [
+    "Neue Bestzeit: {time}. Stark gefahren, {driver}.",
+    "{time}. Das ist deine beste Runde. Sehr schön.",
+    "Bestzeit! {time}. Freut mich für dich.",
+    "Deine neue Bestzeit: {time}. Genau daran bauen wir weiter.",
+    "{time}, eine neue Bestzeit. Das hast du dir erarbeitet.",
+    "Stark, {driver}. {time}. Deine bislang schnellste Runde.",
+    "Neue Bestzeit mit {time}. Behalte deinen Rhythmus.",
+    "{time}. Wieder ein Schritt vorwärts. Schön gefahren.",
+    "Da ist die Bestzeit: {time}. Das darf sich gut anfühlen.",
+    "Klasse, {time}. Deine beste Runde bisher.",
+    "{time}. Neue Bestzeit. Das nehmen wir mit.",
+    "Bestzeit: {time}. Deine Arbeit zahlt sich aus.",
+    "Neue Bestzeit mit {time}. Die Box freut sich mit dir.",
+    "Bestzeit, {time}. Ein guter Moment zum Genießen.",
+    "{time}. Deine schnellste Runde. Genau dafür sind wir hier.",
+    "Bestzeit: {time}. Die ist jetzt deine Marke.",
+    "{time}, neue Bestzeit. Das klingt richtig gut.",
+    "Neue Bestzeit: {time}. Fahr in Ruhe so weiter.",
+    "{time}. Bestzeit. Merk dir, was dir an der Runde geholfen hat.",
+    "Bestzeit: {time}. Ein schöner Fortschritt, {driver}.",
+    "Bestzeit, {time}. Darauf stoßen wir nach dem Rennen an.",
+    "{time}. Neue Bestzeit. Dein Tempo entwickelt sich.",
+    "Neue Bestzeit: {time}. Die Crew hebt den Daumen.",
+    "Bestzeit: {time}. Das war eine gute Runde für dich.",
+    "{time}. Bestzeit. Jetzt darfst du dich erst einmal freuen.",
+    "Bestzeit, {time}. Eine neue Marke auf der Uhr.",
+    "Bestzeit: {time}. Gefällt mir, {driver}.",
+    "Neue Bestzeit mit {time}. Gut gemacht.",
+    "Bestzeit: {time}. Deine bisherige Marke ist verbessert.",
+    "{time}. Bestzeit. Du hast dir einen schönen Moment erarbeitet.",
+    "Neue Bestzeit: {time}. Du findest dein Tempo, Runde für Runde.",
+    "{time}. Bestzeit. Die Runde nehmen wir als neue Referenz.",
+    "{time}. Neue Bestzeit. Einen Schritt weiter sind wir schon.",
+    "Bestzeit, {time}. Deine Fortschritte sieht man auf der Uhr.",
+    "{time}. Bestzeit. Behalte das gute Gefühl für die nächste Runde.",
+    "Neue Bestzeit: {time}. Ich freue mich mit dir.",
+    "Bestzeit: {time}. Schön zu sehen, was du herausholst.",
+    "{time}, Bestzeit. Das verdient ein kurzes Lächeln im Helm.",
+    "Bestzeit mit {time}. Ein Grund, zufrieden zu sein.",
+    "{time}. Bestzeit. Das hat heute schon geklappt.",
+    "Bestzeit, {time}. Gut, {driver}. Wirklich gut.",
+    "Bestzeit: {time}. Genau an solchen Runden wachsen wir.",
+    "{time}. Neue Bestzeit. Schön, dass du drangeblieben bist.",
+    "Bestzeit, {time}. Ein guter Eintrag für unser Rundenbuch.",
+    "{time}. Bestzeit. Lass die Runde kurz wirken.",
+    "{time}. Neue Bestzeit. So fühlt sich Fortschritt an.",
+    "Bestzeit mit {time}. Die Box feiert leise mit.",
+    "{time}. Bestzeit. Wie Michael Schumacher: Wir haben es geschafft. Gut gemacht, {driver}.",
+    "Neue Bestzeit: {time}. Toto Wolff sagte zu Russell: Du kannst das gewinnen, George. Dein Fortschritt steht heute auf der Uhr.",
+    "{time}. Bestzeit. Vettels Box funkte: Du wartest einfach ab, Sonnenschein. Solche schönen Momente kommen mit der Zeit."
+  ],
+  "first_lap": [
+    "Erste Zeit steht: {time}.",
+    "Runde {lap}: {time}. Das ist die Marke."
+  ],
+  "lap_slower": [
+    "Runde {lap}: {time}. {delta} über deiner Bestzeit.",
+    "{time}. Dir fehlen {delta}."
+  ],
+  "lap_equal": [
+    "Runde {lap}: {time}. Genau auf deiner Bestzeit.",
+    "{time}. Konstant."
+  ],
+  "fuel_low": [
+    "Sprit reicht noch für etwa {laps} Runden.",
+    "Noch rund {laps} Runden Sprit."
+  ],
+  "fuel_critical": [
+    "Sprit ist fast leer. Komm in die Box.",
+    "Tank fast leer. Box, Box."
+  ],
+  "pit_call": [
+    "Sprit für etwa {laps} Runden. Plane den Stopp.",
+    "Noch {laps} Runden Sprit. Denk an die Box."
+  ],
+  "race_start": [
+    "Los geht's. Sauber durch die erste Kurve.",
+    "Start. Kopf oben, Reifen warm fahren."
+  ],
+  "final_lap": [
+    "Letzte Runde. Bring es nach Hause.",
+    "Letzte Runde. Keine Fehler jetzt."
+  ],
+  "race_end": [
+    "Zielflagge. Gute Arbeit.",
+    "Das war's. Rennen beendet."
+  ],
+  "spin": [
+    "Dreher. Bleib ruhig, erst das Auto stabilisieren.",
+    "Ruhig, {driver}. Erst wieder sicher ausrichten.",
+    "Das Auto dreht sich. Nimm dir Zeit zum Abfangen.",
+    "Dreher. Atme kurz durch, ich bin am Funk.",
+    "Erst das Auto fangen. Wir machen danach weiter.",
+    "Dreher. Kein Stress beim Zurückfahren.",
+    "Ruhig bleiben. Achte beim Losfahren auf den Verkehr.",
+    "Das fangen wir auf. Erst wieder sauber ausrichten.",
+    "Dreher. Wir richten uns neu aus und fahren in Ruhe weiter.",
+    "Das Heck war kurz voraus. Fang ihn ruhig ein, {driver}.",
+    "Einmal rundherum. Erst sortieren, dann zurück in den Rhythmus.",
+    "Dreher. Die nächste saubere Kurve wartet schon.",
+    "{driver}, das kriegen wir wieder auf Kurs.",
+    "Ein Ausrutscher. Nimm den Schwung aus dem Auto, dann geht es weiter.",
+    "Dreher. Ruhig ausrichten, du hast noch Runden vor dir.",
+    "Das Heck wollte kurz die Führung. Übernimm wieder in Ruhe.",
+    "Dreher. Hol dir erst das Gefühl fürs Auto zurück.",
+    "Einmal die Aussicht gewechselt. Jetzt behutsam wieder Richtung Strecke.",
+    "Ruhige Hände, {driver}. Wir kommen wieder in den Rhythmus.",
+    "Dreher. Die Box bleibt zuversichtlich.",
+    "Erst anhalten und neu ausrichten. Dann nimmst du die nächste Kurve.",
+    "Kurz quer gestanden. Wir bleiben dran.",
+    "Dreher. Schau auf die nächste Kurve, sobald du wieder sicher fährst.",
+    "{driver}, nimm dir den Moment zum Sortieren.",
+    "Dreher. Zurück auf Kurs, Schritt für Schritt.",
+    "Das ist eine Runde zum Lernen. Die nächste fahren wir weiter.",
+    "Kurz das Heck verloren. Ruhig korrigieren, {driver}.",
+    "Dreher. Gib dir beim Losfahren etwas Luft.",
+    "Erst wieder gerade stehen. Dann findest du die Linie zurück.",
+    "Dreher. Unser Ziel bleibt eine gute nächste Runde.",
+    "{driver}, wir nehmen die Erfahrung mit und machen weiter.",
+    "Das war eine Drehung. Das Rennen hat noch andere Momente für dich.",
+    "Dreher. Jetzt behutsam Grip aufbauen.",
+    "Einmal andersherum geschaut. Zurück zur Fahrtrichtung, ohne Eile.",
+    "Dreher. Für die nächste Kurve setzen wir wieder neu an.",
+    "Die Uhr läuft weiter. Lass dich davon beim Sortieren nicht hetzen.",
+    "{driver}, ein Dreher nimmt dir nicht die Fortschritte der letzten Runden.",
+    "Ruhig mit dem Gas. Erst das Auto wieder auf die Linie bringen.",
+    "Dreher. Halte die Lenkbewegungen klein, wenn du wieder losfährst.",
+    "Das sammeln wir unter Erfahrung. Weiter geht es, wenn du bereit bist.",
+    "Dreher. Die Box glaubt weiter an eine gute Runde.",
+    "Sortier das Auto in Ruhe. Das Tempo kommt danach zurück.",
+    "Einmal gedreht. Wir machen aus der nächsten Kurve einen neuen Anfang.",
+    "{driver}, wir holen uns den Rhythmus wieder.",
+    "Dreher. Konzentrier dich auf die Linie direkt vor dir.",
+    "Ein Ausrutscher gehört zum Üben. Lass dir Zeit beim Zurückfahren.",
+    "Murray Walker sagte: In der Formel eins kann alles passieren, und meistens tut es das. Ruhig sortieren, {driver}.",
+    "Kimi Räikkönen: Lasst mich in Ruhe. Ich weiß, was ich tue. Ich traue dir das auch zu, {driver}.",
+    "Colin Chapman: Vereinfachen, dann leichter machen. Wir fangen mit ruhigen Lenkbewegungen an.",
+    "Steve McQueen in Le Mans: Rennfahren ist Leben. Alles davor oder danach ist nur Warten. Wir fahren weiter, {driver}."
+  ],
+  "crash": [
+    "Kontakt. Bleib ruhig, prüf kurz das Fahrverhalten.",
+    "Das war ein Einschlag. Erst einmal das Auto stabilisieren.",
+    "Kontakt. Atme durch, dann schauen wir weiter.",
+    "Ruhig, {driver}. Achte jetzt auf die anderen Autos.",
+    "Einschlag. Nimm dir einen Moment zum Sortieren.",
+    "Kontakt. Erst wieder sicher auf Kurs kommen.",
+    "Das war ein harter Moment. Ich bleibe am Funk.",
+    "Kontakt. Fahr behutsam weiter, sobald es sicher ist.",
+    "Kontakt. Wir sortieren uns und nehmen die nächste Kurve in Ruhe.",
+    "Einschlag. Prüf kurz, wie sich das Auto jetzt fährt.",
+    "{driver}, ruhig bleiben. Wir schauen nach vorn.",
+    "Das hat gerumst. Nimm dir Zeit, das Auto wieder zu kontrollieren.",
+    "Kontakt. Die nächste saubere Runde bleibt unser Ziel.",
+    "Einschlag. Wir bringen erst einmal wieder Ruhe ins Auto.",
+    "{driver}, das ist ein Rückschlag. Wir bleiben trotzdem dran.",
+    "Kontakt. Lass dir etwas Platz, bis du wieder in deinem Rhythmus bist.",
+    "Erst das Fahrverhalten prüfen. Dann geht es behutsam weiter.",
+    "Das war ein Kontakt. Schau erst, wie sich das Auto anfühlt.",
+    "Einschlag. Wir nehmen die Erfahrung mit in die nächste Runde.",
+    "{driver}, hol dir erst wieder Sicherheit am Lenkrad.",
+    "Kontakt. Jetzt sind ruhige Hände gefragt.",
+    "Einschlag. Die Box bleibt an deiner Seite.",
+    "Das kriegen wir wieder sortiert. Erst das Auto, dann das Tempo.",
+    "Kontakt. Gib dir für die nächste Kurve etwas Luft.",
+    "{driver}, ein Einschlag macht deine guten Runden nicht ungeschehen.",
+    "Kontakt. Behalte den Verkehr im Blick und komm ruhig zurück auf Kurs.",
+    "Erst wieder sauber fahren. Wir haben Zeit, den Rhythmus zurückzuholen.",
+    "Einschlag. Setz dich beim Weiterfahren nicht unter Druck.",
+    "Kontakt. Die Box schaut mit dir auf die nächste Runde.",
+    "Das war ein Rumpler. Fahr erst weiter, wenn du das Auto wieder gut kontrollierst.",
+    "{driver}, wir lassen den Moment hinter uns, sobald alles wieder sortiert ist.",
+    "Kontakt. Nimm die nächste Kurve bewusst ruhig.",
+    "Einschlag. Ein klarer nächster Schritt: das Fahrgefühl prüfen.",
+    "Kontakt. Wir bleiben zuversichtlich, {driver}.",
+    "Das war ein harter Moment. Jetzt hilft ein ruhiger neuer Anfang.",
+    "Erst die Kontrolle zurückholen. An der nächsten Runde arbeiten wir weiter.",
+    "Kontakt. Behalte die nächste freie Linie im Blick.",
+    "{driver}, das Rennen besteht aus mehr als diesem einen Moment.",
+    "Einschlag. Prüf Lenkung und Bremsgefühl, bevor du das Tempo wieder erhöhst.",
+    "Kontakt. Wir setzen uns eine gute nächste Kurve als Ziel.",
+    "Wir fahren weiter, sobald es passt. Du musst jetzt nichts erzwingen.",
+    "Einschlag. Die Box hält dir den Rücken frei.",
+    "Kontakt. Hol dir in Ruhe das Gefühl für den Grip zurück.",
+    "{driver}, wir nehmen uns die Zeit für einen sauberen Neustart.",
+    "Ein Kontakt. Bleib bei der Strecke direkt vor dir.",
+    "Einschlag. Wir geben die nächste gute Runde deshalb nicht auf.",
+    "Fernando Alonso sagte: Man muss immer Platz lassen. Mit etwas Luft finden wir wieder in die Fahrt, {driver}.",
+    "Massas Ingenieur Rob Smedley funkte: Felipe, Baby, bleib cool. Guter Rat auch für uns, {driver}.",
+    "Daniel Ricciardo sagte: Ich war nie weg. Wir kommen auch wieder zurück, {driver}.",
+    "Lewis Hamilton sagte: Ihr könnt das auch. Ich glaube weiter an dich, {driver}."
+  ],
+  "offtrack": [
+    "Du warst neben der Strecke. Reifen sauber fahren.",
+    "Neben der Strecke. Vorsicht mit schmutzigen Reifen."
+  ],
+  "tyre_hot": [
+    "Reifen {tyre} wird zu heiß, {temp} Grad.",
+    "{temp} Grad am Reifen {tyre}. Schon ihn etwas."
+  ],
+  "test": [
+    "Funkprobe. Die Box ist auf Empfang, {driver}.",
+    "Hier ist die Box. Ich höre dich gut, {driver}."
+  ],
+  "no_answer": [
+    "Dazu habe ich nichts.",
+    "Das kann ich dir nicht sagen."
+  ],
+  "not_understood": [
+    "Das habe ich nicht verstanden. Noch einmal?",
+    "Wiederhole das bitte."
+  ],
   "answers": {
     "no_data": "Gerade kommen keine Daten vom Spiel.",
     "missing": "Den Wert habe ich gerade nicht.",
@@ -41,12 +236,33 @@
     "incidents": "{spins}, {impacts} in dieser Sitzung."
   },
   "counts": {
-    "spins": ["kein Dreher", "ein Dreher", "{n} Dreher"],
-    "impacts": ["kein Einschlag", "ein Einschlag", "{n} Einschläge"]
+    "spins": [
+      "kein Dreher",
+      "ein Dreher",
+      "{n} Dreher"
+    ],
+    "impacts": [
+      "kein Einschlag",
+      "ein Einschlag",
+      "{n} Einschläge"
+    ]
   },
-  "spoken_time": {"minute": "{m} Minute {s}", "minutes": "{m} Minuten {s}", "seconds": "{s} Sekunden"},
-  "tyre_names": {"FL": "vorne links", "FR": "vorne rechts", "RL": "hinten links", "RR": "hinten rechts"},
-  "units": {"seconds": "{n} Sekunden", "tenths": "{n} Zehntel", "one_tenth": "ein Zehntel"},
+  "spoken_time": {
+    "minute": "{m} Minute {s}",
+    "minutes": "{m} Minuten {s}",
+    "seconds": "{s} Sekunden"
+  },
+  "tyre_names": {
+    "FL": "vorne links",
+    "FR": "vorne rechts",
+    "RL": "hinten links",
+    "RR": "hinten rechts"
+  },
+  "units": {
+    "seconds": "{n} Sekunden",
+    "tenths": "{n} Zehntel",
+    "one_tenth": "ein Zehntel"
+  },
   "read_aloud": "Lies den folgenden Funkspruch laut vor, Wort für Wort, nichts hinzufügen oder weglassen. Zügiges Sprechtempo:\n\n{text}",
   "fallback_driver": "Fahrer"
 }

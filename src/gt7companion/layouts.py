@@ -2,7 +2,8 @@
 
 Presets ship with the program (``data/layouts``) and are never changed. As soon
 as the user edits a layout, the edited copy is stored under the same name in
-the user folder and wins from then on; "reset" removes that copy again.
+the user folder and wins from then on. Explicitly saved checkpoints live in
+``layouts/saved``; autosaves never replace them.
 """
 from __future__ import annotations
 
@@ -132,6 +133,7 @@ class LayoutStore:
         if not valid_name(name) or (PRESET_DIR / f"{name}.json").exists() or not self.is_edited(name):
             raise KeyError(name)
         (self.folder / f"{name}.json").unlink(missing_ok=True)
+        (self.folder / "saved" / f"{name}.json").unlink(missing_ok=True)
         self._cache.pop(name, None)
 
     def exists(self, name: str) -> bool:
@@ -161,21 +163,52 @@ class LayoutStore:
             self._cache[name] = layout
         return copy.deepcopy(self._cache[name])
 
-    def save(self, name: str, layout: object) -> dict:
+    def saved(self, name: str) -> dict:
+        """Last explicit save, or the existing layout before its first edit.
+
+        Reading does not create files. A damaged checkpoint must never silently
+        fall back to a preset and overwrite the user's work.
+        """
+        if not self.exists(name):
+            raise KeyError(name)
+        path = self.folder / "saved" / f"{name}.json"
+        try:
+            return validate(json.loads(path.read_text(encoding="utf-8")))
+        except FileNotFoundError:
+            return self.get(name)
+        except ValueError as error:
+            raise LayoutError("saved layout is unusable") from error
+
+    def save(self, name: str, layout: object, *, checkpoint: bool = False) -> dict:
         if not valid_name(name):
             raise LayoutError("invalid layout name")
         checked = validate(layout)
         if not self.exists(name) and len(self.names()) >= _MAX_OWN:
             raise LayoutError("too many layouts")
+        saved_path = self.folder / "saved" / f"{name}.json"
+        if not saved_path.exists():
+            # Protect layouts made by older versions before the first autosave.
+            baseline = self.get(name) if self.exists(name) else checked
+            write_atomic(saved_path, json.dumps(baseline, indent=2, ensure_ascii=False) + "\n")
         write_atomic(self.folder / f"{name}.json",
                      json.dumps(checked, indent=2, ensure_ascii=False) + "\n")
         self._cache[name] = checked
+        if checkpoint:
+            write_atomic(saved_path, json.dumps(checked, indent=2, ensure_ascii=False) + "\n")
         return copy.deepcopy(checked)
 
     def reset(self, name: str) -> dict:
+        """Restore the last explicit save; own layouts have checkpoints too."""
+        return self.save(name, self.saved(name))
+
+    def reset_preset(self, name: str) -> dict:
         """Drop the user's copy; the preset of the same name applies again."""
         if not valid_name(name) or not (PRESET_DIR / f"{name}.json").exists():
             raise KeyError(name)
+        # Keep the checkpoint: returning to a preset can itself be undone.
+        if not (self.folder / "saved" / f"{name}.json").exists():
+            write_atomic(self.folder / "saved" / f"{name}.json",
+                         json.dumps(self.get(name), indent=2, ensure_ascii=False) + "\n")
         (self.folder / f"{name}.json").unlink(missing_ok=True)
         self._cache.pop(name, None)
         return self.get(name)

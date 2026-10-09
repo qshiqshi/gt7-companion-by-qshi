@@ -144,12 +144,13 @@ class Layouts(AppCase):
         stored = json.loads((self.home / "layouts" / f"{DEFAULT_LAYOUT}.json").read_text())
         self.assertEqual(stored["widgets"]["speed"]["x"], 111)
 
-    def test_reset_brings_the_preset_back(self):
+    def test_reset_restores_the_saved_stand_and_preset_restore_removes_the_working_copy(self):
         client = self.client()
         preset = client.get("/api/layout").json()
         self.assertEqual(client.post("/api/layout", json=self.changed(client)).status_code, 200)
         self.assertEqual(client.post("/api/layout/reset").json(), preset)
         self.assertEqual(client.get("/api/layout").json(), preset)
+        self.assertEqual(client.post("/api/layout/preset").json(), preset)
         self.assertFalse((self.home / "layouts" / f"{DEFAULT_LAYOUT}.json").exists())
 
     def test_broken_layouts_are_refused_and_nothing_is_stored(self):

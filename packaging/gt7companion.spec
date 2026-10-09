@@ -22,7 +22,8 @@ hidden = (collect_submodules("uvicorn") + collect_submodules("websockets") + col
              "webview"])                                # the window; its hook brings the platform parts
 datas = [(str(SOURCE / "gt7companion" / "web"), "gt7companion/web"),
          (str(SOURCE / "gt7companion" / "data"), "gt7companion/data"),
-         (str(ROOT / "LICENSE"), "."), (str(ROOT / "THIRD_PARTY_NOTICES.md"), ".")]
+         (str(ROOT / "LICENSE"), "."), (str(ROOT / "THIRD_PARTY_NOTICES.md"), "."),
+         (str(ROOT / "TEXT_QUOTES.md"), ".")]
 binaries = []
 if sys.platform == "darwin":
     datas += [(str(PACKAGING / "mac" / f"{language}.lproj" / "InfoPlist.strings"), f"{language}.lproj")

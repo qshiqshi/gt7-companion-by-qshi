@@ -7,6 +7,20 @@
 (function () {
   'use strict';
   const HEX = /^#[0-9a-f]{6}([0-9a-f]{2})?$/i;
+  const FONTS = [['GT7C Display', 'GT7C Display'], ['GT7C Text', 'Mona Sans'],
+    ['Orbitron', 'Orbitron'], ['Helvetica Neue', 'Helvetica Neue'], ['Arial', 'Arial'],
+    ['Georgia', 'Georgia'], ['Courier New', 'Courier New']];
+  const fontStack = family => '"' + String(family).replace(/["\\]/g, '') + '", "Helvetica Neue", Arial, sans-serif';
+  let lastFonts = '';
+  function fontOptions(select, inherited) {
+    select.append(new Option(inherited, ''));
+    for (const [value, label] of FONTS) select.append(new Option(label, value));
+  }
+  function showFont(select, value) {
+    value = typeof value === 'string' ? value : '';
+    if (value && !Array.from(select.options).some(o => o.value === value)) select.append(new Option(value, value));
+    select.value = value;
+  }
   const GROUPS = [
     ['flaechen', 'Schimmer, Rahmen und Linien'], ['texte', 'Texte und Werte'], ['fahrt', 'Tempo, Gang und Zeiten'], ['rpm', 'Drehzahl'],
     ['pedale', 'Pedale, Sprit und Reifen'], ['charts', 'Diagramme und Streckenlinie'], ['technik', 'Fahrwerk und Fahrhilfen'],
@@ -221,6 +235,11 @@
     lastLook = look;
     const over = globalOverrides(layout, look);
     const st = document.body.style;
+    const family = layout && layout.font && layout.font.family;
+    for (const key of ['--font-num', '--font-label', '--font-gt7', '--font-choice']) {
+      if (family) document.documentElement.style.setProperty(key, fontStack(family));
+      else document.documentElement.style.removeProperty(key);
+    }
     const chart = {};
     effective = {};
     for (const t of TOKENS) {
@@ -236,6 +255,11 @@
     if (window.GT7Charts && window.GT7Charts.setTheme) window.GT7Charts.setTheme(look, chart);
     if (menu.built) refreshMenu();
     if (popup.name) refreshPopup();
+    const fonts = JSON.stringify([family, Object.values(layout?.widgets || {}).map(w => w?.style?.font)]);
+    if (fonts !== lastFonts && document.fonts) {
+      lastFonts = fonts;
+      document.fonts.ready.then(() => { if (window.GT7Charts) window.GT7Charts.refresh(); });
+    }
   }
 
   function applyWidget(layout, name, look) {
@@ -245,6 +269,11 @@
     const own = widgetColors(layout, name, look);
     widgetEffective[name] = own;
     const vars = {};
+    const family = widgetStyle(layout, name)?.font;
+    if (typeof family === 'string' && family) {
+      for (const key of ['--font-num', '--font-label', '--font-gt7', '--font-choice']) vars[key] = fontStack(family);
+    }
+    el.style.fontFamily = typeof family === 'string' && family ? fontStack(family) : '';
     for (const [id, v] of Object.entries(own)) tokenVars(BY_ID[id], v, vars);
     const sizes = widgetSizes(layout, name);
     for (const [key, info] of Object.entries(SIZE_INFO)) if (sizes[key] !== 1) vars[info.css] = String(sizes[key]);
@@ -361,6 +390,17 @@
 
   function build(container, hooks) {
     menu.hooks = hooks;
+    const font = document.getElementById('style-font-global');
+    if (font) {
+      fontOptions(font, 'Standard des Looks');
+      font.addEventListener('change', () => {
+        const layout = hooks.getLayout();
+        if (!layout) return;
+        if (font.value) layout.font = { family: font.value }; else delete layout.font;
+        commit(true);
+      });
+      menu.font = font;
+    }
     container.textContent = '';
     const head = el('div', 'st-head');
     const lookInfo = el('span', 'st-look');
@@ -425,6 +465,7 @@
   function refreshMenu() {
     if (!menu.built) return;
     const layout = menu.hooks && menu.hooks.getLayout();
+    if (menu.font) { showFont(menu.font, layout?.font?.family); menu.font.disabled = !menu.enabled; }
     const over = globalOverrides(layout, lastLook);
     const n = Object.keys(over).length;
     menu.lookInfo.textContent = 'Farben für ' + (lastLook === 'reel' ? 'Reel-Look' : 'Standard-Look') + (n ? ' · ' + n + ' eigene' : '');
@@ -598,10 +639,58 @@
     }));
     for (const [flag, id] of [['glow', 'panelGlow'], ['border', 'panelBorder']]) if (meta.panel.includes(flag)) sec.append(tokenRow(BY_ID[id]));
 
+    /* Verhalten der Figur: unabhängig vom Look, sofort wirksam über gt7:layout. */
+    if (name === 'milk') {
+      const defaultSensitivity = () => entry().config?.figure === 'dackel' ? 1 : 0.25;
+      const sensitivity = () => {
+        const value = Number(entry().config?.sensitivity);
+        return Number.isFinite(value) && value >= 0.05 && value <= 5 ? value : defaultSensitivity();
+      };
+      section('Bewegung').append(rangeRow({
+        name: 'Empfindlichkeit', kind: 'sensitivity', min: 5, max: 500, step: 1, unit: ' %',
+        current: () => Math.round(sensitivity() * 100),
+        custom: () => Object.prototype.hasOwnProperty.call(entry().config || {}, 'sensitivity'),
+        set: v => {
+          const e = entry();
+          if (v === null) { if (e.config) delete e.config.sensitivity; }
+          else { e.config = Object.assign({}, e.config, { sensitivity: Math.round(v) / 100 }); }
+        }
+      }));
+    }
+
     /* Schrift und Linien */
     const textParts = meta.sizes.filter(k => k !== 'line');
-    if (textParts.length) {
+    {
       const s2 = section('Schrift');
+      const font = el('select', 'sp-font');
+      font.setAttribute('aria-label', 'Schriftart dieses Widgets');
+      fontOptions(font, 'Global übernehmen');
+      const fontShell = rowShell({
+        name: 'Schriftart', kind: 'font',
+        set: value => { if (value) styleOf().font = String(value); else { delete styleOf().font; tidy(); } },
+        all: value => {
+          if (value) layout().font = { family: String(value) }; else delete layout().font;
+          for (const n of Object.keys(WIDGET_META)) {
+            const st = widgetStyle(layout(), n); if (st) { delete st.font; tidyStyle(layout(), n); }
+          }
+        }
+      }, () => widgetStyle(layout(), name)?.font || '', value => typeof value === 'string' ? value : '');
+      fontShell.row.classList.add('is-font');
+      fontShell.out.hidden = true;
+      fontShell.row.append(font, fontShell.resetBtn, fontShell.copyBtn, fontShell.pasteBtn);
+      font.addEventListener('change', () => {
+        if (font.value) styleOf().font = font.value; else { delete styleOf().font; tidy(); }
+        commit(true);
+      });
+      popup.refreshers.push(() => {
+        const own = widgetStyle(layout(), name)?.font;
+        showFont(font, own);
+        font.disabled = !menu.enabled;
+        fontShell.resetBtn.disabled = !own || !menu.enabled;
+        fontShell.row.classList.toggle('is-custom', !!own);
+        fontShell.refreshButtons();
+      });
+      s2.append(fontShell.row);
       for (const k of textParts) s2.append(sizeRow(k, (meta.names && meta.names[k]) || SIZE_INFO[k].name));
     }
     if (meta.sizes.includes('line')) section('Linien').append(sizeRow('line', (meta.names && meta.names.line) || SIZE_INFO.line.name));
@@ -634,7 +723,12 @@
     foot.append(el('span', 'sp-hint', 'Kopieren und Einfügen auch zwischen Widgets · Shift+Klick auf Einfügen: in alle Widgets · ↺ Standard'));
     const reset = el('button', 'sp-reset', 'Stil zurücksetzen');
     reset.type = 'button'; reset.title = 'Alle Pinsel-Einstellungen dieses Widgets entfernen (Größe bleibt)';
-    armButton(reset, 'Wirklich?', () => { delete entry().style; commit(true); toast('Stil zurückgesetzt'); });
+    armButton(reset, 'Wirklich?', () => {
+      const e = entry();
+      delete e.style;
+      if (name === 'milk' && e.config) delete e.config.sensitivity;
+      commit(true); toast('Stil zurückgesetzt');
+    });
     const done = el('button', 'sp-done', 'Fertig');
     done.type = 'button'; done.addEventListener('click', closeWidget);
     foot.append(reset, done);
@@ -707,9 +801,11 @@
   const clip = { data: null };
   try {
     const saved = JSON.parse(localStorage.getItem('gt7-style-clip') || 'null');
-    if (saved && ['color', 'percent', 'px'].includes(saved.kind)) clip.data = saved;
+    if (saved && ['color', 'percent', 'px', 'sensitivity', 'font', 'widget-style'].includes(saved.kind)) clip.data = saved;
   } catch (_) { /* ohne Speicher */ }
-  const describe = c => !c ? '' : (c.kind === 'color' ? String(c.value).toUpperCase() : Math.round(c.value) + (c.kind === 'px' ? ' px' : ' %'));
+  const describe = c => !c ? '' : c.kind === 'widget-style' ? JSON.stringify({ gt7WidgetStyle: c.value }) :
+    c.kind === 'font' ? (c.value || 'Global übernehmen') :
+    (c.kind === 'color' ? String(c.value).toUpperCase() : Math.round(c.value) + (c.kind === 'px' ? ' px' : ' %'));
   function setClip(data) {
     clip.data = data;
     try { localStorage.setItem('gt7-style-clip', JSON.stringify(data)); } catch (_) { /* ohne Speicher */ }
@@ -742,7 +838,7 @@
       const c = clip.data;
       if (!c || c.kind !== o.kind || pasteBtn.disabled) return;
       const v = pasteValue(c.value);
-      if (ev.shiftKey || armed) {                     // Shift: in alle Widgets – zweiter Klick bestätigt
+      if (o.all && (ev.shiftKey || armed)) {          // Shift: in passende Widgets – zweiter Klick bestätigt
         if (!armed) { pasteBtn.textContent = 'Alle?'; pasteBtn.classList.add('armed'); armed = setTimeout(disarm, 3000); return; }
         disarm();
         o.all(v); commit(true); toast(name + ': in alle Widgets eingefügt');
@@ -753,7 +849,7 @@
     const refreshButtons = () => {
       const c = clip.data, ok = !!c && c.kind === o.kind && menu.enabled;
       pasteBtn.disabled = !ok;
-      pasteBtn.title = ok ? 'Einfügen: ' + describe(c) + (c.label ? ' (aus „' + c.label + '“)' : '') + ' · Shift+Klick: in alle Widgets'
+      pasteBtn.title = ok ? 'Einfügen: ' + describe(c) + (c.label ? ' (aus „' + c.label + '“)' : '') + (o.all ? ' · Shift+Klick: in alle Widgets' : '')
         : 'Einfügen – zuerst eine passende Einstellung kopieren';
       copyBtn.disabled = !menu.enabled;
     };
@@ -792,6 +888,7 @@
     const shell = rowShell(o, () => o.current(), v => Math.max(o.min, Math.min(o.max, Math.round(Number(v)))));
     const row = shell.row;
     row.classList.add('is-range');
+    if (o.kind === 'sensitivity') row.classList.add('is-sensitivity');
     const range = el('input', 'sp-range'); range.type = 'range';
     range.min = String(o.min); range.max = String(o.max); range.step = String(o.step);
     range.setAttribute('aria-label', o.name);
@@ -815,8 +912,36 @@
     for (const fn of popup.refreshers) { try { fn(); } catch (_) { /* nur Anzeige */ } }
   }
 
+  function copyWidgetStyle(name) {
+    if (!menu.enabled || !popup.hooks || !WIDGET_META[name]) return false;
+    const e = popup.hooks.ensureWidget(name);
+    const value = { style: JSON.parse(JSON.stringify(e.style || {})), scale: Number(e.scale) || 1 };
+    if (name === 'milk' && e.config?.sensitivity !== undefined) value.sensitivity = e.config.sensitivity;
+    setClip({ kind: 'widget-style', label: name, value });
+    toast('Widget-Stil kopiert');
+    return true;
+  }
+
+  function pasteWidgetStyle(names) {
+    if (!menu.enabled || !popup.hooks || clip.data?.kind !== 'widget-style' || !clip.data.value) return false;
+    const value = clip.data.value;
+    if (!value.style || typeof value.style !== 'object' || Array.isArray(value.style)) return false;
+    const targets = names.filter(name => WIDGET_META[name]);
+    if (!targets.length) return false;
+    for (const name of targets) {
+      const e = popup.hooks.ensureWidget(name);
+      e.style = JSON.parse(JSON.stringify(value.style));
+      if (Number.isFinite(value.scale)) e.scale = Math.max(0.3, Math.min(3, value.scale));
+      if (name === 'milk' && Number.isFinite(value.sensitivity)) {
+        e.config = Object.assign({}, e.config, { sensitivity: Math.max(0.05, Math.min(5, value.sensitivity)) });
+      }
+    }
+    commit(true); toast('Widget-Stil eingefügt');
+    return true;
+  }
+
   window.GT7Style = {
     TOKENS, WIDGET_META, apply, build, setEnabled, refresh: refreshMenu, tyreScale, parseColor, toHex,
-    installWidgetPopup, openWidget, closeWidget
+    installWidgetPopup, openWidget, closeWidget, activeWidget: () => popup.name, copyWidgetStyle, pasteWidgetStyle
   };
 }());

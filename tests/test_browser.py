@@ -421,6 +421,114 @@ class BrowserCase(Pages):
         self.assertAlmostEqual(box["right"] - box["left"], 1920, delta=1)
 
 
+class EditorUpdates(Pages):
+    def setUp(self):
+        super().setUp()
+        import json
+        import uuid
+        from urllib.request import Request, urlopen
+        self.layout = "editor-" + uuid.uuid4().hex[:12]
+        request = Request(f"http://127.0.0.1:{self.port}/api/layouts", method="POST",
+                          data=json.dumps({"name": self.layout, "copy_of": "dashboard-16x9"}).encode(),
+                          headers={"Content-Type": "application/json"})
+        with urlopen(request) as response:
+            self.assertEqual(response.status, 200)
+
+    def editor(self, **options):
+        page = self.open(f"?edit=1&layout={self.layout}", figure=False, **options)
+        page.wait_for_function("() => document.querySelectorAll('#canvas .wresize').length > 50")
+        return page
+
+    def capture(self, page, name):
+        folder = os.environ.get("GT7C_EDITOR_SHOTS")
+        if folder:
+            target = Path(folder)
+            target.mkdir(parents=True, exist_ok=True)
+            page.screenshot(path=str(target / f"{name}.png"))
+
+    def test_a_drag_is_one_undo_even_before_the_autosave(self):
+        page = self.editor(size=(1600, 900))
+        before = page.evaluate("parseFloat(document.getElementById('w-livetime').style.left)")
+        rect = page.locator("#w-livetime").bounding_box()
+        x, y = rect["x"] + rect["width"] / 2, rect["y"] + rect["height"] / 2
+        page.mouse.move(x, y)
+        page.mouse.down()
+        page.mouse.move(x + 80, y, steps=8)
+        page.mouse.up()
+        self.assertGreater(page.evaluate("parseFloat(document.getElementById('w-livetime').style.left)"), before)
+        page.keyboard.press("Control+z")
+        page.wait_for_function("(x) => parseFloat(document.getElementById('w-livetime').style.left) === x", arg=before)
+        page.wait_for_function("(name) => fetch('/api/layout?name='+name).then(r=>r.json())"
+                               ".then(d=>d.widgets.livetime.x===parseFloat(document.getElementById('w-livetime').style.left))", arg=self.layout)
+        self.assertTrue(page.locator("#btn-undo").is_disabled())
+
+    def test_fonts_copy_scale_and_checkpoints_work_in_both_looks(self):
+        page = self.editor(size=(1600, 900))
+        page.click("#background-settings summary")
+        page.select_option("#style-font-global", "Georgia")
+        page.click("#background-settings summary")
+        page.click("#btn-save")
+        page.wait_for_function("() => document.getElementById('btn-save').textContent === 'Gespeichert!'")
+        saved = page.request.get(f"http://127.0.0.1:{self.port}/api/layout/saved?name={self.layout}").json()
+        self.assertEqual(saved["font"]["family"], "Georgia")
+        page.click("#btn-look")
+        self.assertIn("Georgia", page.locator("#w-fuel .label").evaluate("el => getComputedStyle(el).fontFamily"))
+        page.evaluate("window.GT7Style.openWidget('fuel')")
+        page.select_option("#style-popup .sp-font", "Orbitron")
+        self.capture(page, "desktop-style")
+        page.keyboard.press("Control+c")
+        page.evaluate("window.GT7Style.closeWidget()")
+        page.locator("#w-gear").click(position={"x": 30, "y": 45})
+        page.keyboard.press("Control+v")
+        page.wait_for_function("() => getComputedStyle(document.querySelector('#w-gear .gear-current')).fontFamily.includes('Orbitron')")
+        fuel = page.request.get(f"http://127.0.0.1:{self.port}/api/layout?name={self.layout}").json()["widgets"]["fuel"]
+        gear = page.request.get(f"http://127.0.0.1:{self.port}/api/layout?name={self.layout}").json()["widgets"]["gear"]
+        self.assertEqual(fuel["scale"], gear["scale"])
+        self.assertEqual(gear["style"]["font"], "Orbitron")
+        page.evaluate("window.dispatchEvent(new CustomEvent('gt7:deselect'))")
+        page.click("#btn-reset")
+        page.wait_for_function("() => !document.body.classList.contains('look-reel') && "
+                               "getComputedStyle(document.querySelector('#w-gear .gear-current')).fontFamily.includes('Georgia')")
+        current = page.request.get(f"http://127.0.0.1:{self.port}/api/layout?name={self.layout}").json()
+        self.assertEqual(current["widgets"], saved["widgets"])
+
+    def test_an_older_program_cannot_claim_a_save_or_reset_the_layout(self):
+        page = self.editor(size=(1600, 900))
+        original = page.request.get(f"http://127.0.0.1:{self.port}/api/layout?name={self.layout}").json()
+        page.route("**/api/layout/saved?*", lambda route: route.fulfill(status=404, body="{}", content_type="application/json"))
+        page.click("#btn-save")
+        page.wait_for_function("() => document.getElementById('btn-save').textContent === 'Programm neu starten'")
+        self.assertFalse(page.locator("#btn-save").is_disabled())
+        page.click("#btn-reset")
+        page.wait_for_function("() => document.getElementById('btn-save').textContent === 'Programm neu starten'")
+        self.assertEqual(page.request.get(f"http://127.0.0.1:{self.port}/api/layout?name={self.layout}").json(), original)
+
+    def test_mobile_english_font_and_sensitivity_controls_fit(self):
+        page = self.editor(size=(390, 844), has_touch=True, is_mobile=True, device_scale_factor=3, locale="en-US")
+        page.evaluate("window.GT7Style.openWidget('milk')")
+        page.wait_for_selector("#style-popup .sp-font")
+        self.assertTrue(page.evaluate("matchMedia('(pointer: coarse)').matches"))
+        row = page.locator("#style-popup .sp-row").filter(has=page.locator(".st-name", has_text="Sensitivity"))
+        self.assertEqual(row.locator("input.sp-range").input_value(), "25")
+        self.assertGreaterEqual(row.locator("input.sp-range").bounding_box()["width"], 90)
+        row.locator("input.sp-range").evaluate("el => { el.value='75'; el.dispatchEvent(new Event('input',{bubbles:true})); "
+                                                "el.dispatchEvent(new Event('change',{bubbles:true})); }")
+        page.select_option("#style-popup .sp-font", "GT7C Text")
+        page.wait_for_function("(name) => fetch('/api/layout?name='+name).then(r=>r.json())"
+                               ".then(d=>d.widgets.milk.config.sensitivity===0.75)", arg=self.layout)
+        box = page.locator("#style-popup .sp-box")
+        self.assertLessEqual(box.evaluate("el => el.scrollWidth - el.clientWidth"), 1)
+        self.assertLessEqual(page.evaluate("document.documentElement.scrollWidth"), 390)
+        self.assertEqual(page.locator("#btn-undo").text_content(), "Undo")
+        self.capture(page, "mobile-style")
+        page.evaluate("window.GT7Style.closeWidget()")
+        page.click("#btn-undo")
+        page.wait_for_function("(name) => fetch('/api/layout?name='+name).then(r=>r.json())"
+                               ".then(d=>!d.widgets.milk.style?.font)", arg=self.layout)
+        current = page.request.get(f"http://127.0.0.1:{self.port}/api/layout?name={self.layout}").json()
+        self.assertNotIn("font", current["widgets"]["milk"].get("style", {}))
+
+
 class LocalBoxInTheBrowser(Pages):
     """The settings page on a Mac that can let the Box speak by itself (a stand-in for its helper program)."""
 

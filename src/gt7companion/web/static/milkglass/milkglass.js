@@ -6,10 +6,11 @@
  *     const glass = await createMilkGlass(containerEl, {
  *       modelUrl: '/static/milkglass/milkglass.glb',
  *       fill: 0.8,          // Füllstand 0..1 des Glasvolumens beim (Nach-)Füllen
- *       sensitivity: 1,     // 1 = echte Physik; skaliert nur die waagerechten Kraftanteile
+ *       sensitivity: 0.25,  // Standard: Viertel der Empfindlichkeit; 1 = echte Physik (nur waagerechte Kräfte)
  *       pixelRatioMax: 2,
  *     });
  *     glass.setSpecificForce(x, y, z);   // in g; x = rechts, y = oben, z = HINTEN; Ruhe = (0, 1, 0)
+ *     glass.setOrientation(orientation); // GT7-Quaternion { pitch, yaw, roll, north }; dreht die Reflexe
  *     glass.refill(fill?);
  *     glass.setOptions({ sensitivity, fill });
  *     glass.getState();    // { volumeMl, capacityMl, fillFraction, spilledMl, tiltDeg, spilling, … }
@@ -76,7 +77,7 @@ import { SloshSim, makeProfile, profileFromPositions, radiusAt, MAX_ADVANCE } fr
 const DEFAULTS = {
   modelUrl: '/static/milkglass/milkglass.glb',
   fill: 0.8,
-  sensitivity: 1,
+  sensitivity: 0.25,
   pixelRatioMax: 2,
   /** false: keine eigene Bildschleife – dann `tick(dt)` und `draw()` von außen (Demo, Bildvergleiche). */
   autoStart: true,
@@ -84,6 +85,21 @@ const DEFAULTS = {
 
 /** Eingangsrate, solange noch keine zwei Messwerte da waren [s]. */
 const DEFAULT_SAMPLE_INTERVAL = 1 / 12;
+/** Nachlauf der Lichtumgebung bei Richtungswechseln [s]. */
+const REFLECTION_RESPONSE = 0.12;
+
+/** Fahrtrichtung aus dem GT7-Quaternion, wie gt7companion/telemetry_view.py::body_rotation. */
+function headingFromOrientation(orientation) {
+  if (!orientation || typeof orientation !== 'object') return null;
+  const { north: w, pitch: x, yaw: y, roll: z } = orientation;
+  if (![w, x, y, z].every(Number.isFinite)) return null;
+  const norm2 = w * w + x * x + y * y + z * z;
+  if (!(norm2 > 0.25 && norm2 < 2.25)) return null;
+  const backX = 2 * (x * z + w * y) / norm2;
+  const backZ = 1 - 2 * (x * x + y * y) / norm2;
+  if (Math.hypot(backX, backZ) < 1e-5) return null;
+  return Math.atan2(backX, backZ);
+}
 
 const CAMERA_ELEVATION = THREE.MathUtils.degToRad(22);   // von hinten leicht erhöht
 const CAMERA_FOV = 20;                                    // senkrecht, bei Hochformat 4:5
@@ -141,10 +157,9 @@ function mulberry32(seed) {
  * - Hülle mit Verlauf: unten dunkel, zum Horizont mittelgrau, oben hell. Der
  *   streifende Rand des Glases spiegelt das Mittelgrau – eine Kontur, die vor
  *   Weiß dunkel und vor Schwarz hell steht.
- * - breiter Lichtstreifen links, schmaler rechts: die senkrechten Glanzlinien.
- * - Fläche über dem Glas: Licht für die Milchoberfläche und den Rand.
- * - Fläche vorn oben: der weiche Glanz auf der Milchoberfläche, der beim
- *   Schwappen wandert.
+ * - große Softbox links mit weich auslaufenden Rändern.
+ * - kleine harte Leuchtfläche horizontal gegenüber: ein scharfer Gegenreflex.
+ *   Beide stehen in einer weltfesten Lichtumgebung, die relativ zum Fahrzeug mitdreht.
  *
  * Richtungen in Glasachsen (x rechts, y oben, z zur Kamera).
  */
@@ -167,14 +182,26 @@ function buildStudio() {
   scene.add(new THREE.Mesh(shellGeometry, shellMaterial));
   owned.push(shellGeometry, shellMaterial);
 
-  const panelGeometry = new THREE.PlaneGeometry(1, 1);
+  const panelGeometry = new THREE.PlaneGeometry(1, 1, 24, 24);
+  const panelPositions = panelGeometry.getAttribute('position');
+  const falloff = new Float32Array(panelPositions.count * 3);
+  for (let i = 0; i < panelPositions.count; i++) {
+    const edge = 2 * Math.max(Math.abs(panelPositions.getX(i)), Math.abs(panelPositions.getY(i)));
+    const light = 1 - THREE.MathUtils.smoothstep(edge, 0.4, 1);
+    falloff.fill(light, i * 3, i * 3 + 3);
+  }
+  panelGeometry.setAttribute('color', new THREE.BufferAttribute(falloff, 3));
   owned.push(panelGeometry);
   /** Leuchtfläche: Mitte in Richtung (x, y, z), Breite/Höhe als Winkel in Grad, Helligkeit linear. */
-  const panel = (x, y, z, widthDeg, heightDeg, brightness, tint = [1, 1, 1]) => {
+  const panel = (x, y, z, widthDeg, heightDeg, brightness, tint = [1, 1, 1], soft = false) => {
     const distance = 12;
     const material = new THREE.MeshBasicMaterial({
       color: new THREE.Color(brightness * tint[0], brightness * tint[1], brightness * tint[2]),
       side: THREE.DoubleSide,
+      vertexColors: soft,
+      transparent: soft,
+      blending: soft ? THREE.AdditiveBlending : THREE.NormalBlending,
+      depthWrite: !soft,
     });
     const mesh = new THREE.Mesh(panelGeometry, material);
     mesh.position.set(x, y, z).normalize().multiplyScalar(distance);
@@ -187,10 +214,8 @@ function buildStudio() {
     scene.add(mesh);
     owned.push(material);
   };
-  panel(-1.0, -0.42, 0.05, 17, 100, 8);                     // Lichtstreifen links: Hauptglanz
-  panel(0.72, -0.40, -0.62, 10, 100, 5, [1, 0.98, 0.95]);   // schmaler Streifen rechts
-  panel(-0.2, 1.0, 0.3, 64, 64, 2.3, [1, 0.97, 0.92]);      // über dem Glas
-  panel(0.0, 0.52, -1.0, 56, 22, 1.1);                      // vorn oben: Glanz auf der Milch
+  panel(-1.0, -0.42, 0.05, 56, 100, 5, [1, 1, 1], true);  // große weiche Softbox
+  panel(1.0, -0.42, -0.05, 5, 10, 12, [1, 0.98, 0.95]);   // kleines hartes Gegenlicht
 
   return { scene, dispose: () => owned.forEach((o) => o.dispose()) };
 }
@@ -387,7 +412,7 @@ function buildMilkDisplayGeometry(milkMesh, profile, outer, wall) {
  * @param {object} [options]
  * @param {string} [options.modelUrl='/static/milkglass/milkglass.glb']
  * @param {number} [options.fill=0.8]          Füllstand 0..1 des Glasvolumens beim (Nach-)Füllen
- * @param {number} [options.sensitivity=1]     1 = echte Physik; skaliert nur die waagerechten Kraftanteile
+ * @param {number} [options.sensitivity=0.25]  1 = echte Physik; skaliert nur die waagerechten Kraftanteile
  * @param {number} [options.pixelRatioMax=2]   Obergrenze für die Pixeldichte des Canvas
  * @param {boolean} [options.autoStart=true]   false: keine eigene Bildschleife (dann tick()/draw())
  */
@@ -435,6 +460,7 @@ function assemble(container, opts, { glassMesh, milkMesh, profile, outer, wall }
 
   // ── Szene, Licht ──
   const scene = new THREE.Scene();
+  let reflectionTarget = null;
   const camera = new THREE.PerspectiveCamera(CAMERA_FOV, VIEW_ASPECT, 0.05, 5);
 
   let envTarget = null;
@@ -835,6 +861,14 @@ function assemble(container, opts, { glassMesh, milkMesh, profile, outer, wall }
   function tick(dt) {
     if (!(dt > 0) || !Number.isFinite(dt)) return;
     clock += dt;
+    if (reflectionTarget !== null) {
+      const delta = reflectionTarget - scene.environmentRotation.y;
+      const shortest = Math.atan2(Math.sin(delta), Math.cos(delta));
+      if (Math.abs(shortest) > 1e-5) {
+        scene.environmentRotation.y += shortest * (dt > MAX_ADVANCE ? 1 : -Math.expm1(-dt / REFLECTION_RESPONSE));
+        needsDraw = true;
+      }
+    }
     if (dt > MAX_ADVANCE) {
       // lange Pause (rAF steht in unsichtbaren OBS-Quellen): nichts nachholen, ruhig neu aufsetzen
       sim.settle();
@@ -943,6 +977,18 @@ function assemble(container, opts, { glassMesh, milkMesh, profile, outer, wall }
       }
       lastSampleAt = t;
       sim.setTarget(Number(x), Number(y), Number(z), sampleInterval);
+    },
+
+    /** Weltfeste Lichtumgebung relativ zum Fahrzeug drehen; unbrauchbare Lage hält die letzte Ausrichtung. */
+    setOrientation(orientation) {
+      if (disposed) return;
+      const heading = headingFromOrientation(orientation);
+      if (heading === null) return;
+      if (reflectionTarget === null) {
+        scene.environmentRotation.y = -heading;
+        needsDraw = true;
+      }
+      reflectionTarget = -heading;
     },
 
     /** Wieder auffüllen; läuft in etwa 0,5 s ein. Ohne Angabe: auf den eingestellten Füllstand. */

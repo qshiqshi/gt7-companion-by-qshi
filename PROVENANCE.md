@@ -34,11 +34,11 @@ Comments in files that were taken over unchanged are still German.
 | `static/js/audio.js` | sound playback in `static/overlay.html` (gapless scheduling) | rewritten as a module with a "sound on" switch |
 | `static/js/radio.js` | – | new: radio display instead of the private project's pictures of a person |
 | `static/js/early.js`, `modes.js`, `net.js`, `stage.js`, `stage-fit.js`, `layout-pick.js`, `viewer.js`, `i18n-classic.js`, `i18n.js`, `main.js`, `pages/`, `static/i18n/en.js`, `connect.html`, `settings.html` | – | new (modes, connection with reconnect, scaling the stage into any screen, choosing a layout, dashboard hint and menu, English, units, pairing and settings pages) |
-| `static/overlay-style.js` | `static/overlay-style.js` | none |
+| `static/overlay-style.js` | `static/overlay-style.js` | public fonts, per-widget font inheritance and style copying |
 | `static/telemetry-charts.js` | same name | charts draw in layout pixels, so they keep their proportions on a scaled stage |
 | `static/overlay-telemetry.js`, `overlay-telemetry.css` | same names | preview-only parts removed; tyre temperature in the chosen unit |
 | `static/overlay-reel.css` | same name | display typeface through the `--font-gt7` variable |
-| `static/milkglass/`, `static/wackeldackel/` | `static/` (same names) | none |
+| `static/milkglass/`, `static/wackeldackel/` | `static/` (same names) | glass sensitivity 0.25 and heading-driven reflections; dachshund unchanged |
 | `static/img/RPM.svg` | `img/RPM.svg` | none |
 | `static/vendor/` | `static/vendor/` | none (three.js r186 subset, interact.js 1.10.28) |
 
@@ -104,3 +104,25 @@ fixture paths adjusted; tests for its integration were added in `tests/test_game
 is reconstructed by `tests/js/_game.mjs` from the bundled Deep Forest demo and
 `tests/fixtures/deep-forest-rest.bin.gz`: 22,619 packets in number order, SHA-256
 `dd5421abc9fb988b8579eff6527748425c06041db9e4d94a25dcfb0d4dc39ff6`.
+
+## Editor and radio updates, 9 October 2026
+
+The editor history, font controls, widget-style copying, glass sensitivity controls and
+heading-driven soft and hard glass reflections came from the private predecessor at commit
+`707e631`. The public editor keeps its separate modules, touch controls, layout selection,
+language and units. It uses the public project's display and text fonts plus the unchanged
+Orbitron font from [Google Fonts](https://github.com/google/fonts/tree/main/ofl/orbitron).
+The subsequent startup fix `71a479e` was checked: the public editor's module is loaded only
+in editor mode and does not use the predecessor's undefined `isEditor` variable.
+
+The saved-layout idea was adapted to named layouts in `layouts.py`: one checkpoint per
+layout, atomic writes, preservation of existing user layouts before their first autosave,
+server confirmation of explicit saves, and a separate action to restore a shipped preset.
+The predecessor's history and glass-heading tests were retained with paths adapted;
+checkpoint migration, write failures, radio bags and browser interactions have new tests.
+
+The three relevant positive radio pools (best lap, spin and impact) each contain 50 variants
+in both languages. Names and stream-specific references were removed; follower and
+subscription announcements were not transferred. Each shuffled bag plays every variant
+once. Short racing quotations and their attribution sources are documented in
+[TEXT_QUOTES.md](TEXT_QUOTES.md).

@@ -17,16 +17,18 @@
   const canvasInk = new WeakMap(), canvasScale = new WeakMap();
   const inkFor = canvas => { const o = canvasInk.get(canvas); return o ? Object.assign({}, ink, o) : ink; };
   function readScale(canvas) {
-    let k = { ks: 1, lw: 1 };
+    let k = { ks: 1, lw: 1, font: '"Helvetica Neue", Arial, sans-serif' };
     try {
       const cs = getComputedStyle(canvas);
-      k = { ks: parseFloat(cs.getPropertyValue('--fs-label')) || 1, lw: parseFloat(cs.getPropertyValue('--lw')) || 1 };
+      k = { ks: parseFloat(cs.getPropertyValue('--fs-label')) || 1, lw: parseFloat(cs.getPropertyValue('--lw')) || 1,
+        font: cs.getPropertyValue('--font-label').trim() || '"Helvetica Neue", Arial, sans-serif' };
     } catch (_) { /* ohne Stil: Faktor 1 */ }
     canvasScale.set(canvas, k);
     return k;
   }
   function setCanvasStyle(canvas, overrides) {
     if (!canvas) return;
+    readScale(canvas);
     const clean = {};
     for (const [key, value] of Object.entries(overrides || {})) if (key in ink && key !== 'reel' && value) clean[key] = value;
     if (Object.keys(clean).length) canvasInk.set(canvas, clean); else canvasInk.delete(canvas);
@@ -50,8 +52,8 @@
     if (canvas.width !== pw || canvas.height !== ph) { canvas.width = pw; canvas.height = ph; }
     const ctx = canvas.getContext('2d'); ctx.setTransform(pw / w, 0, 0, ph / h, 0, 0); ctx.clearRect(0, 0, w, h);
     const k = canvasScale.get(canvas) || readScale(canvas);
-    ctx.font = (12 * k.ks) + 'px "Helvetica Neue", Arial, sans-serif'; ctx.lineJoin = 'round'; ctx.lineCap = 'round';
-    return { ctx, w, h, ks: k.ks, lw: k.lw };
+    ctx.font = (12 * k.ks) + 'px ' + k.font; ctx.lineJoin = 'round'; ctx.lineCap = 'round';
+    return { ctx, w, h, ks: k.ks, lw: k.lw, font: k.font };
   }
   class Plot {
     constructor(canvas, options = {}) {
@@ -66,7 +68,7 @@
     setMarker(value) { this.marker = finite(value) ? value : null; this.silentInspect = true; try { this.draw(); } finally { this.silentInspect = false; } }
     draw() {
       const ink = inkFor(this.canvas);
-      const { ctx: c, w, h, ks, lw } = fit(this.canvas), o = this.options, minimal = ink.reel && o.minimal;
+      const { ctx: c, w, h, ks, lw, font } = fit(this.canvas), o = this.options, minimal = ink.reel && o.minimal;
       const left = minimal ? 2 : 35 * ks, right = minimal ? 2 : 14, top = minimal ? 6 : 12 * ks, bottom = minimal ? 4 : 27 * ks;
       const pw = w - left - right, ph = h - top - bottom; if (pw < 10 || ph < 10) return;
       const xmin = o.xmin ?? 0, xmax = o.xmax ?? 20, ymin = o.ymin ?? 0, ymax = o.ymax ?? 100;
@@ -110,7 +112,7 @@
       for (const zone of o.zones || []) {
         if (!finite(zone.start_pct) || !finite(zone.end_pct)) continue;
         c.fillStyle = 'rgba(255,99,92,.09)'; c.fillRect(x(zone.start_pct), top, Math.max(2, x(zone.end_pct) - x(zone.start_pct)), ph);
-        c.fillStyle = ink.brake; c.font = (10 * ks) + 'px "Helvetica Neue",Arial,sans-serif'; c.textAlign = 'left'; c.fillText('B' + zone.id, x(zone.start_pct) + 3, top + 12 * ks);
+        c.fillStyle = ink.brake; c.font = (10 * ks) + 'px ' + font; c.textAlign = 'left'; c.fillText('B' + zone.id, x(zone.start_pct) + 3, top + 12 * ks);
       }
       if (finite(this.marker) && this.cursor === null) {
         c.strokeStyle = ink.blue; c.lineWidth = 1; c.setLineDash([3,4]); c.beginPath(); c.moveTo(x(this.marker), top); c.lineTo(x(this.marker), top + ph); c.stroke(); c.setLineDash([]);
@@ -183,7 +185,7 @@
     setMarker(point) { this.marker = point; this.draw(); }
     draw() {
       const ink = inkFor(this.canvas);
-      const { ctx: c, w, h, ks, lw } = fit(this.canvas), points = this.best?.points?.length ? this.best.points : this.current?.points;
+      const { ctx: c, w, h, ks, lw, font } = fit(this.canvas), points = this.best?.points?.length ? this.best.points : this.current?.points;
       if (!points?.length) { c.fillStyle = ink.text; c.textAlign = 'center'; c.fillText(tr('Streckenlinie wird aufgebaut'), w / 2, h / 2 - 7 * ks); c.fillText(tr('während deiner Fahrt'), w / 2, h / 2 + 10 * ks); return; }
       const valid = points.filter(p => finite(p.x) && finite(p.z)); if (!valid.length) return;
       const xs = valid.map(p => p.x), zs = valid.map(p => p.z), minx = Math.min(...xs), maxx = Math.max(...xs), minz = Math.min(...zs), maxz = Math.max(...zs);
@@ -225,7 +227,7 @@
         const p = zone.position; if (!p || !finite(p.x) || !finite(p.z)) continue;
         c.fillStyle = '#15171c'; c.strokeStyle = ink.mapBrake || ink.brake; c.lineWidth = 1;
         c.beginPath(); c.arc(xx(p.x), yy(p.z), 9, 0, 2 * Math.PI); c.fill(); c.stroke();
-        c.fillStyle = ink.line; c.font = (10 * ks) + 'px "Helvetica Neue",Arial,sans-serif'; c.textAlign = 'center'; c.fillText(String(zone.id), xx(p.x), yy(p.z) + 3 * ks);
+        c.fillStyle = ink.line; c.font = (10 * ks) + 'px ' + font; c.textAlign = 'center'; c.fillText(String(zone.id), xx(p.x), yy(p.z) + 3 * ks);
       }
       const p = this.frame?.position;
       if (p && finite(p.x) && finite(p.z)) {

@@ -23,7 +23,8 @@ computer, for a tablet next to your rig, or as a browser source in OBS.
 - **Dashboards** for 16:9, 16:10 and 4:3 screens and a transparent **overlay** for streams.
   Every screen gets the layout that fits its shape; the whole layout is scaled, never cropped.
 - **An editor** in the browser: move, resize, scale, hide and style every widget – with a
-  mouse or with your fingers. Make your own layouts.
+  mouse or with your fingers. Make your own layouts, choose fonts, copy styles and undo
+  changes. Autosave keeps your edits; **Save layout** keeps a checkpoint for **Reset**.
 - **Messages and counters**: new best lap, spins, impacts, laps of the session.
 - **Other devices** join with a QR code. Watching is open to your home network; editing on
   another device needs a PIN.
@@ -31,6 +32,7 @@ computer, for a tablet next to your rig, or as a browser source in OBS.
 - **The Box** (optional): a race engineer on the radio who calls out best laps and fuel and
   answers questions – on a Mac without any service or key, elsewhere with your own Google
   Gemini API key.
+  Best laps, spins and impacts have 50 positive radio variants each, in either language.
 - **A demo drive** is built in: a recorded drive of four laps. You can try everything without
   a console, lap times and the surface ring included.
 - **Tisch Turismo**, a little game on the side: a toy car on a desk drives what you drive, and

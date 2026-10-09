@@ -35,9 +35,9 @@ body.editor-mode .widget { outline-color:rgba(157,168,186,.23); }
 #w-tyres .tyre-cell[data-surface="D"] { --surface-color:var(--c-surface-dirt, #a0673a); }
 #w-tyres .tyre-cell[data-surface="s"] { --surface-color:var(--c-surface-snow, #bfe3ff); }
 #w-tyres.has-surface .tyre-grid { padding-left:7px; }
-#w-tyres .tyre-cell::after { content:attr(data-temp); position:absolute; left:30px; top:12px; font:calc(14px * var(--fs-value, 1)) 'Helvetica Neue',Helvetica,Arial,sans-serif; color:var(--c-tyre-text, #f2f3f5); }
+#w-tyres .tyre-cell::after { content:attr(data-temp); position:absolute; left:30px; top:12px; font:calc(14px * var(--fs-value, 1)) var(--font-num, 'Helvetica Neue',Helvetica,Arial,sans-serif); color:var(--c-tyre-text, #f2f3f5); }
 .telemetry-widget { padding:16px 18px; }
-.telemetry-widget h2 { font:500 calc(15px * var(--fs-label, 1)) 'Helvetica Neue',Helvetica,Arial,sans-serif; color:var(--c-title, #f1f2f6); }
+.telemetry-widget h2 { font:500 calc(15px * var(--fs-label, 1)) var(--font-label, 'Helvetica Neue',Helvetica,Arial,sans-serif); color:var(--c-title, #f1f2f6); }
 .telemetry-widget .instrument-title { display:flex; align-items:center; justify-content:space-between; gap:8px; margin-bottom:8px; }
 .telemetry-widget .instrument-title span { color:var(--c-subtle, #b5bac5); font-size:calc(11px * var(--fs-label, 1)); }
 .telemetry-widget canvas { width:100%; display:block; }

@@ -50,6 +50,8 @@
       </fieldset>
       <p>Für alle Hintergründe der Anzeigen.</p>
       <p id="background-status" role="status">Layout wird geladen …</p>
+      <h3 class="st-h">Schrift</h3>
+      <label class="global-font-row" for="style-font-global"><span>Schriftart</span><select id="style-font-global" disabled></select></label>
       <h3 class="st-h">Farben</h3>
       <p class="st-note">Jede Farbe einzeln, getrennt für Standard- und Reel-Look. ↺ setzt eine Farbe auf den Look-Standard zurück. Einzelne Widgets (Fläche, Schrift, Linien, Farben): Pinsel-Symbol am Widget.</p>
       <div id="style-menu"></div>
@@ -64,11 +66,13 @@
       <label class="own-name"><span>Name</span><input id="new-layout-name" type="text" maxlength="40" placeholder="Mein Tablet" autocomplete="off"></label>
       <button id="btn-layout-copy" type="button">Kopie anlegen</button>
       <button id="btn-layout-delete" type="button" hidden>Dieses Layout löschen</button>
+      <button id="btn-preset" type="button" title="Positionen und Styling der mitgelieferten Vorlage wiederherstellen">Vorlage wiederherstellen</button>
       <p id="own-layouts-note" role="status"></p>
     </div>
   </details>
   <button id="btn-save">Layout speichern</button>
-  <button id="btn-reset">Zurücksetzen</button>
+  <button id="btn-reset" title="Zum zuletzt mit „Layout speichern“ gesicherten Stand zurückkehren">Zurücksetzen</button>
+  <button id="btn-undo" type="button" disabled title="Letzte Änderung rückgängig machen (Strg/⌘+Z)">Rückgängig</button>
   <button id="btn-widgets">Widgets ein/aus</button>
   <button id="btn-look" title="Darstellung umschalten: Standard oder Reel-Look">Look: Standard</button>
   <label class="tb-radius" for="widget-radius" title="Eckenradius aller Widgets">
@@ -99,6 +103,8 @@
   <button type="button" data-act="smaller" data-one aria-label="Kleiner">−</button>
   <button type="button" data-act="larger" data-one aria-label="Größer">+</button>
   <button type="button" data-act="style" data-one>Stil</button>
+  <button type="button" data-act="copy-style" data-one>Stil kopieren</button>
+  <button type="button" data-act="paste-style">Stil einfügen</button>
   <button type="button" data-act="figure" hidden></button>
   <button type="button" data-act="hide">Ausblenden</button>
   <button type="button" data-act="done">Fertig</button>

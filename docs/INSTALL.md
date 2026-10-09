@@ -115,6 +115,17 @@ PIN from the same page.
 
 ## 6. Stream overlay in OBS
 
+In **Edit**, changes save automatically. **Save layout** keeps a checkpoint for this layout;
+**Reset** returns to it. Existing layouts are protected before their first autosave after an
+update. To return to a shipped preset instead, open **Own layout** → **Restore preset** and
+confirm with a second click.
+
+**Undo** or Ctrl/Cmd+Z reverses the last change (up to 100); a drag is one change. Select a
+widget, then **Copy style** / **Paste style**, or Ctrl/Cmd+C/V, to transfer its style and scale.
+Choose a global font under **Styling**, or an individual font with the widget's brush.
+For the glass or dachshund, the brush also has **Movement** → **Sensitivity** (5–500%).
+The glass starts at 25%, the dachshund at 100%; an existing custom value stays as it is.
+
 Add a source of the kind **Browser**, width 1920, height 1080, address:
 
 ```

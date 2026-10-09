@@ -20,13 +20,19 @@ class Texts:
         self.driver = driver.strip() or self._lines["fallback_driver"]
         self._rng = rng or random.Random()
         self._last: dict[str, str] = {}
+        self._bags: dict[str, list[str]] = {}
         self._spoken = spoken
 
     def line(self, kind: str, **values) -> str:
-        """One variant of this message, never the same twice in a row."""
+        """Every variant once per shuffled bag, without repeating at the boundary."""
         variants = self._lines[kind]
-        choices = [v for v in variants if v != self._last.get(kind)] or variants
-        chosen = self._rng.choice(choices)
+        bag = self._bags.setdefault(kind, [])
+        if not bag:
+            bag.extend(variants)
+            self._rng.shuffle(bag)
+            if len(bag) > 1 and bag[-1] == self._last.get(kind):
+                bag[-1], bag[0] = bag[0], bag[-1]
+        chosen = bag.pop()
         self._last[kind] = chosen
         return chosen.format(driver=self.driver, **values)
 

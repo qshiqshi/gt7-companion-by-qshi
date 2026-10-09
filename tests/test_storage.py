@@ -66,7 +66,7 @@ class LayoutTests(Folder):
             self.assertGreaterEqual(layout["canvas"]["width"], 320)
             self.assertIn("speed", layout["widgets"])
 
-    def test_edits_live_in_the_user_folder_and_reset_removes_them(self):
+    def test_autosaves_restore_the_checkpoint_and_presets_can_still_be_restored(self):
         store = LayoutStore(self.home / "layouts")
         preset = store.get(DEFAULT_LAYOUT)
         self.assertFalse(store.is_edited(DEFAULT_LAYOUT))
@@ -79,6 +79,7 @@ class LayoutTests(Folder):
         store.get(DEFAULT_LAYOUT)["widgets"]["speed"]["x"] = 99          # a copy: the store is untouched
         self.assertEqual(store.get(DEFAULT_LAYOUT)["widgets"]["speed"]["x"], 7)
         self.assertEqual(store.reset(DEFAULT_LAYOUT), preset)
+        self.assertEqual(store.reset_preset(DEFAULT_LAYOUT), preset)
         self.assertFalse(store.is_edited(DEFAULT_LAYOUT))
 
     def test_own_layouts_get_a_name_and_bad_names_never_touch_the_disk(self):
@@ -93,9 +94,9 @@ class LayoutTests(Folder):
                     store.get(bad)
                 with self.assertRaises(LayoutError):
                     store.save(bad, store.get(DEFAULT_LAYOUT))
-        self.assertEqual(sorted(p.name for p in (self.home / "layouts").iterdir()), ["my-tablet.json"])
+        self.assertEqual(sorted(p.name for p in (self.home / "layouts").iterdir()), ["my-tablet.json", "saved"])
         with self.assertRaises(KeyError):
-            store.reset("my-tablet")                           # only presets can be reset
+            store.reset_preset("my-tablet")                    # own layouts have checkpoints, no preset
 
     def test_a_broken_user_file_falls_back_to_the_preset(self):
         folder = self.home / "layouts"

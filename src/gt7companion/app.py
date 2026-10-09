@@ -294,6 +294,13 @@ def create_app(settings: Settings | None = None, *, layouts: LayoutStore | None 
     async def get_layout(name: str | None = None):
         return JSONResponse(companion.layouts.get(layout_name(name)), headers=_NO_STORE)
 
+    @app.get("/api/layout/saved")
+    async def get_saved_layout(name: str | None = None):
+        try:
+            return JSONResponse(companion.layouts.saved(layout_name(name)), headers=_NO_STORE)
+        except LayoutError:
+            raise HTTPException(status_code=409, detail="The saved layout is unusable.") from None
+
     # -------------------------------------------------- other devices: connect and pair
     def reach() -> dict:
         addresses = local_addresses() if app.state.lan else []
@@ -456,16 +463,18 @@ def create_app(settings: Settings | None = None, *, layouts: LayoutStore | None 
         return {"ok": True}
 
     @app.post("/api/layout")
-    async def post_layout(request: Request, name: str | None = None):
+    async def post_layout(request: Request, name: str | None = None, checkpoint: bool = False):
         require_edit(request)
         name = layout_name(name)
         body = await request.body()
         if len(body) > MAX_BYTES:
             raise HTTPException(status_code=413, detail="Layout is too large.")
         try:
-            layout = companion.layouts.save(name, json.loads(body))
+            layout = companion.layouts.save(name, json.loads(body), checkpoint=checkpoint)
         except (LayoutError, ValueError) as error:
             raise HTTPException(status_code=400, detail=str(error)) from None
+        except OSError:
+            raise HTTPException(status_code=500, detail="The layout could not be saved.") from None
         await manager.broadcast("layout", layout, name=name,
                                 where=lambda meta: meta.get("layout") == name)
         return {"ok": True}
@@ -477,7 +486,25 @@ def create_app(settings: Settings | None = None, *, layouts: LayoutStore | None 
         try:
             layout = companion.layouts.reset(name)
         except KeyError:
+            raise HTTPException(status_code=404, detail="No layout with this name.") from None
+        except LayoutError:
+            raise HTTPException(status_code=409, detail="The saved layout is unusable.") from None
+        except OSError:
+            raise HTTPException(status_code=500, detail="The layout could not be restored.") from None
+        await manager.broadcast("layout", layout, name=name,
+                                where=lambda meta: meta.get("layout") == name)
+        return layout
+
+    @app.post("/api/layout/preset")
+    async def restore_preset(request: Request, name: str | None = None):
+        require_edit(request)
+        name = layout_name(name)
+        try:
+            layout = companion.layouts.reset_preset(name)
+        except KeyError:
             raise HTTPException(status_code=404, detail="No preset with this name.") from None
+        except OSError:
+            raise HTTPException(status_code=500, detail="The preset could not be restored.") from None
         await manager.broadcast("layout", layout, name=name,
                                 where=lambda meta: meta.get("layout") == name)
         return layout
@@ -524,12 +551,18 @@ def create_app(settings: Settings | None = None, *, layouts: LayoutStore | None 
                         await hub.show(kind, TEST_MESSAGES[kind])
                 elif topic == "layout_save" and may_edit(who(ws)):
                     try:
-                        layout = companion.layouts.save(name, incoming.get("data"))
+                        layout = companion.layouts.save(name, incoming.get("data"),
+                                                        checkpoint=incoming.get("checkpoint") is True)
                     except LayoutError as error:
                         await manager.send(ws, "error", {"code": "layout_invalid", "detail": str(error)})
                         continue
+                    except OSError:
+                        await manager.send(ws, "error", {"code": "layout_save_failed"})
+                        continue
                     await manager.broadcast("layout", layout, name=name,
                                             where=lambda meta: meta.get("layout") == name)
+                    if incoming.get("checkpoint") is True:
+                        await manager.send(ws, "layout_saved", {"ok": True})
         except (WebSocketDisconnect, RuntimeError):
             pass
         finally:

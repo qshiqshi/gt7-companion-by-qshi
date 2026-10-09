@@ -80,16 +80,6 @@ export function applyLayout(layout) {
   setWidgetCornerRadius(layout.widgetCornerRadius);
   var widgets = layout.widgets || {};
 
-  /* Eigene Schrift aus dem Layout (optional). Ohne Eintrag bleibt der
-     Helvetica-Stack aus dem CSS unangetastet. */
-  if (layout.font && layout.font.family) {
-    var fontFamily = layout.font.family;
-    var fb = layout.font.fallback || 'Helvetica, Arial, sans-serif';
-    var stack = "'" + fontFamily + "', " + fb;
-    document.documentElement.style.setProperty('--font-num', stack);
-    document.documentElement.style.setProperty('--font-label', stack);
-  }
-
   for (var i = 0; i < WIDGET_NAMES.length; i++) {
     var name = WIDGET_NAMES[i];
     var wCfg = widgets[name];

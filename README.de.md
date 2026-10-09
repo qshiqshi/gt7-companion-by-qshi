@@ -24,7 +24,9 @@ Rechner, für ein Tablet neben dem Rig oder als Browser-Quelle in OBS.
   Streams. Jeder Bildschirm bekommt das Layout, das zu seiner Form passt; es wird als Ganzes
   eingepasst, nie abgeschnitten.
 - **Einen Editor** im Browser: jede Anzeige verschieben, in der Größe ändern, ausblenden und
-  gestalten – mit der Maus oder mit dem Finger. Eigene Layouts anlegen.
+  gestalten – mit der Maus oder mit dem Finger. Eigene Layouts anlegen, Schriften wählen,
+  Stile kopieren und Änderungen rückgängig machen. **Layout speichern** sichert zusätzlich
+  zum Autosave einen Stand, zu dem **Zurücksetzen** zurückkehrt.
 - **Meldungen und Zähler**: neue Bestzeit, Dreher, Einschläge, Runden der Sitzung.
 - **Andere Geräte** kommen per QR-Code dazu. Ansehen darf jeder in deinem Heimnetz;
   Bearbeiten auf einem anderen Gerät braucht eine PIN.
@@ -32,6 +34,7 @@ Rechner, für ein Tablet neben dem Rig oder als Browser-Quelle in OBS.
 - **Die Box** (wer mag): ein Renningenieur am Funk, der Bestzeiten und Sprit ansagt und Fragen
   beantwortet – auf einem Mac ganz ohne Dienst und Schlüssel, sonst mit deinem eigenen Schlüssel
   für Google Gemini.
+  Für Bestzeiten, Dreher und Einschläge gibt es jeweils 50 positive Funk-Varianten in beiden Sprachen.
 - **Eine Demo-Fahrt** ist eingebaut: eine aufgezeichnete Fahrt über vier Runden. Du kannst alles
   ohne Konsole ausprobieren, auch die Rundenzeiten und den Untergrund-Ring.
 - **Tisch Turismo**, ein kleines Spiel nebenbei: Ein Spielzeugauto fährt auf einem Schreibtisch

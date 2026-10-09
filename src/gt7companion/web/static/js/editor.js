@@ -6,12 +6,83 @@ import { API, onTopic, wsConnected, wsSend } from './net.js';
 import { WIDGET_NAMES, applyLayout, currentLayout, ensureWidgetEntry, setOverlayBackground,
          setWidgetCornerRadius, updateBackgroundControls } from './layout.js';
 import { stageScale, stageSize } from './stage.js';
+import { History } from './editor-history.js';
+
+var editorHistory = new History();
+var layoutSavePending = false, checkpointTimer = null, feedbackTimer = null;
+
+function rememberLayout() {
+  if (currentLayout) editorHistory.remember(currentLayout);
+  updateSaveControls();
+}
+function updateSaveControls() {
+  document.getElementById('btn-save').disabled = !currentLayout || !wsConnected || layoutSavePending;
+  document.getElementById('btn-reset').disabled = !currentLayout || !wsConnected || layoutSavePending;
+  document.getElementById('btn-undo').disabled = !wsConnected || !editorHistory.past.length || layoutSavePending;
+}
+function saveLayout() {
+  if (!currentLayout || !wsConnected) return;
+  rememberLayout();
+  wsSend({ topic: 'layout_save', data: currentLayout });
+}
+function undoLayout() {
+  if (!currentLayout || !wsConnected || layoutSavePending) return;
+  rememberLayout();
+  var previous = editorHistory.undo();
+  if (!previous) return;
+  clearTimeout(saveTimer);
+  applyLayout(previous);
+  saveLayout();
+}
+function layoutUrl(path) {
+  return API + path + (layoutName ? '?name=' + encodeURIComponent(layoutName) : '');
+}
+function saveFeedback(text) {
+  clearTimeout(checkpointTimer);
+  clearTimeout(feedbackTimer);
+  layoutSavePending = false;
+  updateSaveControls();
+  var button = document.getElementById('btn-save');
+  button.textContent = text;
+  feedbackTimer = setTimeout(function() { if (!layoutSavePending) button.textContent = 'Layout speichern'; }, 2500);
+}
+function saveCheckpoint() {
+  if (!currentLayout || !wsConnected || layoutSavePending) return;
+  clearTimeout(saveTimer);
+  clearTimeout(feedbackTimer);
+  layoutSavePending = true;
+  updateSaveControls();
+  document.getElementById('btn-save').textContent = 'Speichere …';
+  fetch(layoutUrl('/api/layout/saved'))
+    .then(function(r) {
+      if (!r.ok) throw new Error(r.status === 404 ? 'Programm neu starten' : 'Speichern fehlgeschlagen');
+      if (!wsConnected) throw new Error('Keine Verbindung');
+      rememberLayout();
+      wsSend({ topic: 'layout_save', data: currentLayout, checkpoint: true });
+      checkpointTimer = setTimeout(function() { saveFeedback('Speichern nicht bestätigt'); }, 10000);
+    })
+    .catch(function(error) { saveFeedback(error.message); });
+}
+onTopic('layout_saved', function(data) {
+  if (layoutSavePending && data && data.ok) saveFeedback('Gespeichert!');
+});
+onTopic('error', function(data) {
+  if (data && (data.code === 'layout_invalid' || data.code === 'layout_save_failed')) saveFeedback('Speichern fehlgeschlagen');
+});
+window.addEventListener('gt7:layout', rememberLayout);
+document.addEventListener('pointerdown', function() { editorHistory.begin(); }, true);
+document.addEventListener('pointerup', function() { setTimeout(function() { editorHistory.end(); }, 0); });
+document.addEventListener('pointercancel', function() { editorHistory.end(); });
+window.addEventListener('blur', function() { editorHistory.end(); });
+rememberLayout();
 
 /* ================================================================
    WS STATUS INDICATOR (editor mode)
    ================================================================ */
 onTopic('_ws_status', function(d) {
   updateBackgroundControls();
+  if (!d || !d.connected) { editorHistory.end(); if (layoutSavePending) saveFeedback('Keine Verbindung'); }
+  updateSaveControls();
   var dot = document.getElementById('ws-dot');
   var label = document.getElementById('ws-label');
   if (d && d.connected) {
@@ -84,7 +155,7 @@ onTopic('_ws_status', function(d) {
   control.addEventListener('change', function() {
     if (!currentLayout || !wsConnected) return;
     previewBackground();
-    wsSend({ topic: 'layout_save', data: currentLayout });
+    saveLayout();
   });
 });
 /* Styling-Menü: Farben je Look, Speichern über denselben Layoutkanal */
@@ -93,7 +164,7 @@ if (styleMenu && window.GT7Style) {
   window.GT7Style.build(styleMenu, {
     getLayout: function() { return currentLayout; },
     applyLayout: function() { if (currentLayout) applyLayout(currentLayout); },
-    save: function() { if (currentLayout && wsConnected) wsSend({ topic: 'layout_save', data: currentLayout }); }
+    save: saveLayout
   });
   updateBackgroundControls();
 }
@@ -443,7 +514,7 @@ function initEditor() {
           w.y = Math.round(y * 100) / 100;
           el.style.left = w.x + 'px';
           el.style.top = w.y + 'px';
-          wsSend({ topic: 'layout_save', data: currentLayout });
+          saveLayout();
         }
         document.addEventListener('pointermove', move);
         document.addEventListener('pointerup', up);
@@ -528,6 +599,19 @@ function initEditor() {
      Shift beschleunigt auf fuenf Rastereinheiten. */
   document.addEventListener('keydown', function(ev) {
     var tag = ev.target && ev.target.tagName;
+    var textInput = tag === 'TEXTAREA' || tag === 'SELECT' || ev.target.isContentEditable ||
+      (tag === 'INPUT' && ev.target.type !== 'range' && ev.target.type !== 'checkbox');
+    if (!textInput && (ev.ctrlKey || ev.metaKey)) {
+      var key = ev.key.toLowerCase();
+      if (key === 'z' && !ev.shiftKey) { ev.preventDefault(); undoLayout(); return; }
+      if ((key === 'c' || key === 'v') && window.GT7Style) {
+        var open = window.GT7Style.activeWidget();
+        var names = open ? [open] : selectedWidgets.map(function(el) { return el.id.replace('w-', ''); });
+        var handled = key === 'c' ? window.GT7Style.copyWidgetStyle(names[0]) : window.GT7Style.pasteWidgetStyle(names);
+        if (handled) ev.preventDefault();
+        return;
+      }
+    }
     if (tag === 'INPUT' || tag === 'SELECT' || tag === 'TEXTAREA' || ev.target.isContentEditable) return;
     if (ev.key === 'Escape') {
       setSelection([]);
@@ -542,7 +626,12 @@ function initEditor() {
     else return;
     if (!selectedWidgets.length) return;
     ev.preventDefault();
+    if (!ev.repeat) editorHistory.begin();
     moveSelectedBy(dx, dy);
+    rememberLayout();
+  });
+  document.addEventListener('keyup', function(ev) {
+    if (/^Arrow/.test(ev.key)) editorHistory.end();
   });
 
   /* Scale +/- buttons */
@@ -573,7 +662,7 @@ function initEditor() {
       w.config.figure = isDog() ? 'milk' : 'dackel';
       label();
       window.dispatchEvent(new CustomEvent('gt7:layout', {detail: currentLayout}));
-      wsSend({ topic: 'layout_save', data: currentLayout });
+      saveLayout();
     });
     window.addEventListener('gt7:layout', label);
     label();
@@ -618,7 +707,7 @@ function initEditor() {
           wCfg.x = Math.round(xNow / 10) * 10;
           el.style.setProperty('--rpm-w', wCfg.width + 'px');
           el.style.left = wCfg.x + 'px';
-          wsSend({ topic: 'layout_save', data: currentLayout });
+          saveLayout();
         }
         document.addEventListener('pointermove', move);
         document.addEventListener('pointerup', up);
@@ -633,17 +722,8 @@ function initEditor() {
     });
   });
 
-  /* Save button */
-  var btnSave = document.getElementById('btn-save');
-  if (btnSave) {
-    btnSave.addEventListener('click', function() {
-      if (currentLayout) {
-        wsSend({ topic: 'layout_save', data: currentLayout });
-        btnSave.textContent = 'Gespeichert!';
-        setTimeout(function() { btnSave.textContent = 'Layout speichern'; }, 1500);
-      }
-    });
-  }
+  document.getElementById('btn-save').addEventListener('click', saveCheckpoint);
+  document.getElementById('btn-undo').addEventListener('click', undoLayout);
 
   /* Globaler Widget-Eckenradius: live anzeigen, erst nach dem Loslassen
      speichern, damit der Slider nicht bei jedem Pixel WebSocket-Daten sendet. */
@@ -654,19 +734,27 @@ function initEditor() {
     });
     radiusControl.addEventListener('change', function() {
       setWidgetCornerRadius(radiusControl.value);
-      if (currentLayout) wsSend({ topic: 'layout_save', data: currentLayout });
+      if (currentLayout) saveLayout();
     });
   }
 
-  /* Reset button */
-  var btnReset = document.getElementById('btn-reset');
-  if (btnReset) {
-    btnReset.addEventListener('click', function() {
-      fetch(API + '/api/layout/reset' + (layoutName ? '?name=' + encodeURIComponent(layoutName) : ''), { method: 'POST' })
-        .then(function(r) { return r.json(); })
-        .then(function(data) { applyLayout(data); });
-    });
-  }
+  /* Reading the checkpoint first also protects against an older running program. */
+  document.getElementById('btn-reset').addEventListener('click', function() {
+    if (!currentLayout || !wsConnected || layoutSavePending) return;
+    clearTimeout(saveTimer);
+    fetch(layoutUrl('/api/layout/saved'))
+      .then(function(r) {
+        if (!r.ok) throw new Error(r.status === 404 ? 'Programm neu starten' : 'Gespeicherter Stand nicht lesbar');
+        return r.json();
+      })
+      .then(function(saved) {
+        return fetch(layoutUrl('/api/layout'), { method: 'POST', headers: {'Content-Type': 'application/json'},
+                                                 body: JSON.stringify(saved) })
+          .then(function(r) { if (!r.ok) throw new Error('Zurücksetzen fehlgeschlagen'); return saved; });
+      })
+      .then(function(saved) { applyLayout(saved); })
+      .catch(function(error) { saveFeedback(error.message); });
+  });
 }
 
 function scaleWidget(name, delta) {
@@ -687,8 +775,9 @@ function scaleWidget(name, delta) {
 var saveTimer = null;
 function saveSoon() {
   clearTimeout(saveTimer);
+  rememberLayout();
   saveTimer = setTimeout(function() {
-    if (currentLayout && wsConnected) wsSend({ topic: 'layout_save', data: currentLayout });
+    if (currentLayout && wsConnected) saveLayout();
   }, 400);
 }
 
@@ -741,6 +830,8 @@ function saveSoon() {
     if (act === 'smaller') scaleWidget(name, -0.1);
     else if (act === 'larger') scaleWidget(name, 0.1);
     else if (act === 'style' && window.GT7Style) window.GT7Style.openWidget(name);
+    else if (act === 'copy-style' && window.GT7Style) window.GT7Style.copyWidgetStyle(name);
+    else if (act === 'paste-style' && window.GT7Style) window.GT7Style.pasteWidgetStyle(names);
     else if (act === 'figure') { var toggle = document.querySelector('[data-figure-toggle]'); if (toggle) toggle.click(); }
     render();
   });
@@ -755,6 +846,22 @@ function saveSoon() {
   var remove = document.getElementById('btn-layout-delete');
   var mine = layouts.filter(function(layout) { return layout.name === layoutName; })[0];
   remove.hidden = !mine || mine.preset;
+  var preset = document.getElementById('btn-preset');
+  preset.hidden = !mine || !mine.preset;
+  preset.addEventListener('click', function() {
+    if (!currentLayout || !wsConnected || layoutSavePending) return;
+    if (!preset.classList.contains('armed')) {
+      preset.classList.add('armed');
+      preset.textContent = 'Wirklich Vorlage wiederherstellen?';
+      setTimeout(function() { preset.classList.remove('armed'); preset.textContent = 'Vorlage wiederherstellen'; }, 4000);
+      return;
+    }
+    clearTimeout(saveTimer);
+    fetch(layoutUrl('/api/layout/preset'), { method: 'POST' })
+      .then(function(r) { if (!r.ok) throw new Error('Vorlage nicht wiederhergestellt'); return r.json(); })
+      .then(function(layout) { applyLayout(layout); preset.classList.remove('armed'); preset.textContent = 'Vorlage wiederherstellen'; })
+      .catch(function(error) { note.textContent = error.message; });
+  });
   function slug(text) {
     return text.toLowerCase().replace(/ä/g, 'ae').replace(/ö/g, 'oe').replace(/ü/g, 'ue').replace(/ß/g, 'ss')
       .replace(/[^a-z0-9]+/g, '-').replace(/^-+|-+$/g, '').slice(0, 40);
@@ -789,7 +896,7 @@ function toggleWidget(name) {
   /* Ohne Eintrag „visible“ gilt das Widget als sichtbar – daher nicht !w.visible */
   w.visible = (w.visible === false);
   applyLayout(currentLayout);
-  wsSend({ topic: 'layout_save', data: currentLayout });
+  saveLayout();
   rebuildWidgetPanel();
 }
 
@@ -821,7 +928,7 @@ function rebuildWidgetPanel() {
       if (!currentLayout) return;
       ensureWidgetEntry(name).visible = cb.checked;
       applyLayout(currentLayout);
-      wsSend({ topic: 'layout_save', data: currentLayout });
+      saveLayout();
     });
     label.appendChild(cb);
     label.appendChild(document.createTextNode(WIDGET_LABELS[name] || name));
@@ -836,7 +943,7 @@ if (window.GT7Style) {
   window.GT7Style.installWidgetPopup({
     getLayout: function() { return currentLayout; },
     applyLayout: function() { if (currentLayout) applyLayout(currentLayout); },
-    save: function() { if (currentLayout && wsConnected) wsSend({ topic: 'layout_save', data: currentLayout }); },
+    save: saveLayout,
     ensureWidget: ensureWidgetEntry,
     widgetLabel: function(name) { return WIDGET_LABELS[name] || name; },
     setGlobalBackground: function(value) { setOverlayBackground(value); }
@@ -872,7 +979,7 @@ if (btnLook) {
     if (!currentLayout) return;
     currentLayout.look = currentLayout.look === 'reel' ? 'classic' : 'reel';
     applyLayout(currentLayout);
-    wsSend({ topic: 'layout_save', data: currentLayout });
+    saveLayout();
   });
 }
 var btnWidgets = document.getElementById('btn-widgets');
