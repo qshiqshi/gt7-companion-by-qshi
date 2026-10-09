@@ -47,8 +47,9 @@ def main(seconds: float = 120.0) -> int:
         while time.monotonic() - began < seconds:
             stamp, packet = records[sent % len(records)]
             due = began + (sent // len(records)) * lap + (stamp - records[0][0])
-            if due > time.monotonic():
-                time.sleep(due - time.monotonic())
+            wait = due - time.monotonic()                # read the clock once: it moves on between two looks
+            if wait > 0:
+                time.sleep(wait)
             console.sendto(telemetry._encrypt(packet[:size], seed=0x1000 + sent), program)
             sent += 1
             try:
