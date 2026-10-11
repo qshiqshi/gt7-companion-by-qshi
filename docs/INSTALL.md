@@ -134,7 +134,15 @@ PIN from the same page.
 
 ## 6. Stream overlay in OBS
 
-The overlay is a transparent view of its own for the stream. This is how it gets into OBS:
+The overlay is a transparent view of its own for the stream.
+
+**With one click:** the start page (and the *Stream* page) has the button **Open OBS with the
+overlay**. It starts OBS when it is not running, connects to its WebSocket server and adds the
+browser source "GT7 Companion Overlay" to the current scene – 1920 × 1080, audio through OBS.
+Once in OBS: **Tools → WebSocket Server Settings → Enable WebSocket server**; the password from
+**Show Connect Info** goes on the *Stream* page. The program never starts OBS on its own.
+
+**By hand** it gets into OBS like this:
 
 1. The program is running – its window may be closed.
 2. In OBS click **+** under **Sources**, choose **Browser**, give it a name, **OK**.
@@ -205,6 +213,12 @@ To ask without pressing a button, tick **Listen for "Hey Box"** in the settings.
     Return, then run: `.venv/bin/python -m pip install -e ".[wake]"`
   - **Windows:** open the program's folder, click into the address bar, type `cmd`, press
     Enter, then run: `.venv\Scripts\python.exe -m pip install -e ".[wake]"`
+
+## 8. The Box in the headset (Discord)
+
+With a headset at the PlayStation you do not hear the Box – unless a Discord bot of your own
+plays its voice and the brake tones into a voice channel that you join from the PlayStation.
+Step by step: [DISCORD.md](DISCORD.md).
 
 ## Updating
 

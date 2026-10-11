@@ -22,6 +22,8 @@ Comments in files that were taken over unchanged are still German.
 | `engineer/engine.py`, `announcer.py`, `speaker.py`, `mic.py`, `texts.py` | ideas from `server/voice2.py` and `server/director.py` (queue with priorities, pauses per kind of message) | new |
 | `engineer/wake.py` | wake gate in `server/voice2.py` (cutting speech into utterances, matching the wake word) | rewritten without numpy in the gate; works with mlx-whisper or faster-whisper |
 | `data/texts/*.json`, `data/prompts/*.md` | – | newly written in German and English (the private project's radio lines and persona were not taken over) |
+| `stream/discord_voice.py` | `server/discord_sink.py` | sending only (no receiving, no voice-recv); the 20 ms frames, the upsampling and the ducking without numpy; states the page can show; Opus looked for in the app bundle; token in the key store |
+| `stream/obs.py` | idea of `server/obs_client.py` (`_ensure_companion_layer`: an idempotent browser source) | obs-websocket 5 spoken directly over `websockets`, one conversation per click; OBS is started only on the button; markers, replays and the second layer are gone |
 | `app.py` | pattern of `tools/overlay_preview.py` | new |
 | everything else | – | new |
 

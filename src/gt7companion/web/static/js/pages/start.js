@@ -1,6 +1,7 @@
 /* The start page: where the data comes from, and the ways on from here. */
 import { byId, get, post } from './api.js';
 import { t } from '../i18n.js';
+import { wireObsButton } from './stream-voice.js';
 
 const choices = byId('choices');
 const radios = [...choices.querySelectorAll('input[name="source"]')];
@@ -52,6 +53,7 @@ function render() {
   }
   say(byId('source-state'), text, kind);
   if (status) say(byId('version'), t('Version {version}', { version: status.version }), 'muted');
+  byId('obs-open-row').hidden = !mayEdit();          /* the button needs this computer or a paired device */
 }
 
 async function load() {
@@ -83,7 +85,8 @@ byId('open-dashboard').href = seen('view') ? '/' : '/?tour=1';
 byId('open-editor').href = seen('edit') ? '/?edit=1' : '/?edit=1&tour=1';
 byId('tour-note').hidden = seen('view');
 
-/* The overlay for a stream: the address OBS has to be given, ready to be copied. */
+/* The overlay for a stream: one button, or the address OBS has to be given, ready to be copied. */
+wireObsButton(byId('obs-open'), byId('obs-open-result'));
 const obsUrl = location.origin + '/?obs=1';
 const obsCopy = byId('obs-copy');
 byId('obs-url').textContent = obsUrl;

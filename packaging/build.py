@@ -11,7 +11,7 @@ downloads (python-build-standalone). Unlike the Python of Homebrew, which is bui
 the macOS it is installed on, that one also runs on older systems; the build checks this
 for every file it packs. The packages come in the versions of packaging/constraints.txt,
 so every build packs the same code. ``--here`` uses the Python that runs this script
-instead (install ``-c packaging/constraints.txt -e ".[app,window,box]" pyinstaller`` into
+instead (install ``-c packaging/constraints.txt -e ".[app,window,box,discord]" pyinstaller`` into
 it first).
 
 Without more the result is not signed: macOS and Windows will ask on first start.
@@ -70,7 +70,7 @@ def environment(fresh: bool) -> Path:
     # The constraints go in relative to the project (where ``run`` works): uv splits this one argument at
     # spaces, and the folder of the project may have some in its path.
     run(uv, "pip", "install", "--python", python, "-c", CONSTRAINTS.relative_to(ROOT),
-        "-e", f"{ROOT}[app,window,box]", "pyinstaller")
+        "-e", f"{ROOT}[app,window,box,discord]", "pyinstaller")
     return python
 
 

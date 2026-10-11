@@ -35,6 +35,10 @@ Rechner, für ein Tablet neben dem Rig oder als Browser-Quelle in OBS.
   beantwortet – auf einem Mac ganz ohne Dienst und Schlüssel, sonst mit deinem eigenen Schlüssel
   für Google Gemini.
   Für Bestzeiten, Dreher und Einschläge gibt es jeweils 50 positive Funk-Varianten in beiden Sprachen.
+- **Die Box im Headset:** Ein eigener Discord-Bot spielt ihre Stimme und die Bremstöne in einen
+  Sprachkanal, dem du von der PlayStation aus beitrittst ([Anleitung](docs/DISCORD.de.md)).
+- **OBS mit einem Klick:** Der Knopf „OBS mit Overlay öffnen“ startet OBS, wenn es nicht läuft,
+  und legt die Browser-Quelle mit dem Overlay an. Von allein startet das Programm OBS nie.
 - **Eine Demo-Fahrt** ist eingebaut: eine aufgezeichnete Fahrt über vier Runden. Du kannst alles
   ohne Konsole ausprobieren, auch die Rundenzeiten und den Untergrund-Ring. Solange sie läuft,
   steht das als Streifen im Dashboard – damit niemand sie für die eigene Fahrt hält.
@@ -160,7 +164,10 @@ die Seite ohne die Leisten des Browsers.
 
 ## OBS
 
-Das Overlay ist eine eigene, durchsichtige Ansicht für den Stream. So kommt es in OBS:
+Das Overlay ist eine eigene, durchsichtige Ansicht für den Stream. Der kurze Weg: auf der
+Startseite **OBS mit Overlay öffnen** – das startet OBS bei Bedarf und legt die Browser-Quelle an
+(einmalig in OBS den WebSocket-Server unter *Werkzeuge* einschalten, siehe
+[Anleitung](docs/INSTALL.de.md#6-stream-overlay-in-obs)). Von Hand kommt es so in OBS:
 
 1. Das Programm läuft – sein Fenster darf zu sein.
 2. In OBS unter **Quellen** auf **+** klicken, **Browser** wählen, einen Namen vergeben, **OK**.

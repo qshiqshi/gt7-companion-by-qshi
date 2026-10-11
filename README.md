@@ -33,6 +33,10 @@ computer, for a tablet next to your rig, or as a browser source in OBS.
   answers questions – on a Mac without any service or key, elsewhere with your own Google
   Gemini API key.
   Best laps, spins and impacts have 50 positive radio variants each, in either language.
+- **The Box in the headset:** a Discord bot of your own plays its voice and the brake tones into
+  a voice channel that you join from the PlayStation ([guide](docs/DISCORD.md)).
+- **OBS with one click:** the button "Open OBS with the overlay" starts OBS when it is not
+  running and adds the browser source with the overlay. The program never starts OBS on its own.
 - **A demo drive** is built in: a recorded drive of four laps. You can try everything without
   a console, lap times and the surface ring included. While it plays, a strip in the dashboard
   says so – nobody should take it for their own drive.
@@ -155,7 +159,10 @@ Access" on an iPad). Adding the page to the home screen shows it without the bro
 
 ## OBS
 
-The overlay is a transparent view of its own for the stream. This is how it gets into OBS:
+The overlay is a transparent view of its own for the stream. The short way: **Open OBS with the
+overlay** on the start page – it starts OBS if needed and adds the browser source (once, switch
+on the WebSocket server in OBS under *Tools*, see the
+[guide](docs/INSTALL.md#6-stream-overlay-in-obs)). By hand it gets into OBS like this:
 
 1. The program is running – its window may be closed.
 2. In OBS click **+** under **Sources**, choose **Browser**, give it a name, **OK**.

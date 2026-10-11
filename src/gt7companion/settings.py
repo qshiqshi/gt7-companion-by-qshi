@@ -8,6 +8,7 @@ import copy
 import ipaddress
 import json
 import logging
+import re
 from pathlib import Path
 
 from .paths import user_dir, write_atomic
@@ -36,6 +37,13 @@ DEFAULTS: dict = {
     "box_per_session": 150,  # … and in one session (each one costs money on the user's key)
     "box_wake": False,       # listen for "Hey Box" (speech is recognised on this computer)
     "box_speaker": True,     # play the voice on this computer's loudspeakers (browsers with sound on get it anyway)
+    # The Box in the headset: a Discord bot of the user's own (token in keystore.py)
+    "discord_enabled": False,
+    "discord_channel": "",   # name or id of the voice channel; empty: the first one the bot sees
+    "discord_cues": True,    # the brake tones go into the channel as well
+    # OBS Studio with its WebSocket server (password in keystore.py)
+    "obs_host": "127.0.0.1",
+    "obs_port": 4455,
 }
 
 
@@ -109,7 +117,16 @@ def _kinds(value):
     return [kind for kind in _BOX_KINDS if kind in value]
 
 
-_CHECKS = {"box_enabled": _flag, "box_speaker": _flag, "box_wake": _flag, "box_driver": _text(40), "box_language": _one_of("auto", "de", "en"),
+def _host(value):
+    text = str(value or "").strip().lower() or "127.0.0.1"
+    if len(text) > 253 or not re.fullmatch(r"[a-z0-9.:_-]+|\[[0-9a-f:.]+\]", text):
+        raise ValueError("not a host name or address")
+    return text
+
+
+_CHECKS = {"discord_enabled": _flag, "discord_channel": _text(100), "discord_cues": _flag,
+           "obs_host": _host, "obs_port": _number(1, 65535),
+           "box_enabled": _flag, "box_speaker": _flag, "box_wake": _flag, "box_driver": _text(40), "box_language": _one_of("auto", "de", "en"),
            "box_engine": _one_of("auto", "local", "gemini"), "box_local_voice": _text(120, r"[A-Za-z0-9._-]*"),
            "box_voice": _text(40, r"[A-Za-z][A-Za-z0-9 _-]*"), "box_model": _text(80, r"[A-Za-z0-9][A-Za-z0-9._-]*"),
            "box_announce": _kinds, "box_per_minute": _number(1, 20), "box_per_session": _number(1, 2000),

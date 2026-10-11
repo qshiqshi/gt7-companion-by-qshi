@@ -34,6 +34,7 @@ from .paths import WEB
 from .security import COOKIE, OWNER, Pairing, TooManyAttempts, host_allowed, may_edit, role_of, same_origin
 from .settings import Settings
 from .sources import Sources
+from .stream import discord_voice, obs
 from .ws_manager import ConnectionManager
 
 log = logging.getLogger("app")
@@ -87,6 +88,8 @@ class Companion:
     pairing: Pairing
     engineer: Engineer
     game: GameFeed
+    headset: discord_voice.DiscordVoice
+    obs: obs.ObsLink
 
     def status(self) -> dict:
         return self.hub.status()
@@ -144,7 +147,20 @@ def create_app(settings: Settings | None = None, *, layouts: LayoutStore | None 
         else:
             await manager.broadcast("box_audio", {}, where=wants, type="end")
 
-    engineer.on_audio = box_audio
+    def headset_changed() -> None:
+        """Tell the pages about the bot in the voice channel."""
+        try:
+            asyncio.get_running_loop().create_task(manager.broadcast("headset", headset.status()))
+        except RuntimeError:
+            pass
+
+    headset = discord_voice.DiscordVoice(settings, keys or engineer.keys, bus, on_change=headset_changed)
+
+    async def box_audio_everywhere(kind: str, data) -> None:
+        await box_audio(kind, data)
+        await headset.on_audio(kind, data)
+
+    engineer.on_audio = box_audio_everywhere
 
     def new_session(kind: str) -> None:
         detectors.reset()
@@ -155,6 +171,7 @@ def create_app(settings: Settings | None = None, *, layouts: LayoutStore | None 
 
     companion = Companion(settings=settings, layouts=layouts or LayoutStore(), bus=bus,
                           manager=manager, hub=hub, pairing=Pairing(), engineer=engineer, game=feed,
+                          headset=headset, obs=obs.ObsLink(settings, engineer.keys, port=port, addresses=local_addresses),
                           sources=Sources(bus, settings, on_switch=new_session,
                                           **({"ports": ports} if ports else {})))
     hub.status_info = companion.sources.status
@@ -168,11 +185,13 @@ def create_app(settings: Settings | None = None, *, layouts: LayoutStore | None 
     @asynccontextmanager
     async def lifespan(app: FastAPI):
         await engineer.start()
+        await headset.start()
         await companion.sources.start(source)
         try:
             yield
         finally:
             await companion.sources.stop()
+            await headset.stop()
             await engineer.stop()
 
     app = FastAPI(title=APP_NAME, version=__version__, lifespan=lifespan,
@@ -393,6 +412,8 @@ def create_app(settings: Settings | None = None, *, layouts: LayoutStore | None 
             await announce_status()
         if any(before[key] != settings[key] for key in before if key.startswith("box_")):
             await engineer.refresh()
+        if any(before[key] != settings[key] for key in before if key.startswith("discord_")):
+            await headset.refresh()
         return JSONResponse(settings_view(), headers=_NO_STORE)
 
     # ------------------------------------------------------------------ the Box
@@ -587,5 +608,7 @@ def create_app(settings: Settings | None = None, *, layouts: LayoutStore | None 
         await ws.accept()
         await feed.serve(ws)
 
+    app.include_router(discord_voice.router)
+    app.include_router(obs.router)
     app.mount("/static", StaticFiles(directory=WEB / "static"), name="static")
     return app

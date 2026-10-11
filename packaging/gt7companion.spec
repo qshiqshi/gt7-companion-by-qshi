@@ -7,7 +7,7 @@
 import sys
 from pathlib import Path
 
-from PyInstaller.utils.hooks import collect_submodules
+from PyInstaller.utils.hooks import collect_data_files, collect_submodules
 
 ROOT = Path(SPECPATH).parent
 SOURCE = ROOT / "src"
@@ -19,11 +19,13 @@ from gt7companion.launcher import WINDOW_TITLE          # noqa: E402
 hidden = (collect_submodules("uvicorn") + collect_submodules("websockets") + collect_submodules("pystray")
           + ["gt7companion.app", "segno", "ifaddr", "Crypto.Cipher.Salsa20",
              "sounddevice",                             # the Box on the loudspeakers
+             "davey", "nacl", "audioop",                # the Box in the headset (with discord.py)
              "webview"])                                # the window; its hook brings the platform parts
 datas = [(str(SOURCE / "gt7companion" / "web"), "gt7companion/web"),
          (str(SOURCE / "gt7companion" / "data"), "gt7companion/data"),
          (str(ROOT / "LICENSE"), "."), (str(ROOT / "THIRD_PARTY_NOTICES.md"), "."),
          (str(ROOT / "TEXT_QUOTES.md"), ".")]
+datas += collect_data_files("discord", includes=["bin/*"])   # Windows: the Opus library inside discord.py
 binaries = []
 if sys.platform == "darwin":
     datas += [(str(PACKAGING / "mac" / f"{language}.lproj" / "InfoPlist.strings"), f"{language}.lproj")
@@ -31,6 +33,9 @@ if sys.platform == "darwin":
     helper = ROOT / "build" / "gt7c-box"                # the Box on the Mac alone; packaging/build.py compiles it
     if helper.is_file():
         binaries.append((str(helper), "."))
+    opus = ROOT / "build" / "libopus.0.dylib"           # the Box in the headset; python tools/build_opus.py builds it
+    if opus.is_file():
+        binaries.append((str(opus), "."))
 
 analysis = Analysis(
     [str(PACKAGING / "app_entry.py")],

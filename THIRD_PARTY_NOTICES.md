@@ -38,6 +38,12 @@ were modelled for this project by the scripts in `tools/blender/`; the rev band
 | Python.NET, clr-loader, cffi, pycparser (Windows, with pywebview) | MIT / MIT / MIT / BSD-3-Clause |
 | sounddevice (optional, Box) and PortAudio | MIT |
 | mlx-whisper or faster-whisper (optional, "Hey Box") and the Whisper model by OpenAI | MIT |
+| discord.py (optional, the Box in the headset) | MIT |
+| PyNaCl and libsodium (with discord.py) | Apache-2.0 / ISC |
+| davey (with discord.py: Discord's end-to-end encryption) | MIT |
+| aiohttp, aiosignal, frozenlist, multidict, yarl, propcache (with discord.py) | Apache-2.0 (aiohttp also MIT) |
+| attrs, aiohappyeyeballs, audioop-lts (with discord.py) | MIT / PSF-2.0 / PSF-2.0 |
+| Opus (libopus; the Mac app ships it, on Windows discord.py brings it) | BSD-3-Clause, © Xiph.Org Foundation and contributors |
 
 Packaged builds also contain the Python runtime (PSF-2.0) as built by the project
 python-build-standalone, together with the libraries it is linked with (among them OpenSSL,

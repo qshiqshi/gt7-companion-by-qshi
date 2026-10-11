@@ -37,13 +37,84 @@
     </section>
 
     <section class="card" id="discord" aria-labelledby="discord-title">
-      <h2 id="discord-title">Discord</h2>
-      <p class="muted" id="discord-soon">Kommt in Kürze.</p>
+      <h2 id="discord-title">Discord – die Box im Headset</h2>
+      <p class="muted">Ein eigener Discord-Bot spielt die Stimme der Box und die Bremstöne in einen Sprachkanal. Trittst du demselben Kanal von der PlayStation bei, hörst du beides im Headset, gemischt mit dem Spielton. Der Bot sendet nur: Er hört nicht mit und liest keine Nachrichten. Wie du ihn anlegst, steht Schritt für Schritt in der <a id="discord-guide" href="https://github.com/qshiqshi/gt7-companion-by-qshi/blob/main/docs/DISCORD.de.md" target="_blank" rel="noopener">Anleitung</a>.</p>
+      <p class="note" id="discord-state" role="status" hidden></p>
+      <label class="check">
+        <input id="discord_enabled" type="checkbox">
+        <span>Die Box in den Discord-Sprachkanal senden</span>
+      </label>
+      <div id="discord-token" hidden>
+        <label class="field">
+          <span>Token des Bots</span>
+          <input id="discord-token-input" type="password" autocomplete="off" spellcheck="false" placeholder="Token einfügen">
+          <small>Den Token erzeugst du im Discord Developer Portal (siehe Anleitung). Er wird nur auf diesem Computer gespeichert und nie wieder angezeigt.</small>
+        </label>
+        <div class="row">
+          <button id="discord-token-save" type="button">Token speichern</button>
+          <button id="discord-token-clear" type="button">Token entfernen</button>
+        </div>
+      </div>
+      <p class="muted" id="discord-token-elsewhere" hidden>Der Token lässt sich nur am Computer mit dem Programm eintragen.</p>
+      <label class="field">
+        <span>Sprachkanal</span>
+        <input id="discord_channel" type="text" maxlength="100" autocomplete="off" placeholder="leer: der erste Sprachkanal des Servers">
+      </label>
+      <label class="check">
+        <input id="discord_cues" type="checkbox">
+        <span>Bremstöne auch in den Kanal</span>
+      </label>
+      <div class="row">
+        <button id="discord-save" type="button">Speichern</button>
+        <button id="discord-test" type="button">Probeton</button>
+        <span class="muted" id="discord-result" role="status"></span>
+      </div>
     </section>
 
     <section class="card" id="obs" aria-labelledby="obs-title">
-      <h2 id="obs-title">OBS</h2>
-      <p class="muted" id="obs-soon">Kommt in Kürze.</p>
+      <h2 id="obs-title">OBS – das Overlay mit einem Klick</h2>
+      <p class="muted">Das Programm startet OBS nie von allein. Der Knopf startet OBS, wenn es nicht läuft, verbindet sich mit dessen WebSocket-Server und legt in der aktuellen Szene die Browser-Quelle „GT7 Companion Overlay“ an: 1920 × 1080, Ton über OBS. Gibt es die Quelle schon, bleibt sie, wie sie ist.</p>
+      <p class="note" id="obs-state" role="status" hidden></p>
+      <div class="row">
+        <button class="primary" id="obs-open" type="button">OBS mit Overlay öffnen</button>
+        <span class="muted" id="obs-result" role="status"></span>
+      </div>
+      <details class="how">
+        <summary>Den WebSocket-Server in OBS einschalten</summary>
+        <ol>
+          <li>In OBS: Werkzeuge → WebSocket-Server-Einstellungen.</li>
+          <li>„WebSocket-Server aktivieren“ anhaken, den Port 4455 lassen.</li>
+          <li>„Verbindungsinformationen anzeigen“: das Passwort kopieren und hier eintragen.</li>
+        </ol>
+      </details>
+      <div id="obs-password" hidden>
+        <label class="field">
+          <span>Passwort des WebSocket-Servers</span>
+          <input id="obs-password-input" type="password" autocomplete="off" spellcheck="false" placeholder="Passwort einfügen">
+          <small>Es wird nur auf diesem Computer gespeichert und nie wieder angezeigt.</small>
+        </label>
+        <div class="row">
+          <button id="obs-password-save" type="button">Passwort speichern</button>
+          <button id="obs-password-clear" type="button">Passwort entfernen</button>
+        </div>
+      </div>
+      <p class="muted" id="obs-password-elsewhere" hidden>Das Passwort lässt sich nur am Computer mit dem Programm eintragen.</p>
+      <details>
+        <summary>Erweitert</summary>
+        <label class="field">
+          <span>Rechner mit OBS</span>
+          <input id="obs_host" type="text" maxlength="253" autocomplete="off" spellcheck="false">
+          <small>127.0.0.1 ist dieser Computer. Läuft OBS auf einem anderen Rechner, trage dessen Namen oder Adresse ein; das Overlay wird dann über das Heimnetz geladen (Freigabe unter Einstellungen).</small>
+        </label>
+        <label class="field">
+          <span>Port des WebSocket-Servers</span>
+          <input id="obs_port" type="text" inputmode="numeric" maxlength="5">
+        </label>
+        <div class="row">
+          <button id="obs-save" type="button">Speichern</button>
+          <span class="muted" id="obs-save-result" role="status"></span>
+        </div>
+      </details>
     </section>
   </div>
   <p class="note error" id="offline" hidden>Das Programm ist nicht erreichbar.</p>
