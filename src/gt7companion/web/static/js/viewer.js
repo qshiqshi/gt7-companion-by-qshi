@@ -11,6 +11,19 @@ import { tourSeen } from './tour.js';
 const wait = document.getElementById('wait');
 const menu = document.getElementById('view-menu');
 
+/* On the computer itself the voice of the Box and the brake tones come from the program's own
+   loudspeaker output, each with a switch in the settings. The buttons of the menu switch exactly
+   those there, and the page itself stays silent, so nothing sounds twice. On every other device the
+   same buttons switch the playback in that browser. */
+function onComputer() { return role === 'owner'; }
+
+async function saveSettings(changes) {
+  const response = await fetch('/api/settings', { method: 'POST', headers: { 'Content-Type': 'application/json' },
+                                                  body: JSON.stringify(changes) });
+  if (!response.ok) throw new Error('settings');
+  return response.json();
+}
+
 if (IS_VIEW && wait && menu) {
   const title = wait.querySelector('.wait-title');
   const text = wait.querySelector('.wait-text');
@@ -109,18 +122,25 @@ if (IS_VIEW && wait && menu) {
   let box = {};
   function renderBox() {
     const usable = !!box.enabled && !!box.usable;
+    const on = onComputer() ? !!box.speaker_on : soundOn;
     sound.hidden = !usable;
-    sound.classList.toggle('on', soundOn);
-    sound.textContent = soundOn ? t('Ton aus') : t('Ton an');
+    sound.classList.toggle('on', on);
+    sound.textContent = on ? t('Ton aus') : t('Ton an');
     talk.hidden = !(usable && box.questions && box.microphone && (role === 'owner' || role === 'editor'));
     talk.classList.toggle('talking', box.state === 'listening');
     talk.textContent = box.state === 'listening' ? t('Loslassen zum Senden') : t('Sprechen');
   }
   onTopic('box', function(status) { box = status || {}; renderBox(); });
+  onTopic('hello', function() { if (onComputer() && soundOn) setSound(false); renderBox(); });
   window.addEventListener('gt7:sound', renderBox);
-  sound.addEventListener('click', function() { setSound(!soundOn); });
+  sound.addEventListener('click', function() {
+    if (!onComputer()) { setSound(!soundOn); return; }
+    saveSettings({ box_speaker: !box.speaker_on })
+      .then(function(values) { box.speaker_on = !!values.box_speaker; renderBox(); })
+      .catch(function() { /* the next status of the Box shows what is true */ });
+  });
   /* Sound was on last time: the first touch anywhere brings it back (browsers insist on a touch). */
-  if (wantsSound()) window.addEventListener('pointerdown', function() { if (!soundOn) setSound(true); }, { once: true });
+  if (wantsSound()) window.addEventListener('pointerdown', function() { if (!soundOn && !onComputer()) setSound(true); }, { once: true });
   function hold(on) {
     return function(event) {
       if (event.type === 'pointerdown') { event.preventDefault(); try { talk.setPointerCapture(event.pointerId); } catch (e) { /* fine */ } }
@@ -188,20 +208,27 @@ if (IS_VIEW && menu) {
   const cuesButton = document.getElementById('btn-cues');
   let cues = {};
   function renderCues() {
+    const on = onComputer() ? !!cues.speaker : cuesOn;
     cuesButton.hidden = !cues.enabled;
-    cuesButton.classList.toggle('on', cuesOn);
-    cuesButton.setAttribute('aria-pressed', String(cuesOn));
-    let label = cuesOn ? t('Bremstöne aus') : t('Bremstöne an');
+    cuesButton.classList.toggle('on', on);
+    cuesButton.setAttribute('aria-pressed', String(on));
+    let label = on ? t('Bremstöne aus') : t('Bremstöne an');
     if (!cues.ready) label = cues.reference ? t('Bremstöne (keine Bremspunkte)') : t('Bremstöne (noch keine Referenz)');
     cuesButton.textContent = label;
   }
   onTopic('cues', function(state) { cues = state || {}; renderCues(); });
+  onTopic('hello', function() { if (onComputer() && cuesOn) setCues(false); renderCues(); });
   window.addEventListener('gt7:cues', renderCues);
-  cuesButton.addEventListener('click', function() { setCues(!cuesOn, true); });
+  cuesButton.addEventListener('click', function() {
+    if (!onComputer()) { setCues(!cuesOn, true); return; }
+    saveSettings({ cues_speaker: !cues.speaker })
+      .then(function(values) { cues.speaker = !!values.cues_speaker; renderCues(); })
+      .catch(function() { /* the next state of the tones shows what is true */ });
+  });
   /* They were on last time: the first touch anywhere else brings them back (browsers insist on a touch). */
   if (wantsCues()) {
     window.addEventListener('pointerdown', function(event) {
-      if (!cuesOn && event.target !== cuesButton) setCues(true);
+      if (!cuesOn && !onComputer() && event.target !== cuesButton) setCues(true);
     }, { once: true });
   }
   renderCues();

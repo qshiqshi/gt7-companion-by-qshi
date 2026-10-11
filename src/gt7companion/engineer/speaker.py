@@ -35,6 +35,8 @@ def tone(frequency: float, seconds: float, rate: int = TONE_RATE, level: float =
 
 
 class Speaker:
+    is_muted = None                   # callable() -> bool, set by the Box: the loudspeakers are switched off right now
+
     def __init__(self) -> None:
         try:
             import sounddevice
@@ -53,10 +55,11 @@ class Speaker:
         stream = None
         try:
             async for chunk in chunks:
-                if self._sd is not None and stream is None and not mute:
+                muted = mute or bool(self.is_muted is not None and self.is_muted())
+                if self._sd is not None and stream is None and not muted:
                     stream = self._sd.RawOutputStream(samplerate=rate, channels=1, dtype="int16")
                     stream.start()
-                if stream is not None:
+                if stream is not None and not muted:      # switched off meanwhile: the rest passes in silence
                     await asyncio.to_thread(stream.write, chunk)
                 played += len(chunk)
         finally:

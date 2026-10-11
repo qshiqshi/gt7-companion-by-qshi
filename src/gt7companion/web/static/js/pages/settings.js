@@ -166,8 +166,10 @@ const BOX_PROBLEMS = {
   failed: 'Die Box konnte nicht sprechen.',
 };
 let role = 'viewer';
+let lastBox = {};
 
 function showBox(box) {
+  lastBox = box;
   const state = byId('box-state');
   let text = '', kind = 'note';
   if (box.state === 'error') { text = t(BOX_PROBLEMS[box.error] || BOX_PROBLEMS.failed); kind = 'note error'; }
@@ -179,7 +181,10 @@ function showBox(box) {
   byId('box-wake-missing').hidden = box.wake_possible && box.microphone;
   if (box.wake) text += ' ' + t('Sie hört auf „Hey Box“.');
   say(state, text);
-  const local = box.engine === 'local';
+  /* What is chosen here decides what is shown, even before it is saved: the key field for Gemini,
+     the voices for this Mac ("automatically": whatever the program has settled on). */
+  const chosen = byId('box_engine').value;
+  const local = chosen === 'local' || (chosen === 'auto' && box.engine === 'local');
   offerLocal(!!(box.local || {}).helper || byId('box_engine').value === 'local' || (shown || {}).box_engine === 'local');
   const hint = localHint(box);
   say(byId('box-local-hint'), hint);
@@ -213,6 +218,7 @@ async function boxAction(path, body) {
   }
 }
 
+byId('box_engine').addEventListener('change', function() { showBox(lastBox); });
 byId('box-key-save').addEventListener('click', async function() {
   const field = byId('box-key-input');
   if (!field.value.trim()) { field.focus(); return; }

@@ -101,6 +101,47 @@ class FakeSpeaker:
         return len(data)
 
 
+class LoudspeakerTests(unittest.TestCase):
+    def test_the_voice_stops_as_soon_as_the_loudspeakers_are_switched_off(self):
+        from gt7companion.engineer.speaker import Speaker
+
+        written = []
+
+        class Stream:
+            def __init__(self, **options):
+                pass
+
+            def start(self):
+                pass
+
+            def write(self, data):
+                written.append(data)
+
+            def stop(self):
+                pass
+
+            def close(self):
+                pass
+
+        class FakeSoundDevice:
+            RawOutputStream = Stream
+
+        speaker = Speaker()
+        speaker._sd = FakeSoundDevice
+        wanted = [True]
+        speaker.is_muted = lambda: not wanted[0]
+
+        async def chunks():
+            yield b"a"
+            yield b"b"
+            wanted[0] = False                     # "sound off" in the middle of a message
+            yield b"c"
+            yield b"d"
+
+        self.assertEqual(asyncio.run(speaker.play(chunks(), 24000)), 4)
+        self.assertEqual(written, [b"a", b"b"])
+
+
 class FakeMicrophone:
     """Records nothing; hands over what the test "said"."""
     available = True

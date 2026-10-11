@@ -3,6 +3,7 @@
 Needs Playwright with Chromium (``pip install playwright && playwright install chromium``)
 and is skipped without it. ``GT7C_CHROMIUM`` may name a Chromium executable to use instead.
 """
+import json
 import os
 import socket
 import sys
@@ -30,6 +31,25 @@ STAGE = """() => {
   return { left: rect.left, top: rect.top, right: rect.right, bottom: rect.bottom,
            width: innerWidth, height: innerHeight };
 }"""
+
+
+def _as_other_device(route) -> None:
+    """Playwright sends no extra headers on a WebSocket, so the live connection of a page that
+    plays another device would still be the computer's: this rewrites what the program says."""
+    server = route.connect_to_server()
+
+    def from_server(message):
+        try:
+            data = json.loads(message)
+            if isinstance(data, dict) and data.get("topic") == "hello":
+                data["data"]["role"] = "viewer"
+                message = json.dumps(data)
+        except (ValueError, TypeError, KeyError):
+            pass
+        route.send(message)
+
+    server.on_message(from_server)
+    route.on_message(lambda message: server.send(message))
 
 
 def free_port() -> int:
@@ -99,7 +119,12 @@ class Pages(unittest.TestCase):
         self.close_pages()                            # one page at a time: 3D in software is slow
         context_options.setdefault("locale", "de-DE")            # the pages follow the device's language
         demo_note = context_options.pop("demo_note", False)
+        other_device = context_options.pop("other_device", False)  # a tablet in the home network, not this computer
+        if other_device:
+            context_options.setdefault("extra_http_headers", {"X-Forwarded-For": "192.168.1.50"})
         context = self.browser.new_context(viewport={"width": size[0], "height": size[1]}, **context_options)
+        if other_device:
+            context.route_web_socket("**/ws*", _as_other_device)
         if not demo_note:
             # As for someone who put the strip of the demo drive away: the dashboard has the whole screen.
             context.add_init_script("try { sessionStorage.setItem('gt7c.demo-note', 'off'); } catch (e) {}")
@@ -401,11 +426,28 @@ class BrowserCase(Pages):
             .then(() => fetch('/api/settings', {method: 'POST', headers: {'Content-Type': 'application/json'},
                                body: JSON.stringify({box_enabled: true})}))""")
         page.wait_for_function("() => !document.getElementById('btn-sound').hidden")
-        self.assertEqual(page.evaluate("document.getElementById('btn-sound').textContent"), "Ton an")
+        # On the computer itself the button switches the program's loudspeaker output, which is on by default;
+        # the page stays silent, so the voice does not sound twice.
+        self.assertEqual(page.evaluate("document.getElementById('btn-sound').textContent"), "Ton aus")
         page.hover("#btn-sound", force=True)            # the menu stays while the pointer rests on it
         page.click("#btn-sound")
+        page.wait_for_function("() => document.getElementById('btn-sound').textContent === 'Ton an'")
+        self.assertFalse(page.evaluate("fetch('/api/settings').then(r => r.json()).then(v => v.box_speaker)"))
+        self.assertNotEqual(page.evaluate("localStorage.getItem('gt7c.sound')"), "1")
+        page.click("#btn-sound")
         page.wait_for_function("() => document.getElementById('btn-sound').textContent === 'Ton aus'")
-        self.assertEqual(page.evaluate("localStorage.getItem('gt7c.sound')"), "1")
+        self.assertTrue(page.evaluate("fetch('/api/settings').then(r => r.json()).then(v => v.box_speaker)"))
+        # Another device switches the playback in its own browser and leaves the loudspeakers alone.
+        other = self.open(size=(1280, 720), figure=False, other_device=True)
+        other.wait_for_function("() => !document.getElementById('btn-sound').hidden")
+        self.assertEqual(other.evaluate("document.getElementById('btn-sound').textContent"), "Ton an")
+        other.hover("#btn-sound", force=True)
+        other.click("#btn-sound")
+        other.wait_for_function("() => document.getElementById('btn-sound').textContent === 'Ton aus'")
+        self.assertEqual(other.evaluate("localStorage.getItem('gt7c.sound')"), "1")
+        page = self.open(size=(1280, 720), figure=False)
+        page.wait_for_function("() => !document.getElementById('btn-sound').hidden")
+        self.assertEqual(page.evaluate("document.getElementById('btn-sound').textContent"), "Ton aus")
         page.evaluate("""fetch('/api/settings', {method: 'POST', headers: {'Content-Type': 'application/json'},
                                body: JSON.stringify({box_enabled: false})})
             .then(() => fetch('/api/box/key', {method: 'POST', headers: {'Content-Type': 'application/json'},
@@ -606,7 +648,11 @@ class LocalBoxInTheBrowser(Pages):
         page.wait_for_function("() => document.getElementById('box_local_voice').options.length === 3")
         self.assertEqual(page.evaluate("document.getElementById('box_local_voice').value"),
                          "com.apple.voice.compact.de-DE.Anna")
-        # Gemini by choice: the key comes back, the voices of the Mac go
+        # Gemini by choice: the key field is there at once, before anything is saved, and goes again
+        page.select_option("#box_engine", "gemini")
+        self.assertEqual(self.hidden(page, "box-key", "box-gemini", "box-local-voice"), [False, False, True])
+        page.select_option("#box_engine", "local")
+        self.assertEqual(self.hidden(page, "box-key", "box-gemini", "box-local-voice"), [True, True, False])
         page.select_option("#box_engine", "gemini")
         page.click("#form button[type=submit]")
         page.wait_for_function("() => document.getElementById('box-state').textContent.includes('kein Schlüssel')")

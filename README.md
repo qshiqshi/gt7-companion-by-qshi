@@ -249,7 +249,9 @@ For both:
 - The default is "only what matters" (best lap, fuel, start and finish).
 - Sound comes from the computer's loudspeakers (from source with the extra
   `pip install -e ".[box]"`) or from any browser showing the dashboard after a tap on
-  "Sound on"; an OBS source plays it without a tap.
+  "Sound on"; an OBS source plays it without a tap. On the computer itself "Sound on/off" and
+  "Brake tones on/off" in the menu of the dashboard switch the program's loudspeakers – the voice
+  and the brake tones apart from each other; "Sound off" also stops a message being spoken.
 - Talk back: hold the "Talk" button in the dashboard menu and ask ("how much fuel is left?").
   The microphone of the computer is used, also when the button is held on a tablet. For a
   button of your own: `POST /api/box/talk` with `{"on": true}` and `{"on": false}`.

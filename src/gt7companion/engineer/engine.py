@@ -61,6 +61,7 @@ class Engineer:
                  helper: Helper | None = None) -> None:
         self.settings, self.keys = settings, keys
         self.speaker = speaker or Speaker()
+        self.speaker.is_muted = lambda: not self.settings["box_speaker"]     # "sound off" stops a running message, too
         self.microphone = microphone or Microphone()
         self.session_status = dict              # callable() -> dict: facts the voice may look up
         self.helper = helper                    # the Mac's own voice, recognition and language model, if there
@@ -275,7 +276,8 @@ class Engineer:
                           "voices": list(self.local.get("voices") or [])},
                 "said": self.said, "skipped": self.skipped, "tokens": self.tokens,
                 "per_minute": self.settings["box_per_minute"], "per_session": self.settings["box_per_session"],
-                "speaker": self.speaker.available, "microphone": self.microphone.available,
+                "speaker": self.speaker.available, "speaker_on": bool(self.settings["box_speaker"]),
+                "microphone": self.microphone.available,
                 "wake": bool(self.wake and self.wake.running), "wake_possible": self.wake_possible,
                 "language": self.language(), "typed_questions": self.typed_questions, "asking": self.asking}
 

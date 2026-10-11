@@ -255,7 +255,9 @@ Für beide gilt:
 - Voreingestellt ist „nur das Wichtigste“ (Bestzeit, Sprit, Start und Ziel).
 - Der Ton kommt aus den Lautsprechern des Rechners (aus dem Quelltext mit dem Zusatz
   `pip install -e ".[box]"`) oder aus jedem Browser mit dem Dashboard, nachdem dort „Ton an“
-  getippt wurde; eine OBS-Quelle spielt ihn ohne Tippen ab.
+  getippt wurde; eine OBS-Quelle spielt ihn ohne Tippen ab. Am Rechner selbst schalten „Ton an/aus“
+  und „Bremstöne an/aus“ im Menü des Dashboards die Lautsprecher des Programms – die Stimme und
+  die Bremstöne getrennt voneinander, „Ton aus“ stoppt auch eine laufende Ansage.
 - Zurücksprechen: den Knopf „Sprechen“ im Menü des Dashboards gedrückt halten und fragen
   („Wie viel Sprit ist noch drin?“). Benutzt wird das Mikrofon des Rechners, auch wenn der
   Knopf auf einem Tablet gehalten wird. Für einen eigenen Knopf: `POST /api/box/talk` mit
