@@ -215,7 +215,9 @@ class WakeListener:
                     chunks.put_nowait(pcm)
             loop.call_soon_threadsafe(put)
 
-        if not self._microphone.listen(deliver):
+        # Opening the microphone can wait for macOS to ask the user for permission (every build that is
+        # signed anew asks again); that must not stop the loop, and with it every page, meanwhile.
+        if not await asyncio.to_thread(self._microphone.listen, deliver):
             return False
         self._task = asyncio.create_task(self._run(chunks))
         return True

@@ -416,6 +416,46 @@ class LocalBox(HelperCase, Folder):
                          "Sprit bei 37 Prozent, das reicht für 6,4 Runden. Das reicht nicht bis ins Ziel.")
 
 
+class TheMicrophoneOpensBesideTheLoop(unittest.TestCase):
+    def test_a_microphone_that_waits_for_permission_does_not_stop_the_loop(self):
+        import time
+
+        class SlowMicrophone:
+            available = True
+
+            def listen(self, deliver):
+                time.sleep(0.4)                        # macOS asks the user whether the microphone may be used
+                return True
+
+            def stop_listening(self):
+                pass
+
+        class NoTranscriber:
+            def warm_up(self, language):
+                pass
+
+            def transcribe(self, pcm, language):
+                return ""
+
+        async def go():
+            listener = wake.WakeListener(SlowMicrophone(), NoTranscriber(), language=lambda: "de", on_question=lambda *a: None)
+            ticks = 0
+
+            async def tick():
+                nonlocal ticks
+                while True:
+                    await asyncio.sleep(0.05)
+                    ticks += 1
+            ticking = asyncio.create_task(tick())
+            try:
+                self.assertTrue(await listener.start())
+            finally:
+                ticking.cancel()
+                await listener.stop()
+            return ticks
+        self.assertGreaterEqual(asyncio.run(go()), 4)           # the loop kept turning while the microphone opened
+
+
 class WakeWordOfTheMac(unittest.TestCase):
     def test_what_the_recogniser_of_macos_writes_counts_at_the_start_only(self):
         for text in ("Hey Box, wie viel Sprit habe ich noch?", "Hellbox, wie war meine letzte Runde?",
