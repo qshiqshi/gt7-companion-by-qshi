@@ -19,6 +19,9 @@ Topics:
   event.sub           {"name": str, "tier": str}
   event.resub         {"name": str, "months": int}
   chat.message        {"name": str, "text": str, "is_mention": bool}
+  event.brake_cue     {"step": 1..3, "total": 3, "final": bool}   (cues.py: a brake tone is due)
+  event.cues_ready    {"points": int, "lap_number": int, "first": bool}   (a new reference for the tones)
+  event.lap_report    {"lap_number", "lap_ms", "diff_ms", "corner", "loss_ms", "advice", "corners", ...} (coaching.py)
 """
 from __future__ import annotations
 

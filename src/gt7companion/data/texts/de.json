@@ -245,6 +245,11 @@
       "kein Einschlag",
       "ein Einschlag",
       "{n} Einschläge"
+    ],
+    "brake_points": [
+      "keine Bremspunkte",
+      "ein Bremspunkt",
+      "{n} Bremspunkte"
     ]
   },
   "spoken_time": {
@@ -264,5 +269,50 @@
     "one_tenth": "ein Zehntel"
   },
   "read_aloud": "Lies den folgenden Funkspruch laut vor, Wort für Wort, nichts hinzufügen oder weglassen. Zügiges Sprechtempo:\n\n{text}",
-  "fallback_driver": "Fahrer"
+  "fallback_driver": "Fahrer",
+  "cues_ready": [
+    "Bremstöne bereit: {points} aus deiner besten Runde.",
+    "Die Bremstöne stehen, {points}. Zwei kurze Töne, dann der hohe: bremsen.",
+    "Ab jetzt piept es vor jedem Bremspunkt. {points} aus deiner schnellsten Runde.",
+    "{points} gespeichert, {driver}. Hör auf die Töne vor den Kurven.",
+    "Bremstöne laufen: {points}. Beim hohen Ton bremsen."
+  ],
+  "coach_corner": [
+    "Runde {lap}: {delta} langsamer als deine Bestrunde. Das meiste in Kurve {corner}, {loss}.",
+    "{delta} auf die Bestrunde, davon {loss} in Kurve {corner}.",
+    "Runde {lap} in {time}. Die meiste Zeit bleibt in Kurve {corner} liegen, {loss}.",
+    "Kurve {corner} kostet dich {loss}. Insgesamt {delta} auf die Bestrunde.",
+    "In Kurve {corner} liegen {loss} von {delta} Rückstand."
+  ],
+  "coach_even": [
+    "Runde {lap}: {delta} langsamer, aber keine Kurve fällt heraus. Weiter so.",
+    "{delta} auf die Bestrunde, gleichmäßig über die Runde verteilt. Bleib dran.",
+    "Runde {lap} in {time}. Kein großer Fehler, nur {delta} insgesamt.",
+    "Kein Ausreißer in Runde {lap}, {delta} auf die Bestrunde. Weiter so, {driver}."
+  ],
+  "coach_equal": [
+    "Runde {lap}: genau so schnell wie deine Bestrunde. Weiter so.",
+    "Runde {lap} in {time}, gleichauf mit der Bestrunde.",
+    "Das war deine Bestrunde noch einmal, {driver}. Sehr konstant."
+  ],
+  "tip_brake_later": [
+    "Dort kannst du später bremsen.",
+    "Brems dort ein Stück später.",
+    "Da geht ein späterer Bremspunkt."
+  ],
+  "tip_brake_earlier": [
+    "Brems dort etwas früher.",
+    "Dort lieber früher auf die Bremse.",
+    "Ein früherer Bremspunkt bringt dort mehr."
+  ],
+  "tip_more_speed": [
+    "Nimm mehr Tempo mit durch die Kurve.",
+    "Dort geht mehr Kurventempo.",
+    "Lass die Bremse dort früher los und roll schneller durch."
+  ],
+  "tip_throttle_earlier": [
+    "Geh dort früher ans Gas.",
+    "Am Ausgang früher aufs Gas.",
+    "Dort kannst du früher beschleunigen."
+  ]
 }

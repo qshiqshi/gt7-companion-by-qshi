@@ -154,6 +154,7 @@
         <label class="check"><input type="checkbox" data-kind="race"><span>Start, letzte Runde, Ziel</span></label>
         <label class="check"><input type="checkbox" data-kind="incidents"><span>Dreher, Einschläge, neben der Strecke</span></label>
         <label class="check"><input type="checkbox" data-kind="tyres"><span>Heiße Reifen</span></label>
+        <label class="check"><input type="checkbox" data-kind="coaching"><span>Tipps nach jeder Runde</span></label>
       </fieldset>
       <div id="box-gemini">
       <label class="field">
@@ -182,6 +183,32 @@
         <button id="box-test" type="button">Probeansage</button>
         <span class="muted" id="box-test-result" role="status"></span>
       </div>
+    </section>
+
+    <section class="card" id="cues">
+      <h2>Bremstöne</h2>
+      <p class="muted">Vor jedem Bremspunkt drei Töne: zweimal kurz, dann hoch – jetzt bremsen. Die Bremspunkte stammen aus deiner schnellsten vollständigen Runde dieser Sitzung; jede neue Bestzeit ersetzt sie. Zu hören sind die Töne auf jedem Gerät, auf dem im Menü des Dashboards „Bremstöne“ eingeschaltet ist, in der OBS-Quelle und auf Wunsch aus den Lautsprechern dieses Computers.</p>
+      <p class="note" id="cues-state" role="status" hidden></p>
+      <label class="check">
+        <input id="cues_enabled" type="checkbox">
+        <span>Bremstöne einschalten</span>
+      </label>
+      <label class="check">
+        <input id="cues_speaker" type="checkbox">
+        <span>Auch aus den Lautsprechern dieses Computers
+          <small>Ausschalten, wenn die Töne nur auf Tablet, Handy oder in OBS zu hören sein sollen.</small>
+        </span>
+      </label>
+    </section>
+
+    <section class="card" id="coach">
+      <h2>Tipps nach jeder Runde</h2>
+      <label class="check">
+        <input id="coach_enabled" type="checkbox">
+        <span>Jede Runde mit der schnellsten vergleichen
+          <small>Danach zeigt das Dashboard, in welcher Kurve am meisten Zeit liegt, mit einem Tipp: später oder früher bremsen, mehr Kurventempo, früher ans Gas. Soll die Box es auch sagen, wähle oben bei der Box „Tipps nach jeder Runde“.</small>
+        </span>
+      </label>
     </section>
 
     <div class="row">

@@ -44,6 +44,10 @@ DEFAULTS: dict = {
     # OBS Studio with its WebSocket server (password in keystore.py)
     "obs_host": "127.0.0.1",
     "obs_port": 4455,
+    # Brake tones before the brake points of the fastest lap (cues.py); screens switch them on in their menu
+    "cues_enabled": True,
+    "cues_speaker": True,    # … and this computer's loudspeakers play them, too
+    "coach_enabled": True,   # after every lap: where it lost time against the fastest one, with a tip (coaching.py)
 }
 
 
@@ -108,7 +112,7 @@ def _number(low: int, high: int):
     return check
 
 
-_BOX_KINDS = ("best_lap", "lap_time", "fuel", "race", "incidents", "tyres")
+_BOX_KINDS = ("best_lap", "lap_time", "fuel", "race", "incidents", "tyres", "coaching")
 
 
 def _kinds(value):
@@ -133,6 +137,7 @@ _CHECKS = {"discord_enabled": _flag, "discord_channel": _text(100), "discord_cue
            "source": _source, "ps5_ip": _ps5_ip, "packet": _packet, "telemetry_hz": _telemetry_hz,
            "lan": _flag, "language": _one_of("auto", "de", "en"), "units": _one_of("metric", "imperial"),
            "start_screen": _flag}
+_CHECKS.update({"cues_enabled": _flag, "cues_speaker": _flag, "coach_enabled": _flag})
 
 
 class Settings:

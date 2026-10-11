@@ -2,7 +2,7 @@
 
 Derived from the private GT7 Companion by qshi (see PROVENANCE.md). Every
 connection carries a few facts about its screen (``role``, ``audio``,
-``layout``) instead of the former single "is OBS" flag.
+``cues``, ``layout``) instead of the former single "is OBS" flag.
 """
 from __future__ import annotations
 

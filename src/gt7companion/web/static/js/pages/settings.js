@@ -13,7 +13,9 @@ function form() {
            box_language: byId('box_language').value, box_voice: byId('box_voice').value.trim(),
            box_model: byId('box_model').value.trim(),
            box_announce: [...document.querySelectorAll('[data-kind]')].filter(box => box.checked).map(box => box.dataset.kind),
-           box_per_minute: Number(byId('box_per_minute').value), box_per_session: Number(byId('box_per_session').value) };
+           box_per_minute: Number(byId('box_per_minute').value), box_per_session: Number(byId('box_per_session').value),
+           cues_enabled: byId('cues_enabled').checked, cues_speaker: byId('cues_speaker').checked,
+           coach_enabled: byId('coach_enabled').checked };
 }
 
 /* Something was changed here and not saved yet. */
@@ -44,6 +46,9 @@ function show(values) {
   byId('box_per_minute').value = values.box_per_minute;
   byId('box_per_session').value = values.box_per_session;
   document.querySelectorAll('[data-kind]').forEach(box => { box.checked = values.box_announce.includes(box.dataset.kind); });
+  byId('cues_enabled').checked = !!values.cues_enabled;
+  byId('cues_speaker').checked = !!values.cues_speaker;
+  byId('coach_enabled').checked = !!values.coach_enabled;
   byId('restart').hidden = !values.restart_required;
   const state = byId('source-state');
   let text = '', kind = 'note';
@@ -62,6 +67,34 @@ function show(values) {
   state.textContent = text;
   state.className = kind;
   state.hidden = !text;
+}
+
+/* ---- brake tones: whether they sound, and which lap they come from ---- */
+function lapTime(ms) {                 /* 1:20.538, as the dashboard shows it */
+  const rest = ms % 60000;
+  return Math.floor(ms / 60000) + ':' + String(Math.floor(rest / 1000)).padStart(2, '0') + '.' +
+    String(rest % 1000).padStart(3, '0');
+}
+
+function showCues(cues) {
+  const state = byId('cues-state');
+  let text = '', kind = 'note';
+  if (!cues.enabled) {
+    text = t('Die Bremstöne sind ausgeschaltet.');
+  } else if (cues.ready) {
+    const values = { n: cues.points, lap: cues.reference.lap_number, time: lapTime(cues.reference.duration_ms) };
+    text = cues.points === 1 ? t('Bereit: 1 Bremspunkt aus Runde {lap} ({time}).', values)
+      : t('Bereit: {n} Bremspunkte aus Runde {lap} ({time}).', values);
+    kind = 'note good';
+  } else if (cues.reference) {
+    text = t('Die schnellste Runde hat keine Bremspunkte, also gibt es keine Töne.');
+    kind = 'note warn';
+  } else {
+    text = t('Noch keine Referenz: Die Töne beginnen nach der ersten vollständigen Runde.');
+  }
+  state.className = kind;
+  state.hidden = !text;
+  say(state, text);
 }
 
 /* ---- the Box: state, who speaks, key (only on the computer itself), test message ---- */
@@ -203,6 +236,7 @@ try {
   role = (await get('/api/status')).role;
   show(await get('/api/settings'));
   showBox(await get('/api/box'));
+  showCues(await get('/api/cues'));
   byId('form').hidden = false;
 } catch (problem) {
   byId(problem.status === 403 ? 'locked' : 'offline').hidden = false;
@@ -216,6 +250,7 @@ byId('form').addEventListener('submit', async function(event) {
     const before = shown;
     show(await post('/api/settings', form()));
     showBox(await get('/api/box'));
+    showCues(await get('/api/cues'));
     result.textContent = t('settings.saved', 'Gespeichert.');
     /* Another language or unit: show this page in it right away. */
     if (before && (before.language !== shown.language || before.units !== shown.units)) location.reload();
@@ -233,5 +268,6 @@ setInterval(async function() {
     const values = await get('/api/settings');
     if (!dirty()) show(values);
     showBox(await get('/api/box'));
+    showCues(await get('/api/cues'));
   } catch (problem) { /* shown on the next save */ }
 }, 4000);

@@ -12,7 +12,7 @@ from gt7companion.settings import Settings
 from gt7companion.stream import discord_voice
 from gt7companion.stream.discord_voice import FRAME, FRAME_SAMPLES, SILENCE, TOKEN, DiscordVoice, Mixer, tone
 
-from test_app import OWNER, TABLET, AppCase
+from tests.test_app import OWNER, TABLET, AppCase
 
 try:
     import discord

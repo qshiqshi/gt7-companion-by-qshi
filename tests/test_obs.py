@@ -14,7 +14,7 @@ from gt7companion.keystore import KeyStore
 from gt7companion.settings import Settings
 from gt7companion.stream.obs import PASSWORD, SOURCE, ObsLink
 
-from test_app import OWNER, TABLET, AppCase
+from tests.test_app import OWNER, TABLET, AppCase
 
 
 class FakeObs:
