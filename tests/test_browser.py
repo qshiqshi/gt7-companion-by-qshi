@@ -849,3 +849,73 @@ class StartPageAndTour(Pages):
 
 if __name__ == "__main__":
     unittest.main()
+
+
+class StreamPage(Pages):
+    """The stream page with its Discord and OBS cards, and the OBS button on the start page."""
+
+    OTHER_DEVICE = {"extra_http_headers": {"X-Forwarded-For": "192.168.1.50"}}
+
+    @classmethod
+    def app_options(cls, home: Path) -> dict:
+        def udp_port() -> int:
+            with socket.socket(socket.AF_INET, socket.SOCK_DGRAM) as probe:
+                probe.bind(("127.0.0.1", 0))
+                return probe.getsockname()[1]
+
+        return {"ports": (udp_port(), udp_port())}                # never the real ports of the console
+
+    def setUp(self):
+        super().setUp()
+        link = self.server.config.app.state.companion.obs      # OBS itself is never touched by a test
+        link._installed = lambda: None
+        link._is_running = lambda: False
+        link._launch = lambda: False
+
+    def test_the_owner_sees_every_card_with_its_secrets_and_the_obs_button_answers(self):
+        page = self.open_plain("stream")
+        page.wait_for_selector("#services", state="visible")
+        for card in ("twitch", "youtube", "discord", "obs"):
+            self.assertTrue(page.is_visible(f"#{card} h2"), card)
+        self.assertTrue(page.is_visible("#discord-token-input"))
+        self.assertTrue(page.is_visible("#obs-password-input"))
+        self.assertIn("nicht gefunden", page.text_content("#obs-state"))
+        page.click("#obs-open")
+        page.wait_for_function("() => /nicht gefunden/.test(document.getElementById('obs-result').textContent)")
+        page.fill("#obs-password-input", "hunter2")
+        page.click("#obs-password-save")
+        page.wait_for_function("() => document.getElementById('obs-result').textContent === 'Passwort gespeichert.'")
+        self.assertEqual(page.get_attribute("#obs-password-input", "placeholder"), "Ein Passwort ist gespeichert")
+        self.assertEqual(page.input_value("#obs-password-input"), "")
+        self.assertNotIn("hunter2", page.content())
+        page.fill("#discord-token-input", "MTIz.abc.def")
+        page.click("#discord-token-save")
+        page.wait_for_function("() => document.getElementById('discord-result').textContent === 'Token gespeichert.'")
+        self.assertNotIn("MTIz", page.content())
+        self.assertEqual(page.get_attribute("#discord-token-input", "placeholder"), "Ein Token ist gespeichert")
+        page.click("#discord-token-clear")
+        page.wait_for_function("() => document.getElementById('discord-result').textContent === 'Token entfernt.'")
+        self.assertTrue(page.evaluate("document.getElementById('discord-test').disabled"))
+
+    def test_the_page_in_english_links_the_english_guide(self):
+        page = self.open_plain("stream", locale="en-US")
+        page.wait_for_selector("#services", state="visible")
+        self.assertEqual(page.text_content("#obs-title"), "OBS – the overlay with one click")
+        self.assertEqual(page.text_content("#obs-open"), "Open OBS with the overlay")
+        self.assertTrue(page.get_attribute("#discord-guide", "href").endswith("/docs/DISCORD.md"))
+
+    def test_another_device_is_sent_to_pairing_first(self):
+        page = self.open_plain("stream", **self.OTHER_DEVICE)
+        page.wait_for_selector("#locked", state="visible")
+        self.assertTrue(page.evaluate("document.getElementById('services').hidden"))
+        self.assertEqual(page.get_attribute("#locked a", "href"), "/connect?next=/stream")
+
+    def test_the_start_page_has_the_button_for_the_owner_only(self):
+        page = self.open_plain("start")
+        page.wait_for_function("() => !document.getElementById('obs-open-row').hidden")
+        page.click("details.how summary")
+        page.click("#obs-open")
+        page.wait_for_function("() => /nicht gefunden/.test(document.getElementById('obs-open-result').textContent)")
+        page = self.open_plain("start", **self.OTHER_DEVICE)
+        page.wait_for_selector("#source-locked", state="visible")
+        self.assertTrue(page.evaluate("document.getElementById('obs-open-row').hidden"))
