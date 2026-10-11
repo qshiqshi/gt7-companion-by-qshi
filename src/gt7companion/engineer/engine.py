@@ -15,6 +15,7 @@ import asyncio
 import collections
 import contextlib
 import dataclasses
+import inspect
 import itertools
 import logging
 import time
@@ -34,6 +35,8 @@ log = logging.getLogger("box")
 URGENT, NORMAL = 0, 1
 _URGENT_MAX_AGE_S = 4.0        # an impact that is announced later than this is old news
 _NORMAL_MAX_AGE_S = 20.0
+_CHAT_MAX_AGE_S = 30.0         # a question from the chat that waited longer is not answered any more
+_MAX_QUESTION = 300            # characters of a typed question
 _IDLE_CLOSE_S = 90.0
 _LOOK_AGAIN_S = 90.0           # how often the Mac is asked again what it offers (a voice was added, the model got ready)
 
@@ -46,6 +49,9 @@ class _Item:
     created: float = dataclasses.field(compare=False)
     forced: bool = dataclasses.field(compare=False, default=False)     # a test message ignores the limits
     audio: bytes = dataclasses.field(compare=False, default=b"")       # a spoken question; text is what was heard
+    question: bool = dataclasses.field(compare=False, default=False)   # a typed question; text is the question
+    name: str = dataclasses.field(compare=False, default="")           # … asked in the chat by this viewer
+    on_answer: object = dataclasses.field(compare=False, default=None)  # gets the answer as text, if there is one
 
 
 class Engineer:
@@ -81,6 +87,7 @@ class Engineer:
         self._spoken_at: collections.deque[float] = collections.deque()
         self.error: str | None = None           # code of the last problem, cleared by the next success
         self.speaking = False
+        self.asking = ""                        # the viewer whose question from the chat is being answered
         self.said = 0                           # messages spoken in this session
         self.skipped = 0                        # messages left out because of the limits
         self.tokens = 0                         # tokens billed in this session
@@ -142,6 +149,12 @@ class Engineer:
             return True
         return bool(self.local.get("model") == "available"
                     and SPEECH_CODE[self.language()] in (self.local.get("recognition") or []))
+
+    @property
+    def typed_questions(self) -> bool:
+        """Typed questions can be answered: always with Gemini; on the Mac if its language model is
+        switched on (speech recognition is not needed for them)."""
+        return self.engine() == "gemini" or self.local.get("model") == "available"
 
     @property
     def usable(self) -> bool:
@@ -264,7 +277,7 @@ class Engineer:
                 "per_minute": self.settings["box_per_minute"], "per_session": self.settings["box_per_session"],
                 "speaker": self.speaker.available, "microphone": self.microphone.available,
                 "wake": bool(self.wake and self.wake.running), "wake_possible": self.wake_possible,
-                "language": self.language()}
+                "language": self.language(), "typed_questions": self.typed_questions, "asking": self.asking}
 
     def _changed(self) -> None:
         if self._on_change is not None:
@@ -328,6 +341,40 @@ class Engineer:
             return False
         return True
 
+    def ask_text(self, text: str, *, name: str = "", on_answer=None) -> bool:
+        """Queue a question as text: typed by the driver, or written in the chat by the viewer ``name``.
+
+        The driver's question is answered like a spoken one. A viewer waits behind the driver's urgent
+        messages and gives up after a while; on the Mac what the Box cannot answer is read out instead.
+        ``on_answer(text)`` (a function or coroutine function) gets the answer as text afterwards, if
+        the engine has it – the Mac always, Gemini because it is then asked to write its words down."""
+        text = " ".join(str(text or "").split())[:_MAX_QUESTION]
+        name = " ".join(str(name or "").split())[:40]
+        if not text or not self.enabled or not self.usable or not (name or self.typed_questions):
+            return False
+        try:
+            self._queue.put_nowait(_Item(NORMAL if name else URGENT, next(self._seq), text, self._clock(),
+                                         question=True, name=name, on_answer=on_answer))
+        except asyncio.QueueFull:
+            return False
+        return True
+
+    def _too_old(self, item: _Item, now: float) -> bool:
+        if item.audio or (item.question and not item.name):
+            return False                         # the driver asked: that is never old news
+        limit = (_CHAT_MAX_AGE_S if item.question else _URGENT_MAX_AGE_S if item.priority == URGENT
+                 else _NORMAL_MAX_AGE_S)
+        return now - item.created > limit
+
+    async def _tell(self, on_answer, text: str) -> None:
+        """Hand the words of an answer on (to the chat); a listener that fails changes nothing here."""
+        try:
+            result = on_answer(text)
+            if inspect.isawaitable(result):
+                await result
+        except Exception:
+            log.warning("The answer could not be passed on", exc_info=True)
+
     async def start(self) -> None:
         """Begin working. What the Mac offers is found out in the background: a helper that is
         slow to start must not hold up the program."""
@@ -370,7 +417,8 @@ class Engineer:
             self.tokens += session.tokens
             await session.close()
 
-    def _new_session(self) -> live.LiveSession | LocalSession:
+    def _new_session(self, *, transcript: bool = False) -> live.LiveSession | LocalSession:
+        """``transcript``: the answers are wanted as text, too (Gemini writes its words down then)."""
         texts = self.texts
         if self.engine() == "local":
             if self.helper is None:
@@ -379,7 +427,8 @@ class Engineer:
                                 units=self.settings["units"], status=lambda: self.session_status())
         return live.LiveSession(self.keys.reveal(), model=self.settings["box_model"], voice=self.settings["box_voice"],
                                 language=SPEECH_CODE[texts.language], system=texts.system_prompt(), url=self._url,
-                                status=lambda: self.session_status(), read_aloud=texts.read_aloud)
+                                status=lambda: self.session_status(), read_aloud=texts.read_aloud,
+                                frame_question=texts.question, transcript=transcript)
 
     async def _run(self) -> None:
         while True:
@@ -392,8 +441,7 @@ class Engineer:
                 await self._close_session()          # nothing to say for a while: hang up
                 continue
             now = self._clock()
-            if not item.audio and now - item.created > (_URGENT_MAX_AGE_S if item.priority == URGENT
-                                                           else _NORMAL_MAX_AGE_S):
+            if self._too_old(item, now):
                 continue
             # The limits protect the user's money; the Mac speaks for free.
             if not item.forced and self.engine() == "gemini" and not self._within_limits(now):
@@ -416,24 +464,35 @@ class Engineer:
                 self._changed()
 
     async def _speak(self, item: _Item) -> None:
-        if self._session is None or not self._session.is_open or self._session.should_retire:
+        wants_text = item.on_answer is not None
+        if (self._session is None or not self._session.is_open or self._session.should_retire
+                or (wants_text and not self._session.gives_text)):
             await self._close_session()
-            session = self._new_session()
+            session = self._new_session(transcript=wants_text)
             await session.open()
             self._session = session
         session = self._session
         self.speaking = True
+        self.asking = item.name
         self._changed()
         try:
-            answer = session.ask(item.audio, item.text) if item.audio else session.say(item.text)
+            if item.audio:
+                answer = session.ask(item.audio, item.text)
+            elif item.question:
+                answer = session.ask_text(item.text, name=item.name)
+            else:
+                answer = session.say(item.text)
             await self.speaker.play(self._listen(answer), live.OUT_RATE, mute=not self.settings["box_speaker"])
             self.said += 1
             if isinstance(session, live.LiveSession):       # only these cost money and count towards the limits
                 self._billed += 1
                 self._spoken_at.append(self._clock())
             self.error = None
+            if wants_text and session.answer_text:
+                await self._tell(item.on_answer, session.answer_text)
         finally:
             self.speaking = False
+            self.asking = ""
             if self.on_audio is not None:
                 with contextlib.suppress(Exception):
                     await self.on_audio("end", None)

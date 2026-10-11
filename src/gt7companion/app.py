@@ -34,6 +34,8 @@ from .paths import WEB
 from .security import COOKIE, OWNER, Pairing, TooManyAttempts, host_allowed, may_edit, role_of, same_origin
 from .settings import Settings
 from .sources import Sources
+from .stream.twitch import Twitch
+from .stream.youtube import YouTube
 from .ws_manager import ConnectionManager
 
 log = logging.getLogger("app")
@@ -87,6 +89,8 @@ class Companion:
     pairing: Pairing
     engineer: Engineer
     game: GameFeed
+    twitch: Twitch | None = None
+    youtube: YouTube | None = None
 
     def status(self) -> dict:
         return self.hub.status()
@@ -159,6 +163,9 @@ def create_app(settings: Settings | None = None, *, layouts: LayoutStore | None 
                                           **({"ports": ports} if ports else {})))
     hub.status_info = companion.sources.status
     feed.status_info = companion.game_status
+    # The chat of the stream (stream/): read, answered by the Box through the announcer
+    twitch = companion.twitch = Twitch(bus, settings, engineer.keys)
+    youtube = companion.youtube = YouTube(bus, settings)
 
     async def announce_status() -> None:
         """Tell every screen and every game where the data comes from now."""
@@ -169,9 +176,13 @@ def create_app(settings: Settings | None = None, *, layouts: LayoutStore | None 
     async def lifespan(app: FastAPI):
         await engineer.start()
         await companion.sources.start(source)
+        await twitch.start()
+        await youtube.start()
         try:
             yield
         finally:
+            await youtube.stop()
+            await twitch.stop()
             await companion.sources.stop()
             await engineer.stop()
 
@@ -393,6 +404,10 @@ def create_app(settings: Settings | None = None, *, layouts: LayoutStore | None 
             await announce_status()
         if any(before[key] != settings[key] for key in before if key.startswith("box_")):
             await engineer.refresh()
+        if any(before[key] != settings[key] for key in before if key.startswith("twitch_")):
+            await twitch.apply()
+        if any(before[key] != settings[key] for key in before if key.startswith("youtube_")):
+            await youtube.apply()
         return JSONResponse(settings_view(), headers=_NO_STORE)
 
     # ------------------------------------------------------------------ the Box
@@ -555,6 +570,9 @@ def create_app(settings: Settings | None = None, *, layouts: LayoutStore | None 
                 elif topic == "talk" and may_edit(who(ws)):
                     if isinstance(incoming.get("on"), bool):
                         engineer.talk(incoming["on"])
+                elif topic == "ask" and may_edit(who(ws)):             # a question typed in the dashboard
+                    if isinstance(incoming.get("text"), str):
+                        await manager.send(ws, "ask", {"ok": engineer.ask_text(incoming["text"])})
                 elif topic == "test_event" and may_edit(who(ws)):
                     kind = incoming.get("type")
                     if kind in TEST_MESSAGES:
@@ -587,5 +605,7 @@ def create_app(settings: Settings | None = None, *, layouts: LayoutStore | None 
         await ws.accept()
         await feed.serve(ws)
 
+    app.include_router(twitch.router())
+    app.include_router(youtube.router())
     app.mount("/static", StaticFiles(directory=WEB / "static"), name="static")
     return app

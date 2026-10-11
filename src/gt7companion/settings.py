@@ -36,6 +36,16 @@ DEFAULTS: dict = {
     "box_per_session": 150,  # … and in one session (each one costs money on the user's key)
     "box_wake": False,       # listen for "Hey Box" (speech is recognised on this computer)
     "box_speaker": True,     # play the voice on this computer's loudspeakers (browsers with sound on get it anyway)
+    # The stream (see stream/): the chat of the user's own channel. Tokens are in keystore.py.
+    "twitch_channel": "",    # the channel whose chat is read, as in its address twitch.tv/…
+    "twitch_read": False,    # follow the chat (needs no account)
+    "twitch_mentions": False,  # messages that name the channel go to the Box, which answers them
+    "twitch_reply": False,   # the Box also writes its answer into the chat (needs the sign-in)
+    "twitch_events": False,  # the Box announces new followers and subs (needs the sign-in)
+    "twitch_client_id": "",  # a Twitch app of the user's own; empty: the program's (stream/twitch.py)
+    "youtube_source": "",    # channel handle (@name), address of the channel or of the stream
+    "youtube_read": False,   # follow the live chat (needs no account)
+    "youtube_mentions": False,  # messages that name the channel go to the Box
 }
 
 
@@ -100,7 +110,7 @@ def _number(low: int, high: int):
     return check
 
 
-_BOX_KINDS = ("best_lap", "lap_time", "fuel", "race", "incidents", "tyres")
+_BOX_KINDS = ("best_lap", "lap_time", "fuel", "race", "incidents", "tyres", "chat", "community")
 
 
 def _kinds(value):
@@ -116,6 +126,38 @@ _CHECKS = {"box_enabled": _flag, "box_speaker": _flag, "box_wake": _flag, "box_d
            "source": _source, "ps5_ip": _ps5_ip, "packet": _packet, "telemetry_hz": _telemetry_hz,
            "lan": _flag, "language": _one_of("auto", "de", "en"), "units": _one_of("metric", "imperial"),
            "start_screen": _flag}
+
+
+def _twitch_channel(value) -> str:
+    """The name of a Twitch channel as in its address; "twitch.tv/name", "#name" and "@name" are taken too."""
+    import re
+
+    if not isinstance(value, str) or len(value) > 120:
+        raise ValueError("this is not the name of a Twitch channel")
+    text = value.strip()
+    address = re.search(r"twitch\.tv/(?:popout/)?([^/?#\s]+)", text, flags=re.IGNORECASE)
+    if address:
+        text = address.group(1)
+    text = text.lstrip("#@").strip().lower()
+    if text and not re.fullmatch(r"[a-z0-9_]{2,25}", text):
+        raise ValueError("this is not the name of a Twitch channel")
+    return text
+
+
+def _youtube_source(value) -> str:
+    """A channel handle (@name), the address of a channel or of a stream; looked at closely when it is used."""
+    if not isinstance(value, str) or len(value.strip()) > 300:
+        raise ValueError("this is not a YouTube channel or stream")
+    text = value.strip()
+    if any(ch.isspace() or not ch.isprintable() for ch in text):
+        raise ValueError("this is not a YouTube channel or stream")
+    return text
+
+
+# The stream (stream/twitch.py, stream/youtube.py)
+_CHECKS.update({"twitch_channel": _twitch_channel, "twitch_read": _flag, "twitch_mentions": _flag,
+                "twitch_reply": _flag, "twitch_events": _flag, "twitch_client_id": _text(64, r"[A-Za-z0-9]*"),
+                "youtube_source": _youtube_source, "youtube_read": _flag, "youtube_mentions": _flag})
 
 
 class Settings:

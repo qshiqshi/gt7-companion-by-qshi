@@ -9,3 +9,4 @@ speed: current speed, gear
 incidents: spins, crashes, impacts, going off the track
 none: everything else – gaps to other cars, weather, tyre compound, other drivers, anger, small talk, general knowledge
 The driver speaks German or English. "Hey Box" is only how he addresses the engineer.
+Questions may also be typed, or come from viewers of his stream who ask about him ("how much fuel does he have left?").

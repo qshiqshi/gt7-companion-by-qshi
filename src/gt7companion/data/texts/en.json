@@ -263,6 +263,45 @@
     "tenths": "{n} tenths",
     "one_tenth": "one tenth"
   },
+  "viewer_question": "Viewer {name} asks in the chat: {text}",
+  "driver_question": "{driver} asks in writing: {text}",
+  "viewer_answer": [
+    "Question from {name}: {answer}",
+    "{name} wants to know: {answer}",
+    "For {name}: {answer}"
+  ],
+  "viewer_says": [
+    "{name} writes: {text}",
+    "Message from {name}: {text}"
+  ],
+  "follower": [
+    "New follower: {name}. Welcome aboard!",
+    "{name} is following the channel now. Great to have you here.",
+    "Welcome to the team, {name}. Thanks for the follow!",
+    "Radio from the pit wall: {name} just joined us. A warm welcome!",
+    "Thanks for the follow, {name}. Buckle up, it gets fast.",
+    "{name} hit follow. The pit wall says thank you!",
+    "A new face on the pit wall: {name}. Welcome!",
+    "Glad you're following, {name}. Enjoy the ride."
+  ],
+  "sub": [
+    "{name} just subscribed. Thank you so much for the support!",
+    "New sub from {name}. Welcome to the pit crew!",
+    "Thanks for the sub, {name}. That's a real tailwind.",
+    "{name} is a subscriber now. The whole pit wall says thank you!",
+    "A sub from {name}. Feels like a fresh set of tyres. Thanks!",
+    "Big thanks to {name} for the sub.",
+    "{name} supports the channel with a sub. Brilliant, thank you!",
+    "Welcome to the subscribers, {name}. Great to have you."
+  ],
+  "resub": [
+    "{name} has been with us for {months} months. Thanks for sticking around!",
+    "{months} months of subs from {name}. Brilliant, thank you!",
+    "{name} renewed the sub, now {months} months. Thank you!",
+    "Loyal crew: {name} has supported the channel for {months} months.",
+    "{months} months on the pit wall, {name}. Thanks for staying!",
+    "Thank you, {name}! {months} months of subs, that's a strong stint."
+  ],
   "read_aloud": "Read the following radio message aloud, word for word, adding and omitting nothing. Brisk pace:\n\n{text}",
   "fallback_driver": "driver"
 }

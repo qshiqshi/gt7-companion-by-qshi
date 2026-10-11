@@ -263,6 +263,45 @@
     "tenths": "{n} Zehntel",
     "one_tenth": "ein Zehntel"
   },
+  "viewer_question": "Zuschauer {name} fragt im Chat: {text}",
+  "driver_question": "{driver} fragt schriftlich: {text}",
+  "viewer_answer": [
+    "Frage von {name}: {answer}",
+    "{name} will es wissen: {answer}",
+    "Für {name}: {answer}"
+  ],
+  "viewer_says": [
+    "{name} schreibt: {text}",
+    "Nachricht von {name}: {text}"
+  ],
+  "follower": [
+    "Neuer Follower: {name}. Willkommen an Bord!",
+    "{name} folgt jetzt dem Kanal. Schön, dass du da bist.",
+    "Willkommen im Team, {name}. Danke fürs Folgen!",
+    "Funkspruch aus der Box: {name} ist neu dabei. Herzlich willkommen!",
+    "Danke fürs Folgen, {name}. Schnall dich an, es wird schnell.",
+    "{name} hat auf Folgen gedrückt. Die Box sagt danke!",
+    "Ein neues Gesicht an der Boxenmauer: {name}. Willkommen!",
+    "Schön, dass du folgst, {name}. Viel Spaß beim Zuschauen."
+  ],
+  "sub": [
+    "{name} hat abonniert. Vielen Dank für die Unterstützung!",
+    "Neues Abo von {name}. Willkommen in der Boxencrew!",
+    "Danke für dein Abo, {name}. Das gibt Rückenwind.",
+    "{name} ist jetzt Abonnent. Die ganze Box sagt danke!",
+    "Ein Abo von {name}. Das ist wie ein Satz frischer Reifen. Danke!",
+    "Großes Dankeschön an {name} für das Abo.",
+    "{name} unterstützt den Kanal mit einem Abo. Stark, danke!",
+    "Willkommen bei den Abonnenten, {name}. Schön, dass du dabei bist."
+  ],
+  "resub": [
+    "{name} ist seit {months} Monaten dabei. Danke für die Treue!",
+    "{months} Monate Abo von {name}. Stark, vielen Dank!",
+    "{name} verlängert das Abo, jetzt {months} Monate. Danke dir!",
+    "Treue Crew: {name} unterstützt den Kanal seit {months} Monaten.",
+    "{months} Monate an der Boxenmauer, {name}. Danke, dass du bleibst!",
+    "Danke, {name}! {months} Monate Abo, das ist ein starker Stint."
+  ],
   "read_aloud": "Lies den folgenden Funkspruch laut vor, Wort für Wort, nichts hinzufügen oder weglassen. Zügiges Sprechtempo:\n\n{text}",
   "fallback_driver": "Fahrer"
 }
