@@ -593,5 +593,16 @@ window.GT7_TEXTS_EN = {
   "Diese Adresse als URL eintragen, dazu Breite 1920 und Höhe 1080:": "Enter this address as URL, with width 1920 and height 1080:",
   "Die Quelle in der Liste über dein Spielbild ziehen.": "Drag the source above your game capture in the list.",
   "Eine durchsichtige Ansicht für den Stream; die Anzeigen erscheinen nur auf der Strecke.": "A transparent view for the stream; the widgets show on the track only.",
-  "Kopiert": "Copied"
+  "Kopiert": "Copied",
+  "Twitch, YouTube, Discord und OBS verbinden": "Connect Twitch, YouTube, Discord and OBS",
+  "Chat vorlesen lassen, die Box im Headset hören, das Overlay mit einem Klick in OBS.": "Have the chat read out, hear the Box in the headset, the overlay in OBS with one click.",
+  "Stream – Gran Turismo 7 Companion by qshi": "Stream – Gran Turismo 7 Companion by qshi",
+  "Stream": "Stream",
+  "Twitch, YouTube, Discord und OBS: Hier verbindest du das Programm mit deinem Stream. Alles davon ist freiwillig – das Dashboard läuft auch ohne.": "Twitch, YouTube, Discord and OBS: this is where the program joins your stream. All of it is optional – the dashboard runs without.",
+  "Auf diesem Gerät lässt sich das erst nach dem Koppeln ändern.": "On this device this can only be changed after pairing.",
+  "Twitch": "Twitch",
+  "Kommt in Kürze.": "Coming soon.",
+  "YouTube": "YouTube",
+  "Discord": "Discord",
+  "OBS": "OBS"
 };

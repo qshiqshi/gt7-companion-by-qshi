@@ -22,6 +22,7 @@ import secrets
 import time
 from urllib.parse import urlsplit
 
+from fastapi import HTTPException
 from starlette.requests import HTTPConnection
 
 OWNER = "owner"        # the computer the program runs on: may change everything
@@ -93,6 +94,18 @@ def role_of(connection: HTTPConnection, pairing: "Pairing | None" = None) -> str
 
 def may_edit(role: str) -> bool:
     return role in (OWNER, EDITOR)
+
+
+def require_owner(request: HTTPConnection) -> None:
+    """For routes in modules of their own: only the computer the program runs on."""
+    if role_of(request, request.app.state.companion.pairing) != OWNER:
+        raise HTTPException(status_code=403, detail="Only possible on the computer running the program.")
+
+
+def require_edit(request: HTTPConnection) -> None:
+    """For routes in modules of their own: this computer or a paired device."""
+    if not may_edit(role_of(request, request.app.state.companion.pairing)):
+        raise HTTPException(status_code=403, detail="This device has to be paired first.")
 
 
 class TooManyAttempts(Exception):

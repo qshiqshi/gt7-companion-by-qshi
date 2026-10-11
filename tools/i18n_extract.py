@@ -20,7 +20,8 @@ DICTIONARY = WEB / "static/i18n/en.js"
 SCRIPTS = ["static/overlay-style.js", "static/overlay-telemetry.js", "static/telemetry-charts.js",
            "static/js/editor.js", "static/js/widgets.js", "static/js/layout.js", "static/js/viewer.js",
            "static/js/figure.js", "static/js/tour.js", "static/js/tours.js", "static/js/pages/connect.js",
-           "static/js/pages/settings.js", "static/js/pages/start.js",
+           "static/js/pages/settings.js", "static/js/pages/start.js", "static/js/pages/stream.js",
+           "static/js/pages/stream-chat.js", "static/js/pages/stream-voice.js",
            "static/game/src/main.js", "static/game/src/panel.js", "static/game/src/record.js",
            "static/game/src/render/hud.js", "static/game/src/world/notes.js"]
 ATTRIBUTES = ("title", "placeholder", "aria-label", "alt")

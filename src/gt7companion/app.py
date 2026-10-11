@@ -49,7 +49,7 @@ TEST_MESSAGES: dict[str, dict] = {
 }
 _NO_STORE = {"Cache-Control": "no-store"}
 _PAGES = {"/": "index.html", "/start": "start.html", "/connect": "connect.html", "/settings": "settings.html",
-          "/game": "game.html", "/game/credits": "game-credits.html"}
+          "/game": "game.html", "/game/credits": "game-credits.html", "/stream": "stream.html"}
 
 
 def _content_security_policy() -> str:
@@ -232,6 +232,11 @@ def create_app(settings: Settings | None = None, *, layouts: LayoutStore | None 
     @app.get("/settings")
     async def settings_page():
         return FileResponse(WEB / "settings.html", headers=_NO_STORE)
+
+    @app.get("/stream")
+    async def stream_page():
+        """Twitch, YouTube, Discord and OBS: how the program joins a stream."""
+        return FileResponse(WEB / "stream.html", headers=_NO_STORE)
 
     @app.get("/game")
     async def game_page():

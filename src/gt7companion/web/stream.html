@@ -1,0 +1,53 @@
+<!DOCTYPE html>
+<html lang="de">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Stream – Gran Turismo 7 Companion by qshi</title>
+<meta name="theme-color" content="#0b0b0e">
+<script src="/api/prefs.js"></script>
+<script src="/static/i18n/en.js"></script>
+<script src="/static/js/i18n-classic.js"></script>
+<link rel="icon" type="image/png" sizes="32x32" href="/static/icons/favicon-32.png">
+<link rel="stylesheet" href="/static/css/pages.css">
+</head>
+<body>
+<main>
+  <header class="top">
+    <span class="brand">GT7 Companion by qshi</span>
+    <nav>
+      <a class="button" href="/">Zum Dashboard</a>
+      <a class="button" href="/settings">Einstellungen</a>
+    </nav>
+  </header>
+  <h1>Stream</h1>
+  <p class="lead">Twitch, YouTube, Discord und OBS: Hier verbindest du das Programm mit deinem Stream. Alles davon ist freiwillig – das Dashboard läuft auch ohne.</p>
+
+  <p class="note error" id="locked" hidden>Auf diesem Gerät lässt sich das erst nach dem Koppeln ändern. <a class="button" href="/connect?next=/stream">Koppeln</a></p>
+
+  <div id="services" hidden>
+    <section class="card" id="twitch" aria-labelledby="twitch-title">
+      <h2 id="twitch-title">Twitch</h2>
+      <p class="muted" id="twitch-soon">Kommt in Kürze.</p>
+    </section>
+
+    <section class="card" id="youtube" aria-labelledby="youtube-title">
+      <h2 id="youtube-title">YouTube</h2>
+      <p class="muted" id="youtube-soon">Kommt in Kürze.</p>
+    </section>
+
+    <section class="card" id="discord" aria-labelledby="discord-title">
+      <h2 id="discord-title">Discord</h2>
+      <p class="muted" id="discord-soon">Kommt in Kürze.</p>
+    </section>
+
+    <section class="card" id="obs" aria-labelledby="obs-title">
+      <h2 id="obs-title">OBS</h2>
+      <p class="muted" id="obs-soon">Kommt in Kürze.</p>
+    </section>
+  </div>
+  <p class="note error" id="offline" hidden>Das Programm ist nicht erreichbar.</p>
+</main>
+<script type="module" src="/static/js/pages/stream.js"></script>
+</body>
+</html>
