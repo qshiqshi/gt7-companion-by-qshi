@@ -983,3 +983,20 @@ body.editor-mode .rpm-resize:hover {
 #source-banner button:hover { background: rgba(255, 255, 255, 0.10); color: #fff; }
 #source-banner a:focus-visible, #source-banner button:focus-visible,
 #view-menu a:focus-visible, #view-menu button:focus-visible, #view-menu select:focus-visible { outline: 2px solid #83b7fa; outline-offset: 2px; }
+
+/* ========== MESSAGES: BRAKE TONES READY, THE TIP AFTER A LAP ========== */
+.anim-cues .alert-inner,
+.anim-lapreport .alert-inner {
+  font-family: var(--font-gt7);
+  font-size: calc(22px * var(--fs-value, 1));
+  font-weight: 500;
+  background: var(--panel-bg);
+  padding: 8px 24px;
+  border-radius: 2px;
+  text-shadow: none;
+  font-variant-numeric: tabular-nums;
+  animation: alertSlideIn 0.2s ease-out forwards;
+}
+.anim-cues .alert-inner { color: var(--c-alert-cues, #83b7fa); }
+.anim-lapreport .alert-inner { color: var(--c-alert-tip, #f2f2f2); }
+#view-menu #btn-cues.on { border-color: #83b7fa; }

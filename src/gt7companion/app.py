@@ -22,6 +22,8 @@ from fastapi.staticfiles import StaticFiles
 
 from . import APP_NAME, __version__, system
 from .bus import EventBus
+from .coaching import Coach
+from .cues import BrakeCues, router as cues_router
 from .detectors import DetectorSuite
 from .engineer.announcer import KINDS as BOX_KINDS, Announcer
 from .engineer.engine import Engineer
@@ -46,6 +48,9 @@ TEST_MESSAGES: dict[str, dict] = {
     "crash": {"severity": "major", "speed_kmh": 160.0},
     "tyre_sweep": {},                  # tyres run once from cold to hot
     "surface_sweep": {},               # every surface colour runs once around the car
+    "lap_report": {"lap_number": 5, "lap_ms": 92_016, "diff_ms": 808, "reference_lap": 4, "reference_ms": 91_208,
+                   "corner": 3, "loss_ms": 512, "advice": "throttle_earlier", "corners": []},
+    "cues_ready": {"points": 12, "lap_number": 4, "first": True},
 }
 _NO_STORE = {"Cache-Control": "no-store"}
 _PAGES = {"/": "index.html", "/start": "start.html", "/connect": "connect.html", "/settings": "settings.html",
@@ -132,6 +137,9 @@ def create_app(settings: Settings | None = None, *, layouts: LayoutStore | None 
                         device_language=system.language(), **({"url": box_url} if box_url else {}))
     announcer = Announcer(bus, engineer)
     engineer.session_status = hub.facts
+    # Brake tones and tips after every lap; after the detectors, which mark a stop in the pit.
+    brake_cues = BrakeCues(bus, hub.trace, settings, manager, speaker=engineer.speaker, show=hub.show)
+    coach = Coach(bus, hub.trace, settings, references=brake_cues.references, show=hub.show)
 
     async def box_audio(kind: str, data) -> None:
         """Pass the voice on to every screen that switched its sound on."""
@@ -178,6 +186,7 @@ def create_app(settings: Settings | None = None, *, layouts: LayoutStore | None 
     app = FastAPI(title=APP_NAME, version=__version__, lifespan=lifespan,
                   docs_url=None, redoc_url=None, openapi_url=None)
     app.state.companion = companion
+    app.state.cues, app.state.coach = brake_cues, coach
     app.state.lan = lan
     app.state.port = port
     pairing = companion.pairing
@@ -535,6 +544,7 @@ def create_app(settings: Settings | None = None, *, layouts: LayoutStore | None 
             await manager.send(ws, "layout", companion.layouts.get(name), name=name)
             await manager.send(ws, "status", companion.status())
             await manager.send(ws, "box", engineer.status())
+            await manager.send(ws, "cues", brake_cues.state())
             if hub.latest is not None:
                 await manager.send(ws, "telemetry", hub.latest)
             while True:
@@ -552,6 +562,8 @@ def create_app(settings: Settings | None = None, *, layouts: LayoutStore | None 
                     await manager.send(ws, "pong", {})
                 elif topic == "audio":
                     manager.update(ws, audio=incoming.get("on") is True)       # this screen plays the voice
+                elif topic == "cues":
+                    manager.update(ws, cues=incoming.get("on") is True)        # … and the brake tones
                 elif topic == "talk" and may_edit(who(ws)):
                     if isinstance(incoming.get("on"), bool):
                         engineer.talk(incoming["on"])
@@ -587,5 +599,6 @@ def create_app(settings: Settings | None = None, *, layouts: LayoutStore | None 
         await ws.accept()
         await feed.serve(ws)
 
+    app.include_router(cues_router(brake_cues))
     app.mount("/static", StaticFiles(directory=WEB / "static"), name="static")
     return app

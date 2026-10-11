@@ -36,6 +36,10 @@ DEFAULTS: dict = {
     "box_per_session": 150,  # … and in one session (each one costs money on the user's key)
     "box_wake": False,       # listen for "Hey Box" (speech is recognised on this computer)
     "box_speaker": True,     # play the voice on this computer's loudspeakers (browsers with sound on get it anyway)
+    # Brake tones before the brake points of the fastest lap (cues.py); screens switch them on in their menu
+    "cues_enabled": True,
+    "cues_speaker": True,    # … and this computer's loudspeakers play them, too
+    "coach_enabled": True,   # after every lap: where it lost time against the fastest one, with a tip (coaching.py)
 }
 
 
@@ -100,7 +104,7 @@ def _number(low: int, high: int):
     return check
 
 
-_BOX_KINDS = ("best_lap", "lap_time", "fuel", "race", "incidents", "tyres")
+_BOX_KINDS = ("best_lap", "lap_time", "fuel", "race", "incidents", "tyres", "coaching")
 
 
 def _kinds(value):
@@ -116,6 +120,7 @@ _CHECKS = {"box_enabled": _flag, "box_speaker": _flag, "box_wake": _flag, "box_d
            "source": _source, "ps5_ip": _ps5_ip, "packet": _packet, "telemetry_hz": _telemetry_hz,
            "lan": _flag, "language": _one_of("auto", "de", "en"), "units": _one_of("metric", "imperial"),
            "start_screen": _flag}
+_CHECKS.update({"cues_enabled": _flag, "cues_speaker": _flag, "coach_enabled": _flag})
 
 
 class Settings:

@@ -6,6 +6,7 @@
    Playback logic taken over from the private GT7 Companion (gapless scheduling with WebAudio). */
 import { IS_OBS } from './modes.js';
 import { onTopic, wsConnected, wsSend } from './net.js';
+import { playCue } from './cue-tones.js';
 
 const STORE_KEY = 'gt7c.sound';
 let context = null;
@@ -79,3 +80,48 @@ onTopic('box_audio', function(data, raw) {
 onTopic('_ws_status', function(status) { if (status && status.connected) tell(); });
 
 if (IS_OBS) setSound(true);            /* a stream source needs no touch and has no button */
+
+/* ---- Brake tones ----
+   Each screen decides for itself whether it plays them (a switch in the menu of the dashboard,
+   remembered on this device); the program only sends them to screens that said so, and only while
+   the settings allow them. An OBS source plays them without being asked, like the voice. */
+const CUES_KEY = 'gt7c.cues';
+export let cuesOn = false;
+
+function tellCues() { if (wsConnected) wsSend({ topic: 'cues', on: cuesOn }); }
+
+/* A running sound output; browsers only allow it after a touch or a click (OBS always). */
+function soundOutput() {
+  try {
+    if (!context) context = new (window.AudioContext || window.webkitAudioContext)();
+    if (context.state === 'suspended') context.resume();
+    return true;
+  } catch (e) { return false; }
+}
+
+/* Call from a click or tap, like setSound. ``preview``: one short tone, so the screen proves it can. */
+export function setCues(on, preview) {
+  cuesOn = !!on && soundOutput();
+  try { localStorage.setItem(CUES_KEY, cuesOn ? '1' : '0'); } catch (e) { /* only for now */ }
+  if (cuesOn && preview) {
+    try { playCue(context, { step: 1, total: 3, final: false }); } catch (e) { /* no sound this time */ }
+  }
+  tellCues();
+  window.dispatchEvent(new CustomEvent('gt7:cues', { detail: cuesOn }));
+  return cuesOn;
+}
+
+/* The tones were on the last time: they come back with the first touch of the page. */
+export function wantsCues() {
+  try { return localStorage.getItem(CUES_KEY) === '1'; } catch (e) { return false; }
+}
+
+onTopic('brake_cue', function(data) {
+  if (!cuesOn || !context) return;
+  if (context.state === 'suspended') context.resume();
+  try { playCue(context, data); } catch (e) { /* no sound this time */ }
+});
+
+onTopic('_ws_status', function(status) { if (status && status.connected) tellCues(); });
+
+if (IS_OBS) setCues(true);

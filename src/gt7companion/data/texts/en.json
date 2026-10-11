@@ -245,6 +245,11 @@
       "no impacts",
       "one impact",
       "{n} impacts"
+    ],
+    "brake_points": [
+      "no brake points",
+      "one brake point",
+      "{n} brake points"
     ]
   },
   "spoken_time": {
@@ -264,5 +269,50 @@
     "one_tenth": "one tenth"
   },
   "read_aloud": "Read the following radio message aloud, word for word, adding and omitting nothing. Brisk pace:\n\n{text}",
-  "fallback_driver": "driver"
+  "fallback_driver": "driver",
+  "cues_ready": [
+    "Brake tones ready: {points} from your best lap.",
+    "Brake tones are set, {points}. Two short beeps, then the high one: brake.",
+    "From now on there is a beep before every brake point. {points} from your fastest lap.",
+    "{points} saved, {driver}. Listen for the tones before the corners.",
+    "Brake tones running: {points}. Brake on the high tone."
+  ],
+  "coach_corner": [
+    "Lap {lap}: {delta} off your best lap. Most of it in corner {corner}, {loss}.",
+    "{delta} off the best lap, {loss} of it in corner {corner}.",
+    "Lap {lap} in {time}. Most of the time goes in corner {corner}, {loss}.",
+    "Corner {corner} costs you {loss}. {delta} off the best lap in total.",
+    "Corner {corner} holds {loss} of your {delta} gap."
+  ],
+  "coach_even": [
+    "Lap {lap}: {delta} off, but no corner stands out. Keep it up.",
+    "{delta} off the best lap, spread over the whole lap. Stay with it.",
+    "Lap {lap} in {time}. No big mistake, just {delta} in total.",
+    "Nothing stands out in lap {lap}, {delta} off the best. Keep it up, {driver}."
+  ],
+  "coach_equal": [
+    "Lap {lap}: exactly as fast as your best lap. Keep it up.",
+    "Lap {lap} in {time}, level with your best lap.",
+    "That was your best lap all over again, {driver}. Very consistent."
+  ],
+  "tip_brake_later": [
+    "You can brake later there.",
+    "Brake a little later there.",
+    "There is a later brake point there."
+  ],
+  "tip_brake_earlier": [
+    "Brake a little earlier there.",
+    "Get on the brakes earlier there.",
+    "An earlier brake point pays off there."
+  ],
+  "tip_more_speed": [
+    "Carry more speed through that corner.",
+    "There is more corner speed there.",
+    "Release the brake earlier there and roll through faster."
+  ],
+  "tip_throttle_earlier": [
+    "Get on the throttle earlier there.",
+    "Earlier on the throttle at the exit.",
+    "You can accelerate earlier there."
+  ]
 }

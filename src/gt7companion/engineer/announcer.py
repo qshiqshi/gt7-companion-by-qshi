@@ -14,8 +14,9 @@ from .engine import NORMAL, URGENT, Engineer
 log = logging.getLogger("box.announcer")
 
 # kind of message -> what it covers (for the settings page)
-KINDS = ("best_lap", "lap_time", "fuel", "race", "incidents", "tyres")
+KINDS = ("best_lap", "lap_time", "fuel", "race", "incidents", "tyres", "coaching")
 DEFAULT_KINDS = ("best_lap", "fuel", "race")
+TIPS = ("brake_later", "brake_earlier", "more_speed", "throttle_earlier")     # advice of coaching.py with a sentence
 
 
 class Announcer:
@@ -30,6 +31,8 @@ class Announcer:
                                ("event.spin", self.on_spin), ("event.crash", self.on_crash),
                                ("event.offtrack", self.on_offtrack), ("event.tyre_hot", self.on_tyre_hot)):
             bus.subscribe(topic, handler)
+        bus.subscribe("event.cues_ready", self.on_cues_ready)
+        bus.subscribe("event.lap_report", self.on_lap_report)
 
     def reset(self) -> None:
         self._last.clear()
@@ -113,3 +116,27 @@ class Announcer:
         if self._wanted("tyres") and self._due("tyre_hot", 60):
             self._say("tyre_hot", tyre=self.engineer.texts.tyre(data.get("pos", "")),
                       temp=round(data.get("temp", 0)))
+
+    # ----------------------------------------------------------- coaching
+    async def on_cues_ready(self, data: dict) -> None:
+        """Brake tones are ready: said once per session (a new best lap brings new points; best_lap says that)."""
+        if data.get("first", True) and self._wanted("coaching") and self._due("cues_ready", 30):
+            self._say("cues_ready", points=self.engineer.texts.count("brake_points", int(data.get("points") or 0)))
+
+    async def on_lap_report(self, data: dict) -> None:
+        """Where the lap lost time against the fastest one, and the tip for that corner (coaching.py)."""
+        if not self._wanted("coaching") or not self._due("coaching", 20):
+            return
+        texts = self.engineer.texts
+        diff = abs(int(data.get("diff_ms") or 0))
+        values = dict(lap=data.get("lap_number", "?"), time=texts.lap_time(int(data.get("lap_ms") or 0)))
+        if data.get("corner"):
+            text = texts.line("coach_corner", corner=data["corner"], loss=texts.gap(int(data.get("loss_ms") or 0)),
+                              delta=texts.gap(diff), **values)
+            if data.get("advice") in TIPS:
+                text += " " + texts.line("tip_" + data["advice"])
+        elif diff < 50:
+            text = texts.line("coach_equal", **values)
+        else:
+            text = texts.line("coach_even", delta=texts.gap(diff), **values)
+        self.engineer.say(text, NORMAL)

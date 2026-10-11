@@ -19,6 +19,7 @@ WEB = Path(__file__).resolve().parents[1] / "src/gt7companion/web"
 DICTIONARY = WEB / "static/i18n/en.js"
 SCRIPTS = ["static/overlay-style.js", "static/overlay-telemetry.js", "static/telemetry-charts.js",
            "static/js/editor.js", "static/js/widgets.js", "static/js/layout.js", "static/js/viewer.js",
+           "static/js/lap-report.js",
            "static/js/figure.js", "static/js/tour.js", "static/js/tours.js", "static/js/pages/connect.js",
            "static/js/pages/settings.js", "static/js/pages/start.js", "static/js/pages/stream.js",
            "static/js/pages/stream-chat.js", "static/js/pages/stream-voice.js",

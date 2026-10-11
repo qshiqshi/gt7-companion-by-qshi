@@ -4,6 +4,7 @@ import { t } from './i18n.js';
 import { IS_VIEW, layoutLabel, layoutName, layouts, switchLayout, urlFor } from './modes.js';
 import { onTopic, role, wsConnected, wsSend } from './net.js';
 import { setSound, soundOn, wantsSound } from './audio.js';
+import { cuesOn, setCues, wantsCues } from './audio.js';
 import { screenKeeper } from './awake.js';
 import { tourSeen } from './tour.js';
 
@@ -145,4 +146,29 @@ if (IS_VIEW && wait && menu) {
   document.addEventListener('fullscreenchange', label);
   document.addEventListener('webkitfullscreenchange', label);
   label();
+}
+
+/* Brake tones on this screen: a switch of its own in the menu, remembered on this device. It is there
+   while the tones are switched on in the settings, and says so while there is no reference lap yet. */
+if (IS_VIEW && menu) {
+  const cuesButton = document.getElementById('btn-cues');
+  let cues = {};
+  function renderCues() {
+    cuesButton.hidden = !cues.enabled;
+    cuesButton.classList.toggle('on', cuesOn);
+    cuesButton.setAttribute('aria-pressed', String(cuesOn));
+    let label = cuesOn ? t('Bremstöne aus') : t('Bremstöne an');
+    if (!cues.ready) label = cues.reference ? t('Bremstöne (keine Bremspunkte)') : t('Bremstöne (noch keine Referenz)');
+    cuesButton.textContent = label;
+  }
+  onTopic('cues', function(state) { cues = state || {}; renderCues(); });
+  window.addEventListener('gt7:cues', renderCues);
+  cuesButton.addEventListener('click', function() { setCues(!cuesOn, true); });
+  /* They were on last time: the first touch anywhere else brings them back (browsers insist on a touch). */
+  if (wantsCues()) {
+    window.addEventListener('pointerdown', function(event) {
+      if (!cuesOn && event.target !== cuesButton) setCues(true);
+    }, { once: true });
+  }
+  renderCues();
 }

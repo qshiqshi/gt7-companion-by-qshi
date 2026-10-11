@@ -4,6 +4,8 @@ import { IS_EDITOR, IS_OBS } from './modes.js';
 import { onTopic } from './net.js';
 import { currentLayout } from './layout.js';
 import { speed, speedUnit, t } from './i18n.js';
+import { lang } from './i18n.js';
+import { cuesReadyText, lapReportText } from './lap-report.js';
 
 /* ================================================================
    FORMAT HELPERS
@@ -495,4 +497,13 @@ onTopic('event', function(data, raw) {
       enqueueAlert('crash', t('Einschlag'));
       break;
   }
+});
+
+/* Brake tones ready, and the tip after a lap (cues.py, coaching.py): one line each in the messages. */
+ANIM_DEFAULTS.cues_ready = { player: 'css', className: 'anim-cues', duration: 4000 };
+ANIM_DEFAULTS.lap_report = { player: 'css', className: 'anim-lapreport', duration: 6000 };
+onTopic('event', function(data, raw) {
+  if (!raw) return;
+  if (raw.type === 'cues_ready') enqueueAlert('cues_ready', cuesReadyText(data, t));
+  else if (raw.type === 'lap_report') enqueueAlert('lap_report', lapReportText(data, t, lang));
 });
