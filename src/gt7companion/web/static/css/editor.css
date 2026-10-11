@@ -157,7 +157,7 @@ body.editor-mode .widget, body.editor-mode #canvas { touch-action:none; }
 #editor-toolbar button:disabled { opacity:.5; cursor:default; }
 /* Inside the panels (styling, tests, own layout) the buttons stay small: they are not the navigation. */
 #editor-toolbar .background-panel button, #editor-toolbar .toolbar-tests > div button { min-height:0; padding:7px 12px; border-radius:6px; font-size:13px; }
-@media(max-width:700px) {
+@media(max-width:1100px) {
   #editor-toolbar { padding-left:10px; padding-right:10px; gap:6px; row-gap:6px; }
   #editor-toolbar .tb-group { gap:6px; }
   #editor-toolbar .tb-title { font-size:14px; margin-right:4px; }

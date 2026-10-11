@@ -941,9 +941,9 @@ class StreamPage(Pages):
         page.wait_for_selector("#services", state="visible")
         for card in ("twitch", "youtube", "discord", "obs"):
             self.assertTrue(page.is_visible(f"#{card} h2"), card)
-        self.assertTrue(page.is_visible("#discord-token-input"))
-        self.assertTrue(page.is_visible("#obs-password-input"))
-        self.assertIn("nicht gefunden", page.text_content("#obs-state"))
+        page.wait_for_selector("#discord-token-input", state="visible")
+        page.wait_for_selector("#obs-password-input", state="visible")
+        page.wait_for_function("() => /nicht gefunden/.test(document.getElementById('obs-state').textContent)")
         page.click("#obs-open")
         page.wait_for_function("() => /nicht gefunden/.test(document.getElementById('obs-result').textContent)")
         page.fill("#obs-password-input", "hunter2")
