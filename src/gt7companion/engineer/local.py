@@ -20,12 +20,13 @@ from collections.abc import AsyncIterator
 from ..paths import DATA
 from .helper import Helper, HelperError
 from .live import BoxError
-from .texts import SPEECH_CODE, Texts
+from .texts import SPEECH_CODE, Texts, speakable_name
 from .wake import without_wake_word
 
 log = logging.getLogger("box.local")
 
 _CHUNK = 9_600                 # 0.2 s of audio at a time, like the voice service delivers it
+_READ_OUT = 200                # a message from the chat is read out up to this many characters
 TOPICS = ("fuel", "laps", "last_lap", "best_lap", "tyres", "position", "speed", "incidents", "none")
 
 
@@ -140,11 +141,13 @@ def answer_for(topic: str, facts: dict, texts: Texts, *, units: str = "metric") 
 class LocalSession:
     tokens = 0                     # nothing is billed
     should_retire = False
+    gives_text = True              # the answers are put together as text anyway
 
     def __init__(self, helper: Helper, texts: Texts, *, voice: str = "", units: str = "metric", status=None) -> None:
         self._helper, self._texts, self._voice, self._units = helper, texts, voice, units
         self._status = status              # callable() -> dict: the facts of the drive
         self._open = False
+        self.answer_text = ""              # the answer to the last typed question, for the chat
 
     def __repr__(self) -> str:
         return f"<LocalSession language={self._texts.language} open={self._open}>"
@@ -197,6 +200,38 @@ class LocalSession:
             log.info("Question about %s", topic)
             answer = answer_for(topic, facts, self._texts, units=self._units)
         async for chunk in self._speak(answer):
+            yield chunk
+
+    async def ask_text(self, text: str, *, name: str = "") -> AsyncIterator[bytes]:
+        """Answer a question that was typed by the driver or written in the chat by ``name``.
+
+        What the Box cannot answer from the drive is read out instead when it comes from the chat
+        ("Max writes: …") – unless the language model refused it as unsafe."""
+        self.answer_text = ""
+        question = without_wake_word(text)
+        topic, refused = "none", False
+        if question:
+            try:
+                topic = await asyncio.to_thread(self._helper.choose, topic_instructions(), question, list(TOPICS))
+            except HelperError as problem:     # switched off, busy – or the question was refused
+                log.info("The language model did not sort the question: %s", problem)
+                refused = problem.code == "guardrail"
+        if topic in _ANSWERS:
+            facts = {}
+            if self._status is not None:
+                try:
+                    facts = self._status()
+                except Exception:              # noqa: BLE001 - no facts: the answer says that
+                    log.warning("The facts of the drive could not be read", exc_info=True)
+            log.info("Typed question about %s", topic)
+            self.answer_text = answer_for(topic, facts, self._texts, units=self._units)
+            spoken = (self._texts.line("viewer_answer", name=speakable_name(name) or name, answer=self.answer_text)
+                      if name else self.answer_text)
+        elif name and question and not refused:
+            spoken = self._texts.line("viewer_says", name=speakable_name(name) or name, text=question[:_READ_OUT])
+        else:
+            spoken = self._texts.line("no_answer" if question else "not_understood")
+        async for chunk in self._speak(spoken):
             yield chunk
 
     async def _speak(self, text: str) -> AsyncIterator[bytes]:

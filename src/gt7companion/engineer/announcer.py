@@ -9,14 +9,18 @@ import logging
 import time
 
 from ..bus import EventBus
+from ..stream.chat import without_address
 from .engine import NORMAL, URGENT, Engineer
+from .texts import speakable_name
 
 log = logging.getLogger("box.announcer")
 
 # kind of message -> what it covers (for the settings page)
-KINDS = ("best_lap", "lap_time", "fuel", "race", "incidents", "tyres", "coaching")
+KINDS = ("best_lap", "lap_time", "fuel", "race", "incidents", "tyres", "coaching", "chat", "community")
 DEFAULT_KINDS = ("best_lap", "fuel", "race")
 TIPS = ("brake_later", "brake_earlier", "more_speed", "throttle_earlier")     # advice of coaching.py with a sentence
+_CHAT_PAUSE_S = 8.0            # between two answers to the chat …
+_VIEWER_PAUSE_S = 45.0         # … and between two answers to the same viewer
 
 
 class Announcer:
@@ -33,6 +37,11 @@ class Announcer:
             bus.subscribe(topic, handler)
         bus.subscribe("event.cues_ready", self.on_cues_ready)
         bus.subscribe("event.lap_report", self.on_lap_report)
+        # The stream (stream/): questions from the chat, new followers and subs
+        self._bus = bus
+        for topic, handler in (("chat.message", self.on_chat_message), ("event.follower", self.on_follower),
+                               ("event.sub", self.on_sub), ("event.resub", self.on_resub)):
+            bus.subscribe(topic, handler)
 
     def reset(self) -> None:
         self._last.clear()
@@ -140,3 +149,54 @@ class Announcer:
         else:
             text = texts.line("coach_even", delta=texts.gap(diff), **values)
         self.engineer.say(text, NORMAL)
+    # ------------------------------------------------------------- the stream
+    async def on_chat_message(self, data: dict) -> None:
+        """Somebody in the chat named the channel: the Box answers on the radio – and in the chat,
+        if that is switched on (Twitch only, see stream/twitch.py)."""
+        source = data.get("source")
+        if not data.get("is_mention") or source not in ("twitch", "youtube") or not self._wanted("chat"):
+            return
+        settings = self.engineer.settings
+        if not settings[f"{source}_mentions"]:
+            return
+        name = str(data.get("name") or "").strip()
+        question = without_address(str(data.get("text") or ""))
+        if not name or not question:
+            return
+        viewer = f"viewer:{source}:{name.lower()}"
+        now = self._clock()
+        if (now - self._last.get("chat", float("-inf")) < _CHAT_PAUSE_S
+                or now - self._last.get(viewer, float("-inf")) < _VIEWER_PAUSE_S):
+            return                                  # one at a time, and nobody keeps the Box to themselves
+        reply = None
+        if source == "twitch" and settings["twitch_reply"]:
+            async def reply(text: str) -> None:
+                await self._bus.publish("chat.answer", {"source": source, "name": name, "text": text,
+                                                        "id": str(data.get("id") or "")})
+        if self.engineer.ask_text(question, name=name, on_answer=reply):
+            if len(self._last) > 500:               # forget viewers who asked long ago
+                self._last = {key: when for key, when in self._last.items()
+                              if not key.startswith("viewer:") or now - when < _VIEWER_PAUSE_S}
+            self._last["chat"] = self._last[viewer] = now
+
+    async def on_follower(self, data: dict) -> None:
+        name = speakable_name(data.get("name"))
+        if name and self._wanted("community") and self._due("follower", 8):     # a wave of follows: not each one
+            self._say("follower", name=name)
+
+    async def on_sub(self, data: dict) -> None:
+        name = speakable_name(data.get("name"))
+        if not name or not self._wanted("community"):
+            return
+        gift = bool(data.get("gift"))               # gifted subs come in bunches: the first one is announced
+        if self._due("gift" if gift else "sub", 30 if gift else 2):
+            self._say("sub", name=name)
+
+    async def on_resub(self, data: dict) -> None:
+        name, months = speakable_name(data.get("name")), data.get("months")
+        if not name or not self._wanted("community") or not self._due("resub", 2):
+            return
+        if isinstance(months, int) and not isinstance(months, bool) and months > 1:
+            self._say("resub", name=name, months=months)
+        else:
+            self._say("sub", name=name)

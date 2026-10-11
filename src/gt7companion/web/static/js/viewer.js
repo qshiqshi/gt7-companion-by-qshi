@@ -132,6 +132,40 @@ if (IS_VIEW && wait && menu) {
   ['pointerup', 'pointercancel', 'lostpointercapture'].forEach(function(name) { talk.addEventListener(name, hold(false)); });
   talk.addEventListener('contextmenu', function(event) { event.preventDefault(); });
 
+  /* A question typed to the Box: answered on the radio like a spoken one (this computer or a paired device). */
+  const askForm = document.getElementById('ask-box');
+  const askText = document.getElementById('ask-text');
+  let askTimer = null;
+  function renderAsk() {
+    askForm.hidden = !(box.enabled && box.usable && box.typed_questions && (role === 'owner' || role === 'editor'));
+  }
+  function askNote(text) {
+    askText.placeholder = text;
+    clearTimeout(askTimer);
+    askTimer = setTimeout(function() { askText.placeholder = t('Frage an die Box'); }, 4000);
+  }
+  onTopic('box', renderAsk);
+  onTopic('hello', renderAsk);
+  onTopic('ask', function(answer) {
+    askNote(answer && answer.ok ? t('Die Box antwortet gleich …') : t('Die Box kann gerade nicht antworten.'));
+  });
+  askForm.addEventListener('submit', function(event) {
+    event.preventDefault();
+    const question = askText.value.trim();
+    if (!question) { askText.focus(); return; }
+    wsSend({ topic: 'ask', text: question });
+    askText.value = '';
+    askNote(t('Gesendet …'));
+  });
+  /* While a question is being typed, the menu stays. */
+  askForm.addEventListener('focusin', function() { menu.classList.add('show'); clearTimeout(hideTimer); });
+  askForm.addEventListener('focusout', showMenu);
+  ['pointermove', 'pointerdown', 'keydown'].forEach(function(name) {
+    window.addEventListener(name, function() {
+      if (askForm.contains(document.activeElement)) clearTimeout(hideTimer);
+    }, { passive: true });
+  });
+
   const root = document.documentElement;
   const canFullscreen = !!(root.requestFullscreen || root.webkitRequestFullscreen);
   fullscreen.hidden = !canFullscreen;

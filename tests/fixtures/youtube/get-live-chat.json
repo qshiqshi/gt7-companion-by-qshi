@@ -1,0 +1,60 @@
+{
+  "responseContext": {"serviceTrackingParams": [{"service": "CSI", "params": [{"key": "c", "value": "WEB"}]}]},
+  "continuationContents": {
+    "liveChatContinuation": {
+      "continuations": [{"timedContinuationData": {"timeoutMs": 500, "continuation": "0ofMyANfakeContinuationTwo"}}],
+      "actions": [
+        {"clickTrackingParams": "CAEQfake", "addChatItemAction": {"item": {"liveChatTextMessageRenderer": {
+          "message": {"runs": [{"text": "@testkanal wie viel Sprit hast du noch?"}]},
+          "authorName": {"simpleText": "Zuschauerin Eins"},
+          "id": "msg-001", "timestampUsec": "1760205610000000",
+          "authorExternalChannelId": "UCviewer00000000000000002"}}, "clientId": "c1"}},
+        {"clickTrackingParams": "CAEQfake", "addChatItemAction": {"item": {"liveChatTextMessageRenderer": {
+          "message": {"runs": [{"text": "gute Runde gerade!"}]},
+          "authorName": {"simpleText": "Zuschauer Zwei"},
+          "id": "msg-002", "timestampUsec": "1760205611000000",
+          "authorExternalChannelId": "UCviewer00000000000000003"}}, "clientId": "c2"}},
+        {"clickTrackingParams": "CAEQfake", "addChatItemAction": {"item": {"liveChatTextMessageRenderer": {
+          "message": {"runs": [{"text": "@testkanal danke euch allen"}]},
+          "authorName": {"simpleText": "Testkanal"},
+          "authorBadges": [{"liveChatAuthorBadgeRenderer": {"icon": {"iconType": "OWNER"}, "tooltip": "Owner",
+                                                             "accessibility": {"accessibilityData": {"label": "Owner"}}}}],
+          "id": "msg-003", "timestampUsec": "1760205612000000",
+          "authorExternalChannelId": "UCtestkanal0000000000000"}}, "clientId": "c3"}},
+        {"clickTrackingParams": "CAEQfake", "addChatItemAction": {"item": {"liveChatPaidMessageRenderer": {
+          "id": "msg-004", "timestampUsec": "1760205613000000",
+          "authorName": {"simpleText": "Spenderin Drei"},
+          "authorBadges": [{"liveChatAuthorBadgeRenderer": {"icon": {"iconType": "MODERATOR"}, "tooltip": "Moderator"}}],
+          "purchaseAmountText": {"simpleText": "€5.00"},
+          "message": {"runs": [{"text": "Testkanal, welche Runde ist das gerade? "},
+                               {"emoji": {"emojiId": "🏁", "shortcuts": [":chequered_flag:"], "isCustomEmoji": false}}]},
+          "authorExternalChannelId": "UCviewer00000000000000004"}}}},
+        {"clickTrackingParams": "CAEQfake", "addChatItemAction": {"item": {"liveChatTextMessageRenderer": {
+          "message": {"runs": [{"text": "nice "}, {"emoji": {"emojiId": "UCfake/emoji1", "shortcuts": [":kanal-wave:"],
+                                                              "isCustomEmoji": true}}]},
+          "authorName": {"simpleText": "Zuschauer Vier"},
+          "id": "msg-005", "timestampUsec": "1760205614000000",
+          "authorExternalChannelId": "UCviewer00000000000000005"}}}},
+        {"clickTrackingParams": "CAEQfake", "addChatItemAction": {"item": {"liveChatTextMessageRenderer": {
+          "message": {"runs": [{"text": "!discord @testkanal"}]},
+          "authorName": {"simpleText": "Zuschauer Fünf"},
+          "id": "msg-006", "timestampUsec": "1760205615000000",
+          "authorExternalChannelId": "UCviewer00000000000000006"}}}},
+        {"clickTrackingParams": "CAEQfake", "addChatItemAction": {"item": {"liveChatTextMessageRenderer": {
+          "message": {"runs": [{"text": "@testkanal das ist eine alte Nachricht {mit Klammer}"}]},
+          "authorName": {"simpleText": "Zuschauerin Alt"},
+          "id": "history-001", "timestampUsec": "1760205500000000",
+          "authorExternalChannelId": "UCviewer00000000000000001"}}}},
+        {"clickTrackingParams": "CAEQfake", "addChatItemAction": {"item": {"liveChatTextMessageRenderer": {
+          "message": {"runs": [{"text": "testkanalfans sagen hallo"}]},
+          "authorName": {"simpleText": "Zuschauer Sechs"},
+          "id": "msg-007", "timestampUsec": "1760205616000000",
+          "authorExternalChannelId": "UCviewer00000000000000007"}}}},
+        {"clickTrackingParams": "CAEQfake", "addChatItemAction": {"item": {"giftMessageViewModel": {
+          "id": "gift-002", "authorName": {"content": "Schenker Zwei"}, "text": {"content": "hat ein Geschenk gemacht"}}}}},
+        {"clickTrackingParams": "CAEQfake", "removeChatItemAction": {"targetItemId": "msg-002"}},
+        {"clickTrackingParams": "CAEQfake", "addLiveChatTickerItemAction": {"item": {}, "durationSec": "10"}}
+      ]
+    }
+  }
+}

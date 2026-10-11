@@ -1000,3 +1000,17 @@ body.editor-mode .rpm-resize:hover {
 .anim-cues .alert-inner { color: var(--c-alert-cues, #83b7fa); }
 .anim-lapreport .alert-inner { color: var(--c-alert-tip, #f2f2f2); }
 #view-menu #btn-cues.on { border-color: #83b7fa; }
+/* ========== DASHBOARD: A QUESTION TYPED TO THE BOX ========== */
+#view-menu #ask-box { display: flex; max-width: 100%; }
+#view-menu #ask-box[hidden] { display: none; }
+#view-menu #ask-text {
+  width: 260px; min-width: 0; max-width: calc(100vw - 120px); min-height: 44px; padding: 0 12px;
+  border: 1px solid rgba(255, 255, 255, 0.18); border-right: 0; border-radius: 8px 0 0 8px;
+  background: rgba(20, 20, 24, 0.88); color: #f2f2f2;
+  font: 400 15px/1 system-ui, -apple-system, "Segoe UI", Roboto, "Helvetica Neue", Arial, sans-serif;
+}
+#view-menu #ask-text::placeholder { color: #9aa1ad; }
+#view-menu #ask-text:focus-visible { outline: 2px solid #83b7fa; outline-offset: 0; }
+#view-menu #ask-send { border-radius: 0 8px 8px 0; border-color: #4fc860; }
+/* The radio display names the viewer it answers; a long name ends in an ellipsis. */
+#w-radio .radio-text { min-width: 0; overflow: hidden; text-overflow: ellipsis; }

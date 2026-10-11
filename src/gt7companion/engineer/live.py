@@ -34,6 +34,7 @@ STATUS_TOOL = {
 }
 _OPEN_TIMEOUT_S = 10.0
 _SILENCE_TIMEOUT_S = 20.0  # no message for this long in the middle of an answer: give up
+_TRANSCRIPT_WAIT_S = 0.4   # the words of an answer may trail its end by this much
 
 
 class BoxError(Exception):
@@ -71,13 +72,16 @@ def _error_for(status: int | None, text: str) -> BoxError:
 
 class LiveSession:
     def __init__(self, key: str, *, model: str, voice: str, language: str, system: str, url: str = URL,
-                 status=None, read_aloud=None) -> None:
+                 status=None, read_aloud=None, frame_question=None, transcript: bool = False) -> None:
         self._key, self._url = key, url
         self._status = status                 # callable() -> dict, answers the voice's look-ups
         self._read_aloud = read_aloud         # callable(text) -> the order to read exactly this text
+        self._frame_question = frame_question  # callable(text, name) -> a typed question as the voice gets it
+        self._transcript = transcript         # the service also writes down what it says (for the chat)
         self._model, self._voice, self._language, self._system = model, voice, language, system
         self._ws = None
         self.tokens = 0                       # tokens the service billed in this conversation
+        self.answer_text = ""                 # what was said in the last turn, if it is written down
 
     def __repr__(self) -> str:
         return f"<LiveSession model={self._model} open={self.is_open}>"
@@ -86,7 +90,18 @@ class LiveSession:
     def is_open(self) -> bool:
         return self._ws is not None and getattr(self._ws, "close_code", None) is None
 
+    @property
+    def gives_text(self) -> bool:
+        """Answers come with their words as text (``answer_text``), for an answer in the chat."""
+        return self._transcript
+
     def _setup(self) -> dict:
+        setup = self._plain_setup()
+        if self._transcript:
+            setup["setup"]["outputAudioTranscription"] = {}
+        return setup
+
+    def _plain_setup(self) -> dict:
         return {"setup": {
             "model": f"models/{self._model}",
             "generationConfig": {
@@ -146,6 +161,37 @@ class LiveSession:
         async for chunk in self._turn(messages):
             yield chunk
 
+    async def ask_text(self, text: str, *, name: str = "") -> AsyncIterator[bytes]:
+        """A question as text – typed by the driver, or written in the chat by ``name`` – and the
+        spoken answer. The voice gets it framed as somebody's question (see the prompt files)."""
+        if self._frame_question is not None:
+            text = self._frame_question(text, name)
+        async for chunk in self._turn([{"clientContent": {
+                "turns": [{"role": "user", "parts": [{"text": text}]}], "turnComplete": True}}]):
+            yield chunk
+
+    def _note_transcript(self, content: dict) -> None:
+        piece = (content.get("outputTranscription") or {}).get("text")
+        if isinstance(piece, str):
+            self.answer_text += piece
+
+    async def _late_transcript(self) -> None:
+        """The written words may arrive a moment after the turn: wait for them briefly."""
+        try:
+            while True:
+                message = json.loads(await asyncio.wait_for(self._ws.recv(), timeout=_TRANSCRIPT_WAIT_S))
+                usage = message.get("usageMetadata")
+                if isinstance(usage, dict) and isinstance(usage.get("totalTokenCount"), int):
+                    self.tokens += usage["totalTokenCount"]
+                if "goAway" in message:
+                    self._retire = True
+                if isinstance(message.get("serverContent"), dict):
+                    self._note_transcript(message["serverContent"])
+        except (asyncio.TimeoutError, ValueError, OSError):
+            pass
+        except websockets.exceptions.ConnectionClosed:
+            self._retire = True
+
     async def _look_up(self, call: dict) -> None:
         """The voice asks for facts: answer every call, unknown ones with an error."""
         answers = []
@@ -165,6 +211,7 @@ class LiveSession:
     async def _turn(self, messages: list[dict]) -> AsyncIterator[bytes]:
         if not self.is_open:
             raise Offline()
+        self.answer_text = ""
         try:
             for outgoing in messages:
                 await self._ws.send(json.dumps(outgoing))
@@ -180,11 +227,15 @@ class LiveSession:
                 content = message.get("serverContent")
                 if not isinstance(content, dict):
                     continue
+                self._note_transcript(content)
                 for part in content.get("modelTurn", {}).get("parts", []):
                     data = part.get("inlineData", {}).get("data")
                     if data:
                         yield base64.b64decode(data)
                 if content.get("turnComplete"):
+                    if self._transcript:
+                        await self._late_transcript()
+                    self.answer_text = self.answer_text.strip()
                     return
         except websockets.exceptions.ConnectionClosed as closed:
             reason = closed.rcvd.reason if closed.rcvd else ""

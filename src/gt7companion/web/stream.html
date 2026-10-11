@@ -26,14 +26,68 @@
   <p class="note error" id="locked" hidden>Auf diesem Gerät lässt sich das erst nach dem Koppeln ändern. <a class="button" href="/connect?next=/stream">Koppeln</a></p>
 
   <div id="services" hidden>
+    <p class="note warn" id="chat-box-note" role="status" hidden></p>
     <section class="card" id="twitch" aria-labelledby="twitch-title">
       <h2 id="twitch-title">Twitch</h2>
-      <p class="muted" id="twitch-soon">Kommt in Kürze.</p>
+      <p class="muted">Die Box liest den Chat deines Kanals mit, beantwortet Fragen, die dich erwähnen, und sagt neue Follower und Subs an.</p>
+      <p class="note" id="twitch-state" role="status" hidden></p>
+      <label class="field">
+        <span>Kanal</span>
+        <input id="twitch_channel" type="text" maxlength="120" autocomplete="off" autocapitalize="off" spellcheck="false" placeholder="Name deines Kanals">
+        <small>Wie in der Adresse twitch.tv/…</small>
+      </label>
+      <label class="check"><input id="twitch_read" type="checkbox"><span>Chat lesen
+        <small>Das Programm liest den Chat mit, ohne Anmeldung – wie ein Zuschauer, der nicht angemeldet ist.</small></span></label>
+      <label class="check"><input id="twitch_mentions" type="checkbox"><span>Erwähnungen an die Box
+        <small>Wer im Chat deinen Kanalnamen schreibt, etwa „@kanal wie viel Sprit ist noch drin?“, bekommt über Funk eine Antwort. Mit Gemini kostet jede Antwort wie eine Ansage.</small></span></label>
+      <label class="check"><input id="twitch_reply" type="checkbox"><span>Antwort im Chat
+        <small>Die Box schreibt ihre Antwort zusätzlich in den Chat. Braucht die Anmeldung.</small></span></label>
+      <label class="check"><input id="twitch_events" type="checkbox"><span>Follower und Subs ansagen
+        <small>Braucht die Anmeldung mit dem Konto des Kanals.</small></span></label>
+      <p class="note" id="twitch-events-state" role="status" hidden></p>
+
+      <h3>Anmeldung</h3>
+      <p class="muted">Für Antworten im Chat und für Follower und Subs meldest du das Programm einmal bei Twitch an. Es bekommt dabei kein Passwort, nur einen Zugang, den du jederzeit wieder entziehen kannst.</p>
+      <p class="note good" id="twitch-signed-in" role="status" hidden></p>
+      <div id="twitch-code" hidden>
+        <p>Öffne die Seite von Twitch, melde dich dort mit dem Konto deines Kanals an und gib diesen Code ein:</p>
+        <p class="pin" id="twitch-user-code" data-no-i18n></p>
+        <p class="row"><a class="button primary" id="twitch-activate" href="https://www.twitch.tv/activate" target="_blank" rel="noopener noreferrer">twitch.tv/activate öffnen</a></p>
+        <p class="muted" id="twitch-waiting" role="status">Warte auf die Bestätigung bei Twitch …</p>
+      </div>
+      <p class="note warn" id="twitch-no-app" hidden>Für die Anmeldung braucht dieses Programm eine eigene Twitch-App, und in dieser Version ist noch keine eingetragen. Wer selbst eine registriert hat, trägt ihre Client-ID unter „Erweitert“ ein (siehe Anleitung). Den Chat lesen und beantworten geht auch so.</p>
+      <p class="note error" id="twitch-login-error" role="status" hidden></p>
+      <div class="row">
+        <button id="twitch-login" type="button" hidden>Bei Twitch anmelden</button>
+        <button id="twitch-logout" type="button" hidden>Abmelden</button>
+      </div>
+      <p class="muted" id="twitch-login-elsewhere" hidden>Anmelden lässt sich nur am Computer mit dem Programm.</p>
+      <details>
+        <summary>Erweitert</summary>
+        <label class="field">
+          <span>Client-ID einer eigenen Twitch-App</span>
+          <input id="twitch_client_id" type="text" maxlength="64" autocomplete="off" autocapitalize="off" spellcheck="false">
+          <small>Nur nötig, wenn du selbst eine App bei dev.twitch.tv registriert hast (Client-Typ „Öffentlich“). Leer lassen: die App des Programms.</small>
+        </label>
+      </details>
+      <p class="muted" id="twitch-result" role="status"></p>
     </section>
 
     <section class="card" id="youtube" aria-labelledby="youtube-title">
       <h2 id="youtube-title">YouTube</h2>
-      <p class="muted" id="youtube-soon">Kommt in Kürze.</p>
+      <p class="muted">Die Box liest den Live-Chat deines Streams mit und beantwortet Fragen, die dich erwähnen. Dafür ist keine Anmeldung nötig; in den YouTube-Chat schreibt sie nicht.</p>
+      <p class="note" id="youtube-state" role="status" hidden></p>
+      <label class="field">
+        <span>Kanal oder Stream</span>
+        <input id="youtube_source" type="text" maxlength="300" autocomplete="off" autocapitalize="off" spellcheck="false" placeholder="@deinkanal">
+        <small>Dein Handle wie @name, die Adresse deines Kanals oder die des laufenden Streams. Mit dem Kanal findet das Programm den Stream selbst, sobald du live bist.</small>
+      </label>
+      <label class="check"><input id="youtube_read" type="checkbox"><span>Chat lesen
+        <small>Das Programm liest den Live-Chat mit, wie ein Zuschauer, der nicht angemeldet ist.</small></span></label>
+      <label class="check"><input id="youtube_mentions" type="checkbox"><span>Erwähnungen an die Box
+        <small>Wer im Chat deinen Kanalnamen schreibt, bekommt über Funk eine Antwort.</small></span></label>
+      <div class="row"><button id="youtube-look" type="button" hidden>Jetzt suchen</button></div>
+      <p class="muted" id="youtube-result" role="status"></p>
     </section>
 
     <section class="card" id="discord" aria-labelledby="discord-title">

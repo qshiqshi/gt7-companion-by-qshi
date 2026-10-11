@@ -105,3 +105,10 @@ details.how ol li + li { margin-top: 8px; }
 .copy-row { display: flex; flex-wrap: wrap; align-items: center; gap: 10px; margin-top: 8px; }
 .copy-row code { padding: 9px 12px; border: 1px solid #3a3e48; border-radius: 8px; background: #0e0f13; color: #f2f2f2;
   font: 500 14px/1.3 ui-monospace, "SF Mono", Menlo, Consolas, monospace; word-break: break-all; user-select: all; -webkit-user-select: all; }
+
+/* stream: Twitch and YouTube */
+section.card h3 { margin: 26px 0 8px; font-size: 16px; font-weight: 600; }
+#twitch-code { margin-bottom: 16px; }
+#twitch-code .pin { margin: 4px 0 16px; user-select: all; -webkit-user-select: all; }
+#twitch-code .row { margin-bottom: 12px; }
+#twitch details { margin-top: 18px; }

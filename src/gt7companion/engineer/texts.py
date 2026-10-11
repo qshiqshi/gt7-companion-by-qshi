@@ -10,6 +10,11 @@ LANGUAGES = ("de", "en")
 SPEECH_CODE = {"de": "de-DE", "en": "en-US"}
 
 
+def speakable_name(name: object, limit: int = 30) -> str:
+    """A name from a chat as a voice can say it: "Racer_99" -> "Racer 99"."""
+    return " ".join(str(name or "").replace("_", " ").split())[:limit].strip()
+
+
 class Texts:
     def __init__(self, language: str, driver: str = "", *, rng: random.Random | None = None,
                  spoken: bool = False) -> None:
@@ -41,6 +46,14 @@ class Texts:
 
     def read_aloud(self, text: str) -> str:
         return self._lines["read_aloud"].format(text=text)
+
+    def question(self, text: str, name: str = "") -> str:
+        """A question as text for the voice service: typed by the driver, or written in the chat by
+        ``name``. Name and question are quoted, so they read as somebody's words and not as orders."""
+        quoted = json.dumps(text, ensure_ascii=False)
+        if name:
+            return self._lines["viewer_question"].format(name=json.dumps(name, ensure_ascii=False), text=quoted)
+        return self._lines["driver_question"].format(driver=self.driver, text=quoted)
 
     def tyre(self, code: str) -> str:
         return self._lines["tyre_names"].get(code, code)

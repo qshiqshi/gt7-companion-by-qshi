@@ -27,6 +27,8 @@ Comments in files that were taken over unchanged are still German.
 | `stream/discord_voice.py` | `server/discord_sink.py` | sending only (no receiving, no voice-recv); the 20 ms frames, the upsampling and the ducking without numpy; states the page can show; Opus looked for in the app bundle; token in the key store |
 | `stream/obs.py` | idea of `server/obs_client.py` (`_ensure_companion_layer`: an idempotent browser source) | obs-websocket 5 spoken directly over `websockets`, one conversation per click; OBS is started only on the button; markers, replays and the second layer are gone |
 | `app.py` | pattern of `tools/overlay_preview.py` | new |
+| `stream/twitch.py` | `server/twitch_client.py` | taken over: reading the channel's chat, the scopes, the three events (follow, subscribe, resubscribe), the pattern for mentions, the ignored bots, commands left out; rewritten without the twitchAPI package (IRC over a WebSocket, EventSub and Helix directly); reads without an account (`justinfan`); mentions use the channel's own name instead of a fixed one; signing in with the device code of a public app instead of a client secret and a redirect; tokens in the key store; answers go into the chat through Helix; the notices on joining and by the clock were left out |
+| `stream/youtube.py` | the idea of `server/youtube_chat.py` | new: reads the public live chat of a stream (like chat-downloader and pytchat) instead of the chat of a YouTube Studio tab in Safari; kept: mentions, messages of the channel itself, deleted ones and commands left out, every message once, no history read out |
 | everything else | – | new |
 
 ## Pages (`src/gt7companion/web/`)
@@ -132,3 +134,16 @@ in both languages. Names and stream-specific references were removed; follower a
 subscription announcements were not transferred. Each shuffled bag plays every variant
 once. Short racing quotations and their attribution sources are documented in
 [TEXT_QUOTES.md](TEXT_QUOTES.md).
+
+## The chat of the stream, 11 October 2026 (v0.3)
+
+Reading the chat of Twitch and YouTube, answering it and announcing followers and subs came back
+from the private predecessor as ideas, rebuilt in `stream/` (see the table above). The Box's lines
+for them (`follower`, `sub`, `resub`, `viewer_answer`, `viewer_says` in `data/texts/*.json`) and the
+part of the prompts about questions from the chat were newly written in German and English; the
+predecessor's lines were not taken over. Questions typed into the dashboard ("Frage an die Box") are
+new.
+
+The YouTube pages in `tests/fixtures/youtube/` were written by hand in the shape of YouTube's real
+watch page, chat page and chat answers as of 11 October 2026; every name, id and text in them is
+made up.
