@@ -221,7 +221,14 @@ Damit du ohne Knopfdruck fragen kannst: in den Einstellungen **Auf „Hey Box“
   - **Windows:** den Programmordner öffnen, in die Adresszeile klicken, `cmd` tippen, Enter
     drücken, dann ausführen: `.venv\Scripts\python.exe -m pip install -e ".[wake]"`
 
-## 8. Die Box im Headset (Discord)
+## 8. Der Chat deines Streams (Twitch, YouTube)
+
+Auf der Seite **Stream** (Startseite → *Twitch, YouTube, Discord und OBS verbinden*) liest das Programm
+den Chat deines Kanals mit: Wer dich dort anspricht, bekommt eine Antwort von der Box; mit Anmeldung
+bei Twitch sagt sie Follower und Subs an und antwortet auch im Chat. Alles dazu, auch die Grenzen und
+Kosten mit Gemini: [STREAM.de.md](STREAM.de.md).
+
+## 9. Die Box im Headset (Discord)
 
 Mit Headset an der PlayStation hörst du die Box nicht – außer über einen eigenen Discord-Bot, der
 ihre Stimme und die Bremstöne in einen Sprachkanal spielt, dem du von der PlayStation aus

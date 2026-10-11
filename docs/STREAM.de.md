@@ -109,4 +109,19 @@ hört man nur über Funk. Als Erwähnung zählt dein Handle oder dein Kanalname 
 
 ## Discord
 
+Die Box im Headset: Ein eigener Discord-Bot spielt ihre Stimme und die Bremstöne in einen Sprachkanal,
+dem du von der PlayStation aus beitrittst. Einrichtung Schritt für Schritt – Bot anlegen, einladen, Token
+eintragen, von der PS5 beitreten – in [DISCORD.de.md](DISCORD.de.md).
+
 ## OBS
+
+Der Knopf **OBS mit Overlay öffnen** (auf der Startseite und auf der Karte *OBS*) startet OBS, wenn es
+nicht läuft, verbindet sich mit dessen WebSocket-Server und legt in der aktuellen Szene die Browser-Quelle
+„GT7 Companion Overlay“ an – 1920 × 1080, Ton über OBS. Gibt es die Quelle schon, bleibt sie, wie sie
+ist. Von allein startet das Programm OBS nie.
+
+Einmalig in OBS: **Werkzeuge → WebSocket-Server-Einstellungen → WebSocket-Server aktivieren** (Port 4455
+lassen), dann **Verbindungsinformationen anzeigen** und das Passwort auf der Karte *OBS* eintragen. Läuft
+OBS auf einem anderen Rechner, trägst du unter *Erweitert* dessen Namen oder Adresse ein; das Overlay
+wird dann über das Heimnetz geladen (Freigabe unter *Einstellungen*). Der Weg von Hand steht in der
+[Installationsanleitung](INSTALL.de.md#6-stream-overlay-in-obs).

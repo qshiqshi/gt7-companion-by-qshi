@@ -214,7 +214,14 @@ To ask without pressing a button, tick **Listen for "Hey Box"** in the settings.
   - **Windows:** open the program's folder, click into the address bar, type `cmd`, press
     Enter, then run: `.venv\Scripts\python.exe -m pip install -e ".[wake]"`
 
-## 8. The Box in the headset (Discord)
+## 8. The chat of your stream (Twitch, YouTube)
+
+On the **Stream** page (start page → *Connect Twitch, YouTube, Discord and OBS*) the program follows
+the chat of your channel: whoever addresses you there gets an answer from the Box; signed in to
+Twitch, it announces followers and subs and answers in the chat as well. Everything about it, the
+limits and the costs with Gemini included: [STREAM.md](STREAM.md).
+
+## 9. The Box in the headset (Discord)
 
 With a headset at the PlayStation you do not hear the Box – unless a Discord bot of your own
 plays its voice and the brake tones into a voice channel that you join from the PlayStation.

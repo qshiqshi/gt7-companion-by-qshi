@@ -41,6 +41,9 @@ Rechner, für ein Tablet neben dem Rig oder als Browser-Quelle in OBS.
   beantwortet – auf einem Mac ganz ohne Dienst und Schlüssel, sonst mit deinem eigenen Schlüssel
   für Google Gemini.
   Für Bestzeiten, Dreher und Einschläge gibt es jeweils 50 positive Funk-Varianten in beiden Sprachen.
+- **Der Chat deines Streams** (Twitch, YouTube): Wer dich im Chat anspricht, bekommt eine Antwort
+  von der Box – über Funk und, bei Twitch mit Anmeldung, im Chat. Follower und Subs sagt sie an.
+  Fragen an die Box lassen sich auch tippen ([Anleitung](docs/STREAM.de.md)).
 - **Die Box im Headset:** Ein eigener Discord-Bot spielt ihre Stimme und die Bremstöne in einen
   Sprachkanal, dem du von der PlayStation aus beitrittst ([Anleitung](docs/DISCORD.de.md)).
 - **OBS mit einem Klick:** Der Knopf „OBS mit Overlay öffnen“ startet OBS, wenn es nicht läuft,

@@ -104,4 +104,18 @@ mention is your handle or your channel's name as a word of its own.
 
 ## Discord
 
+The Box in the headset: a Discord bot of your own plays its voice and the brake tones into a voice
+channel that you join from the PlayStation. Step by step – create the bot, invite it, enter the token,
+join from the PS5 – in [DISCORD.md](DISCORD.md).
+
 ## OBS
+
+The button **Open OBS with the overlay** (on the start page and on the *OBS* card) starts OBS when it is
+not running, connects to its WebSocket server and adds the browser source "GT7 Companion Overlay" to the
+current scene – 1920 × 1080, audio through OBS. A source that is there already stays as it is. The
+program never starts OBS on its own.
+
+Once in OBS: **Tools → WebSocket Server Settings → Enable WebSocket server** (leave the port at 4455),
+then **Show Connect Info** and enter the password on the *OBS* card. If OBS runs on another computer,
+enter its name or address under *Advanced*; the overlay is then loaded through the home network
+(sharing under *Settings*). The way by hand is in the [install guide](INSTALL.md#6-stream-overlay-in-obs).

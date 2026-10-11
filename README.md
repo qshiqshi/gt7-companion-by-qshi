@@ -39,6 +39,9 @@ computer, for a tablet next to your rig, or as a browser source in OBS.
   answers questions – on a Mac without any service or key, elsewhere with your own Google
   Gemini API key.
   Best laps, spins and impacts have 50 positive radio variants each, in either language.
+- **The chat of your stream** (Twitch, YouTube): whoever addresses you in the chat gets an answer
+  from the Box – on the radio and, signed in to Twitch, in the chat. It announces followers and
+  subs. Questions to the Box can be typed as well ([guide](docs/STREAM.md)).
 - **The Box in the headset:** a Discord bot of your own plays its voice and the brake tones into
   a voice channel that you join from the PlayStation ([guide](docs/DISCORD.md)).
 - **OBS with one click:** the button "Open OBS with the overlay" starts OBS when it is not
