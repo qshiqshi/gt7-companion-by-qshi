@@ -42,6 +42,11 @@ computer, for a tablet next to your rig, or as a browser source in OBS.
 - **Tisch Turismo**, a little game on the side: a toy car on a desk drives what you drive, and
   your own earlier laps race against it. Made for the viewers of a stream.
 
+**What is still missing:** brake tones (beeps ahead of the braking point) and driving tips. The
+program shows and announces what happens in the car – it is not a coach so far. Brake tones are
+being worked on. Also: on Windows the Box only speaks with a Gemini key of your own; without
+one the program stays silent there.
+
 <p>
   <img src="docs/images/milk.gif" width="170" alt="A glass of milk that sloshes with the forces in the car">
   <img src="docs/images/dachshund.gif" width="170" alt="A nodding dachshund">

@@ -45,6 +45,11 @@ Rechner, für ein Tablet neben dem Rig oder als Browser-Quelle in OBS.
   nach, was du fährst, und deine eigenen früheren Runden fahren dagegen. Gedacht für die
   Zuschauer eines Streams.
 
+**Was noch fehlt:** Bremstöne (Pieptöne vor dem Bremspunkt) und Fahrtipps. Das Programm zeigt
+und sagt an, was im Auto passiert – ein Coach ist es bisher nicht. Die Bremstöne sind in Arbeit.
+Und: Unter Windows spricht die Box nur mit einem eigenen Gemini-Schlüssel; ohne ihn bleibt das
+Programm dort stumm.
+
 <p>
   <img src="docs/images/milk.gif" width="170" alt="Ein Glas Milch, das mit den Kräften im Auto schwappt">
   <img src="docs/images/dachshund.gif" width="170" alt="Ein Wackeldackel">
