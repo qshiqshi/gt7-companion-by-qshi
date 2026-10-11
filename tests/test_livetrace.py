@@ -110,5 +110,101 @@ class LiveTraceTests(unittest.TestCase):
         self.assertGreater(len(best["points"]), 400)
 
 
+
+class FullSamples(unittest.TestCase):
+    """What the brake tones and the lap tips get: every lap in full, on a clock of its own."""
+
+    def drive(self, trace, frames, clock, step=1 / 60):
+        for frame in frames:
+            trace.add(frame, clock[0])
+            clock[0] += step
+
+    @staticmethod
+    def numbered(frames, first):
+        for n, frame in enumerate(frames, first):
+            frame.packet_id = n
+            yield frame
+
+    def test_the_fastest_and_the_last_lap_keep_their_samples(self):
+        trace, clock = LiveTrace(), [0.0]
+        self.assertEqual((trace.best_lap(), trace.best_samples(), trace.last_lap()), (None, (), None))
+        self.drive(trace, lap_frames(0, frames=5, on_track=False), clock)
+        self.drive(trace, lap_frames(1, frames=1), clock)               # the start: a session of its own
+        version = trace.best_version
+        self.drive(trace, lap_frames(1, start=1, brake=0.0), clock)
+        self.assertEqual(trace.best_version, version)                    # nothing finished yet
+        self.assertEqual(trace.current_lap, 1)
+        self.drive(trace, lap_frames(2, last_ms=10000), clock)
+        best = trace.best_lap()
+        self.assertEqual((best["lap_number"], best["duration_ms"]), (1, 10000))
+        self.assertIs(trace.last_lap(), best)
+        self.assertEqual(trace.best_samples(), best["samples"])
+        version = trace.best_version
+        samples = best["samples"]
+        self.assertAlmostEqual(samples[-1][0], 599 / 60, delta=0.3)      # seconds driven
+        steps = [math.hypot(b[1] - a[1], b[2] - a[2]) for a, b in zip(samples, samples[1:])]
+        self.assertLess(max(steps), 2.6)                                  # a few metres apart …
+        self.assertGreater(len(samples), 400)
+        self.assertEqual(samples[10][3], 144.0)                           # … with speed, throttle and brake
+        self.assertEqual(samples[10][4:], (1.0, 0.0))
+        self.drive(trace, lap_frames(3, last_ms=10400), clock)          # lap 2 was slower
+        self.assertEqual(trace.best_version, version)
+        self.assertEqual(trace.best_lap()["lap_number"], 1)
+        self.assertEqual(trace.last_lap()["lap_number"], 2)
+        self.drive(trace, lap_frames(4, last_ms=-1, frames=30), clock)  # no time for lap 3: not kept
+        self.assertIsNone(trace.last_lap())
+        self.assertEqual(trace.best_lap()["lap_number"], 1)
+
+    def test_a_pedal_that_moves_is_sampled_where_it_moves(self):
+        trace, clock = LiveTrace(), [0.0]
+        frames = list(lap_frames(1, radius=20.0, speed_mps=12.6))      # 0.21 m a frame
+        for i, frame in enumerate(frames):
+            frame.brake = 1.0 if 300 <= i < 330 else 0.0                 # braking in one jump
+        self.drive(trace, lap_frames(0, frames=5, on_track=False), clock)
+        self.drive(trace, frames, clock)
+        self.drive(trace, lap_frames(2, last_ms=10000, frames=5), clock)
+        samples = trace.best_samples()
+        onset = next(i for i, sample in enumerate(samples) if sample[5] > 0.5)
+        before, at = samples[onset - 1], samples[onset]
+        self.assertEqual(before[5], 0.0)                                 # the frame before is kept as well:
+        self.assertLess(math.hypot(at[1] - before[1], at[2] - before[2]), 0.3)   # one frame apart
+        self.assertAlmostEqual(at[0] - before[0], 1 / 60)
+        release = next(i for i in range(onset, len(samples)) if samples[i][5] < 0.5)
+        self.assertLess(math.hypot(samples[release][1] - samples[release - 1][1],
+                                   samples[release][2] - samples[release - 1][2]), 0.3)
+
+    def test_the_clock_stops_while_paused_and_counts_the_packets(self):
+        trace, clock = LiveTrace(), [0.0]
+        frames = list(lap_frames(1))
+        paused = list(lap_frames(1, start=300, frames=301, paused=True)) * 600      # ten seconds of pause …
+        self.drive(trace, lap_frames(0, frames=5, on_track=False), clock)
+        self.drive(trace, self.numbered(frames[:300] + paused + frames[300:], 1), clock)
+        self.drive(trace, lap_frames(2, last_ms=10000, frames=5), clock)
+        self.assertAlmostEqual(trace.best_samples()[-1][0], 599 / 60, delta=0.3)   # … do not count
+        # packets that arrive in bursts: the time comes from their numbers, not from when they came
+        bursty, clock = LiveTrace(), [0.0]
+        self.drive(bursty, lap_frames(0, frames=5, on_track=False), clock)
+        for n, frame in enumerate(self.numbered(lap_frames(1), 100)):
+            bursty.add(frame, clock[0])
+            clock[0] += 1 / 6 if n % 10 == 9 else 0.0                    # ten at once, six times a second
+        bursty.add(next(lap_frames(2, last_ms=10000)), clock[0])
+        times = [sample[0] for sample in bursty.best_samples()]
+        self.assertAlmostEqual(times[-1], 599 / 60, delta=0.05)
+        self.assertTrue(all(b > a for a, b in zip(times, times[1:])))
+
+    def test_a_new_session_forgets_the_fastest_lap(self):
+        trace, clock = LiveTrace(), [0.0]
+        self.drive(trace, lap_frames(0, frames=5, on_track=False), clock)
+        self.drive(trace, lap_frames(1), clock)
+        self.drive(trace, lap_frames(2, last_ms=10000), clock)
+        version = trace.best_version
+        self.drive(trace, lap_frames(1, frames=10), clock)                # the counter went back
+        self.assertGreater(trace.best_version, version)
+        self.assertEqual((trace.best_lap(), trace.last_lap(), trace.best_samples()), (None, None, ()))
+        version = trace.best_version
+        trace.reset()
+        self.assertGreater(trace.best_version, version)
+
+
 if __name__ == "__main__":
     unittest.main()
