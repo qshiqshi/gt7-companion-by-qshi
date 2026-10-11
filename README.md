@@ -26,6 +26,12 @@ computer, for a tablet next to your rig, or as a browser source in OBS.
   mouse or with your fingers. Make your own layouts, choose fonts, copy styles and undo
   changes. Autosave keeps your edits; **Save layout** keeps a checkpoint for **Reset**.
 - **Messages and counters**: new best lap, spins, impacts, laps of the session.
+- **Brake tones**: three tones before every brake point of your fastest lap of the session – two
+  short ones, then a high one: brake now. On every device showing the dashboard, in the OBS
+  source, from the computer's loudspeakers and, if you like, in the Discord headset.
+- **Tips after every lap**: the corner where most time was lost against your fastest lap – and
+  what helps: brake later or earlier, more corner speed, throttle earlier. As a message in the
+  dashboard, announced by the Box if you want.
 - **Other devices** join with a QR code. Watching is open to your home network; editing on
   another device needs a PIN.
 - **German and English**, km/h or mph, °C or °F.
@@ -46,10 +52,8 @@ computer, for a tablet next to your rig, or as a browser source in OBS.
 - **Tisch Turismo**, a little game on the side: a toy car on a desk drives what you drive, and
   your own earlier laps race against it. Made for the viewers of a stream.
 
-**What is still missing:** brake tones (beeps ahead of the braking point) and driving tips. The
-program shows and announces what happens in the car – it is not a coach so far. Brake tones are
-being worked on. Also: on Windows the Box only speaks with a Gemini key of your own; without
-one the program stays silent there.
+**Good to know:** on Windows the Box only speaks with a Gemini key of your own; without one it
+stays silent there. Brake tones and tips need no key.
 
 <p>
   <img src="docs/images/milk.gif" width="170" alt="A glass of milk that sloshes with the forces in the car">

@@ -28,6 +28,12 @@ Rechner, für ein Tablet neben dem Rig oder als Browser-Quelle in OBS.
   Stile kopieren und Änderungen rückgängig machen. **Layout speichern** sichert zusätzlich
   zum Autosave einen Stand, zu dem **Zurücksetzen** zurückkehrt.
 - **Meldungen und Zähler**: neue Bestzeit, Dreher, Einschläge, Runden der Sitzung.
+- **Bremstöne**: vor jedem Bremspunkt deiner schnellsten Runde dieser Sitzung drei Töne – zweimal
+  kurz, dann hoch: jetzt bremsen. Auf jedem Gerät mit dem Dashboard, in der OBS-Quelle, aus den
+  Lautsprechern des Rechners und wer mag im Discord-Headset.
+- **Tipps nach jeder Runde**: In welcher Kurve lag am meisten Zeit gegenüber deiner schnellsten
+  Runde – und was hilft: später oder früher bremsen, mehr Kurventempo, früher ans Gas. Als Meldung
+  im Dashboard, auf Wunsch von der Box angesagt.
 - **Andere Geräte** kommen per QR-Code dazu. Ansehen darf jeder in deinem Heimnetz;
   Bearbeiten auf einem anderen Gerät braucht eine PIN.
 - **Deutsch und Englisch**, km/h oder mph, °C oder °F.
@@ -49,10 +55,8 @@ Rechner, für ein Tablet neben dem Rig oder als Browser-Quelle in OBS.
   nach, was du fährst, und deine eigenen früheren Runden fahren dagegen. Gedacht für die
   Zuschauer eines Streams.
 
-**Was noch fehlt:** Bremstöne (Pieptöne vor dem Bremspunkt) und Fahrtipps. Das Programm zeigt
-und sagt an, was im Auto passiert – ein Coach ist es bisher nicht. Die Bremstöne sind in Arbeit.
-Und: Unter Windows spricht die Box nur mit einem eigenen Gemini-Schlüssel; ohne ihn bleibt das
-Programm dort stumm.
+**Gut zu wissen:** Unter Windows spricht die Box nur mit einem eigenen Gemini-Schlüssel; ohne ihn
+bleibt sie dort stumm. Bremstöne und Tipps brauchen keinen Schlüssel.
 
 <p>
   <img src="docs/images/milk.gif" width="170" alt="Ein Glas Milch, das mit den Kräften im Auto schwappt">
