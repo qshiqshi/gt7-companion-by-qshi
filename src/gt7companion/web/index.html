@@ -377,6 +377,10 @@
 <nav id="view-menu" hidden>
   <a id="btn-start" href="/start" title="Zur Startseite: Datenquelle, Geräte, Einstellungen">Start</a>
   <button id="btn-talk" type="button" hidden title="Gedrückt halten und mit der Box sprechen (Mikrofon am Computer)">Sprechen</button>
+  <form id="ask-box" hidden autocomplete="off">
+    <input id="ask-text" type="text" maxlength="300" enterkeyhint="send" placeholder="Frage an die Box" aria-label="Frage an die Box">
+    <button id="ask-send" type="submit" title="Die Box beantwortet die Frage über Funk">Fragen</button>
+  </form>
   <button id="btn-sound" type="button" hidden>Ton an</button>
   <select id="layout-select" aria-label="Layout" hidden></select>
   <a id="btn-game" href="/game" title="Ein Spielzeugauto fährt auf dem Schreibtisch nach, was du gerade fährst">Tisch Turismo</a>
