@@ -6,6 +6,13 @@ import { API, onTopic, wsConnected, wsSend } from './net.js';
 import { WIDGET_NAMES, applyLayout, currentLayout, ensureWidgetEntry, setOverlayBackground,
          setWidgetCornerRadius, updateBackgroundControls } from './layout.js';
 import { stageScale, stageSize } from './stage.js';
+
+/* The figures in the field of the glass of milk, in the order the switch goes round; which one comes next. */
+var FIGURE_ORDER = ['milk', 'dackel', 'pudding'];
+function nextFigure(entry) {
+  var shown = entry && entry.config && FIGURE_ORDER.indexOf(entry.config.figure) >= 0 ? entry.config.figure : 'milk';
+  return FIGURE_ORDER[(FIGURE_ORDER.indexOf(shown) + 1) % FIGURE_ORDER.length];
+}
 import { History } from './editor-history.js';
 
 var editorHistory = new History();
@@ -646,20 +653,20 @@ function initEditor() {
     });
   });
 
-  /* Figur im Feld des Milchglases wechseln: Glas Milch ↔ Wackeldackel. Der Knopf zeigt, wohin er
-     wechselt. Gespeichert im Layout (widgets.milk.config.figure), gilt damit auch in OBS. */
+  /* Figur im Feld des Milchglases wechseln: Glas Milch → Wackeldackel → Wackelpudding → Glas Milch. Der Knopf
+     zeigt, wohin er wechselt. Gespeichert im Layout (widgets.milk.config.figure), gilt damit auch in OBS. */
   (function initFigureToggle() {
     var btn = document.querySelector('[data-figure-toggle]');
     if (!btn) return;
+    var NAMES = { milk: 'Milch', dackel: 'Dackel', pudding: 'Pudding' };
     function entry() { return currentLayout && currentLayout.widgets && currentLayout.widgets.milk; }
-    function isDog() { var w = entry(); return !!(w && w.config && w.config.figure === 'dackel'); }
-    function label() { btn.textContent = isDog() ? 'Milch' : 'Dackel'; }
+    function label() { btn.textContent = NAMES[nextFigure(entry())]; }
     btn.addEventListener('click', function(ev) {
       ev.stopPropagation();
       var w = entry();
       if (!w) return;
       w.config = w.config || {};
-      w.config.figure = isDog() ? 'milk' : 'dackel';
+      w.config.figure = nextFigure(w);
       label();
       window.dispatchEvent(new CustomEvent('gt7:layout', {detail: currentLayout}));
       saveLayout();
@@ -809,7 +816,7 @@ function saveSoon() {
     bar.querySelector('[data-act="style"]').hidden = !one || !(window.GT7Style && window.GT7Style.WIDGET_META[names[0]]);
     var figure = bar.querySelector('[data-act="figure"]');
     figure.hidden = !(one && names[0] === 'milk');
-    figure.textContent = entry && entry.config && entry.config.figure === 'dackel' ? 'Glas Milch zeigen' : 'Wackeldackel zeigen';
+    figure.textContent = { milk: 'Glas Milch zeigen', dackel: 'Wackeldackel zeigen', pudding: 'Wackelpudding zeigen' }[nextFigure(entry)];
     place();
   }
   window.addEventListener('gt7:selection', function(event) { names = event.detail || []; render(); });
@@ -907,7 +914,7 @@ var WIDGET_LABELS = {
   'speed': 'Geschwindigkeit', 'gear': 'Gang', 'rpm-bar': 'Drehzahl',
   'laptimes': 'Rundenzeiten', 'pedals': 'Pedale', 'fuel': 'Sprit',
   'tyres': 'Reifen', 'livetime': 'Live-Rundenzeit', 'position': 'Position',
-  'car-class': 'Fahrzeugklasse', 'milk': 'Milchglas / Wackeldackel', 'radio': 'Funk-Anzeige (Box)',
+  'car-class': 'Fahrzeugklasse', 'milk': 'Milchglas / Wackeldackel / Wackelpudding', 'radio': 'Funk-Anzeige (Box)',
   'session-stats': 'Session-Statistik',
   'alert-area': 'Alerts / Einblendungen', 'status-dot': 'PS5-Status-Anzeige'
 };

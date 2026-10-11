@@ -802,5 +802,12 @@ window.GT7_TEXTS_EN = {
   "Bereit: {n} Bremspunkte aus Runde {lap} ({time}).": "Ready: {n} brake points from lap {lap} ({time}).",
   "Bereit: 1 Bremspunkt aus Runde {lap} ({time}).": "Ready: 1 brake point from lap {lap} ({time}).",
   "Die schnellste Runde hat keine Bremspunkte, also gibt es keine Töne.": "The fastest lap has no brake points, so there are no tones.",
-  "Noch keine Referenz: Die Töne beginnen nach der ersten vollständigen Runde.": "No reference yet: the tones begin after the first complete lap."
+  "Noch keine Referenz: Die Töne beginnen nach der ersten vollständigen Runde.": "No reference yet: the tones begin after the first complete lap.",
+  "Figur wechseln: Glas Milch, Wackeldackel oder Wackelpudding": "Change the figure: glass of milk, nodding dachshund or wobbly jelly",
+  "Pudding": "Jelly",
+  "Durchsichtig": "See-through",
+  "Innen diffus": "Diffuse inside",
+  "Wackelpudding zeigen": "Show the wobbly jelly",
+  "Milchglas / Wackeldackel / Wackelpudding": "Glass of milk / nodding dachshund / wobbly jelly",
+  "Wackelpudding": "Wobbly jelly"
 };

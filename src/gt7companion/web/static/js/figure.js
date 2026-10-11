@@ -1,15 +1,21 @@
-/* Figur im Feld „milk“: Glas Milch (static/milkglass) oder Wackeldackel (static/wackeldackel). Im Editor am
-   Feld umschaltbar, gespeichert als widgets.milk.config.figure = "milk" | "dackel" (ohne Eintrag: Milch).
+/* Figur im Feld „milk“: Glas Milch (static/milkglass), Wackeldackel (static/wackeldackel) oder Wackelpudding
+   (static/wackelpudding). Im Editor am Feld umschaltbar, gespeichert als widgets.milk.config.figure =
+   "milk" | "dackel" | "pudding" (ohne Eintrag oder mit unbekanntem Wert: Milch).
    Eingang ist für beide specific_force_g aus der Telemetrie (g, Fahrzeugachsen x rechts, y oben, z hinten).
    Milch: schwappt, läuft über den Rand; frisch gefüllt bei jeder neuen Runde und wenn das Auto wieder auf die
-   Strecke kommt. Dackel: Der Kopf hängt lose am Hals und nickt und wiegt sich.
-   Einstellbar im Layout: widgets.milk.config = { figure, fill: 0…1 (Standard 0.8, nur Milch), sensitivity }.
-   Standard-Empfindlichkeit: Milch 0.25, Dackel 1. Glasreflexe folgen der Fahrtrichtung. */
+   Strecke kommt. Dackel: Der Kopf hängt lose am Hals und nickt und wiegt sich. Pudding: Je heftiger die Fahrt,
+   desto mehr wackelt er; ein Viertel durchsichtig, innen matt.
+   Einstellbar im Layout: widgets.milk.config = { figure, fill: 0…1 (Standard 0.8, nur Milch), sensitivity (Milch),
+   sensitivity_dackel, sensitivity_pudding, pudding_clear, pudding_inner (0…1, Standard 0.25) }. Jede Figur hat ihre
+   eigene Empfindlichkeit: Milch 0.25, Dackel 1 (ohne eigenen Wert gilt noch ein alter gemeinsamer `sensitivity`),
+   Pudding 1. Glasreflexe folgen der Fahrtrichtung. */
 const FIGURES = {
   milk: { label: 'Milchglas', module: '/static/milkglass/milkglass.js?v=20261009', create: 'createMilkGlass',
           model: '/static/milkglass/milkglass.glb?v=20261006' },
   dackel: { label: 'Wackeldackel', module: '/static/wackeldackel/wackeldackel.js?v=20261006-dackel', create: 'createWackeldackel',
             model: '/static/wackeldackel/wackeldackel.glb?v=20261006-dackel' },
+  pudding: { label: 'Wackelpudding', module: '/static/wackelpudding/wackelpudding.js?v=20261012', create: 'createWackelpudding',
+             model: '/static/wackelpudding/wackelpudding.glb?v=20261012' },
 };
 const box = document.getElementById('w-milk');
 const stage = document.getElementById('milk-stage');
@@ -23,8 +29,14 @@ if (box && stage) {
     const value = Number(config[name]);
     return Number.isFinite(value) && value >= low && value <= high ? value : fallback;
   };
-  const options = () => ({ fill: option('fill', 0.8, 0.05, 1), sensitivity: option('sensitivity', kind() === 'milk' ? 0.25 : 1, 0.05, 5) });
-  const kind = () => (config.figure === 'dackel' ? 'dackel' : 'milk');
+  const kind = () => (config.figure === 'dackel' || config.figure === 'pudding' ? config.figure : 'milk');
+  const sensitivity = () => {
+    if (kind() === 'milk') return option('sensitivity', 0.25, 0.05, 5);
+    if (kind() === 'dackel') return option('sensitivity_dackel', option('sensitivity', 1, 0.05, 5), 0.05, 5);
+    return option('sensitivity_pudding', 1, 0.05, 5);
+  };
+  const options = () => ({ fill: option('fill', 0.8, 0.05, 1), sensitivity: sensitivity(),
+                           clear: option('pudding_clear', 0.25, 0, 1), inner: option('pudding_inner', 0.25, 0, 1) });
   const wanted = () => editor() || !box.classList.contains('hidden-widget');
   const running = () => editor() || !document.body.classList.contains('no-race');
 

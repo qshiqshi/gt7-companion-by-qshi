@@ -2,7 +2,7 @@
 
 Ein inoffizielles Dashboard und Stream-Overlay für Gran Turismo 7: Tempo, Gang, Drehzahl,
 Rundenzeiten, Pedale, Reifen, Sprit, Fahrdynamik, Streckenlinie – und ein Glas Milch (oder ein
-Wackeldackel), das sich mit den Kräften im Auto bewegt.
+Wackeldackel, oder ein Wackelpudding), das sich mit den Kräften im Auto bewegt.
 
 Ein kleines Programm läuft auf deinem PC oder Mac. Es empfängt die Fahrdaten des Spiels von
 deiner PlayStation im Heimnetz und liefert das Dashboard als Webseite aus: für denselben
@@ -22,7 +22,9 @@ Rechner, für ein Tablet neben dem Rig oder als Browser-Quelle in OBS.
 
 - **Dashboards** für Bildschirme in 16:9, 16:10 und 4:3 und ein durchsichtiges **Overlay** für
   Streams. Jeder Bildschirm bekommt das Layout, das zu seiner Form passt; es wird als Ganzes
-  eingepasst, nie abgeschnitten.
+  eingepasst, nie abgeschnitten. Im Feld des Milchglases wählst du im Editor die Figur: Glas Milch,
+  Wackeldackel oder Wackelpudding (dunkelgrüne Götterspeise, ein Viertel durchsichtig – je heftiger
+  die Fahrt, desto mehr wackelt sie).
 - **Einen Editor** im Browser: jede Anzeige verschieben, in der Größe ändern, ausblenden und
   gestalten – mit der Maus oder mit dem Finger. Eigene Layouts anlegen, Schriften wählen,
   Stile kopieren und Änderungen rückgängig machen. **Layout speichern** sichert zusätzlich

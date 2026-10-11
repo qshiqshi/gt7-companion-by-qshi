@@ -100,6 +100,24 @@ export function readGlb(path = GLB_PATH) {
 }
 
 /** Eckpunkte (x, y, z) des Netzes am Knoten `name`, mit dessen Verschiebung/Drehung/Skalierung. */
+export function nodeIndices({ json, bin }, name) {
+  const node = json.nodes.find((n) => n.name === name);
+  if (!node || node.mesh === undefined) throw new Error(`Knoten ${name} fehlt`);
+  const out = [];
+  let offset = 0;
+  for (const prim of json.meshes[node.mesh].primitives) {
+    const acc = json.accessors[prim.indices];
+    const view = json.bufferViews[acc.bufferView];
+    const size = { 5121: 1, 5123: 2, 5125: 4 }[acc.componentType];
+    const dv = new DataView(bin.buffer, bin.byteOffset + (view.byteOffset || 0) + (acc.byteOffset || 0), acc.count * size);
+    for (let i = 0; i < acc.count; i++) {
+      out.push(offset + (size === 1 ? dv.getUint8(i) : size === 2 ? dv.getUint16(2 * i, true) : dv.getUint32(4 * i, true)));
+    }
+    offset += json.accessors[prim.attributes.POSITION].count;
+  }
+  return out;
+}
+
 export function nodePositions({ json, bin }, name) {
   const node = json.nodes.find((n) => n.name === name);
   if (!node || node.mesh === undefined) throw new Error(`Knoten ${name} fehlt`);

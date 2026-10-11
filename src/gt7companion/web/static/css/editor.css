@@ -1,10 +1,17 @@
 /* Editor only: styling menu in the toolbar and the per-widget style window. */
 #editor-toolbar .toolbar-background { position:relative; flex:none; }
-#editor-toolbar .toolbar-background summary { cursor:pointer; padding:7px 12px; white-space:nowrap; border:1px solid #41454e; border-radius:5px; background:#25282f; }
-#editor-toolbar .toolbar-background summary:hover { background:#343944; }
+/* A summary ("Styling", "Tests", "Eigenes Layout") is a pill like every button, with the chevron of the menu's select. */
+#editor-toolbar .toolbar-tests { position:relative; flex:none; }
+#editor-toolbar .toolbar-tests > div { position:absolute; top:calc(100% + 8px); left:0; z-index:10002; display:grid; gap:8px; width:240px; padding:12px; border:1px solid rgba(255,255,255,0.12); border-radius:12px; background:rgba(14,14,18,0.97); box-shadow:0 8px 24px rgba(0,0,0,0.45); }
+#editor-toolbar .tb-right .toolbar-tests > div { left:auto; right:0; }
+#editor-toolbar .toolbar-tests summary::-webkit-details-marker { display:none; }
+#editor-toolbar .toolbar-tests[open] summary { background-color:rgba(48, 50, 58, 0.95); }
+#editor-toolbar .toolbar-background summary, #editor-toolbar .toolbar-tests summary { list-style:none; padding-right:34px; background-image:linear-gradient(45deg, transparent 50%, #f2f2f2 50%), linear-gradient(135deg, #f2f2f2 50%, transparent 50%); background-position:calc(100% - 19px) 19px, calc(100% - 14px) 19px; background-size:5px 5px; background-repeat:no-repeat; }
+#editor-toolbar .toolbar-background summary::-webkit-details-marker { display:none; }
+#editor-toolbar .toolbar-background[open] summary { background-color:rgba(48, 50, 58, 0.95); }
 #editor-toolbar .toolbar-background summary:focus-visible,
 #editor-toolbar .toolbar-background input:focus-visible { outline:2px solid #83b7fa; outline-offset:3px; }
-.background-panel { position:absolute; top:calc(100% + 16px); left:0; width:300px; padding:18px; background:#1b1d23; border:1px solid #41454e; border-radius:5px; color:#e5e7ec; }
+.background-panel { position:absolute; top:calc(100% + 8px); left:0; width:300px; padding:18px; background:rgba(14,14,18,0.97); border:1px solid rgba(255,255,255,0.12); border-radius:12px; box-shadow:0 8px 24px rgba(0,0,0,0.45); color:#e5e7ec; }
 .background-panel fieldset { border:0; padding:0; margin:0; display:grid; gap:18px; min-width:0; }
 .background-panel fieldset:disabled { opacity:.5; }
 .background-panel label { display:grid; align-items:center; gap:10px; font-size:13px; }
@@ -79,16 +86,15 @@ body.editor-mode .widget.style-editing { outline:2px solid #83b7fa !important; o
 #style-popup .sp-done { border-color:#83b7fa; }
 #style-popup .sp-toast { position:absolute; left:50%; bottom:72px; transform:translateX(-50%); padding:7px 12px; border-radius:5px; background:#2d4a70; color:#fff; font-size:12px; opacity:0; pointer-events:none; transition:opacity .2s; white-space:nowrap; }
 #style-popup .sp-toast.show { opacity:1; }
-@media(max-width:600px) { #editor-toolbar .background-panel { position:fixed; top:68px; left:12px; width:calc(100vw - 24px); } }
-#editor-toolbar .tb-link { margin-left:auto; padding:7px 12px; border:1px solid #41454e; border-radius:5px; background:#25282f; color:#e5e7ec; text-decoration:none; white-space:nowrap; }
-#editor-toolbar .tb-link:hover { background:#343944; }
-#editor-toolbar #layout-select-edit { height:32px; padding:0 8px; border:1px solid #41454e; border-radius:5px; background:#25282f; color:#e5e7ec; font:inherit; max-width:230px; }
+@media(max-width:600px) { #editor-toolbar .background-panel, #editor-toolbar .toolbar-tests > div { position:fixed; top:auto; bottom:12px; left:12px; right:auto; width:calc(100vw - 24px); max-height:60vh; overflow-y:auto; } }
+#editor-toolbar .tb-link { margin-left:auto; }
+#editor-toolbar #layout-select-edit { max-width:260px; appearance:none; -webkit-appearance:none; padding-right:34px; background-image:linear-gradient(45deg, transparent 50%, #f2f2f2 50%), linear-gradient(135deg, #f2f2f2 50%, transparent 50%); background-position:calc(100% - 19px) 19px, calc(100% - 14px) 19px; background-size:5px 5px; background-repeat:no-repeat; }
 #editor-toolbar .tb-link.tb-next { margin-left:0; }
 
 /* Toolbar: wraps on narrow screens instead of running out of the window. */
-#editor-toolbar { height:auto; min-height:52px; flex-wrap:wrap; padding-top:8px; padding-bottom:8px; row-gap:8px; }
+#editor-toolbar { height:auto; min-height:60px; flex-wrap:wrap; padding-top:8px; padding-bottom:8px; row-gap:8px; }
 #editor-toolbar .own-name { display:grid; gap:6px; margin-bottom:12px; font-size:13px; }
-#editor-toolbar .own-name input { height:36px; padding:0 10px; border:1px solid #69717f; border-radius:4px; background:#25282f; color:#e5e7ec; font:inherit; }
+#editor-toolbar .own-name input { height:40px; padding:0 12px; border:1px solid rgba(255,255,255,0.18); border-radius:8px; background:rgba(20,20,24,0.88); color:#f2f2f2; font:inherit; }
 #editor-toolbar #own-layouts .background-panel { width:320px; }
 #editor-toolbar #own-layouts button { margin-right:8px; }
 #editor-toolbar #btn-layout-delete.armed { border-color:#e10600; color:#ff8a85; }
@@ -147,6 +153,16 @@ body.editor-mode .widget, body.editor-mode #canvas { touch-action:none; }
 #editor-toolbar .tb-group { display:flex; flex-wrap:wrap; align-items:center; gap:8px; min-width:0; }
 #editor-toolbar .tb-right { margin-left:auto; }
 #editor-toolbar #btn-save { border-color:#83b7fa; }
-#editor-toolbar button:focus-visible, #editor-toolbar .tb-link:focus-visible, #editor-toolbar select:focus-visible { outline:2px solid #83b7fa; outline-offset:2px; }
+#editor-toolbar button:focus-visible, #editor-toolbar .tb-link:focus-visible, #editor-toolbar select:focus-visible, #editor-toolbar summary:focus-visible { outline:2px solid #83b7fa; outline-offset:2px; }
 #editor-toolbar button:disabled { opacity:.5; cursor:default; }
+/* Inside the panels (styling, tests, own layout) the buttons stay small: they are not the navigation. */
+#editor-toolbar .background-panel button, #editor-toolbar .toolbar-tests > div button { min-height:0; padding:7px 12px; border-radius:6px; font-size:13px; }
+@media(max-width:700px) {
+  #editor-toolbar { padding-left:10px; padding-right:10px; gap:6px; row-gap:6px; }
+  #editor-toolbar .tb-group { gap:6px; }
+  #editor-toolbar .tb-title { font-size:14px; margin-right:4px; }
+  #editor-toolbar button, #editor-toolbar .tb-link, #editor-toolbar select, #editor-toolbar .toolbar-background summary, #editor-toolbar .toolbar-tests summary, #editor-toolbar .tb-radius { min-height:36px; padding-left:11px; padding-right:11px; font-size:13px; border-radius:7px; }
+  #editor-toolbar .toolbar-background summary, #editor-toolbar .toolbar-tests summary, #editor-toolbar #layout-select-edit { padding-right:28px; background-position:calc(100% - 16px) 15px, calc(100% - 11px) 15px; }
+  #editor-toolbar .ws-indicator { font-size:13px; }
+}
 @media(max-width:900px) { #editor-toolbar .tb-sep { display:none; } }

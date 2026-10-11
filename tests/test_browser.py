@@ -136,6 +136,7 @@ class Pages(unittest.TestCase):
         else:
             page.route("**/static/milkglass/**", lambda route: route.abort())
             page.route("**/static/wackeldackel/**", lambda route: route.abort())
+            page.route("**/static/wackelpudding/**", lambda route: route.abort())
         page.goto(f"http://127.0.0.1:{self.port}/{query}")
         if wait_for_layout:
             page.wait_for_function("() => document.body.classList.contains('layout-ready')", timeout=10000)
@@ -503,6 +504,23 @@ class EditorUpdates(Pages):
             target = Path(folder)
             target.mkdir(parents=True, exist_ok=True)
             page.screenshot(path=str(target / f"{name}.png"))
+
+    def test_the_figure_switch_goes_round_milk_dachshund_and_jelly(self):
+        """Each figure loads in the field of the glass of milk, and the choice is saved in the layout."""
+        page = self.open("?edit=1&layout=dashboard-16x9", size=(1600, 900))      # with the 3D figures
+        page.wait_for_function("() => document.getElementById('w-milk').dataset.figure === 'milk'", timeout=30000)
+        toggle = "document.querySelector('[data-figure-toggle]')"
+        self.assertEqual(page.evaluate(f"{toggle}.textContent"), "Dackel")
+        page.evaluate(f"{toggle}.click()")
+        page.wait_for_function("() => document.getElementById('w-milk').dataset.figure === 'dackel'", timeout=30000)
+        self.assertEqual(page.evaluate(f"{toggle}.textContent"), "Pudding")
+        page.evaluate(f"{toggle}.click()")
+        page.wait_for_function("() => document.getElementById('w-milk').dataset.figure === 'pudding'", timeout=30000)
+        self.assertEqual(page.evaluate(f"{toggle}.textContent"), "Milch")
+        page.wait_for_function("""() => fetch('/api/layout?name=dashboard-16x9').then(r => r.json())
+            .then(l => l.widgets.milk.config.figure === 'pudding')""")
+        page.evaluate(f"{toggle}.click()")
+        page.wait_for_function("() => document.getElementById('w-milk').dataset.figure === 'milk'", timeout=30000)
 
     def test_a_drag_is_one_undo_even_before_the_autosave(self):
         page = self.editor(size=(1600, 900))

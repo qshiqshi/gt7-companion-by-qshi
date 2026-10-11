@@ -107,9 +107,10 @@ vor dem ersten Autosave nach einem Update gesichert. Zur mitgelieferten Vorlage 
 **Rückgängig** oder Strg/Cmd+Z nimmt die letzte Änderung zurück (bis zu 100); ein Ziehen zählt
 als eine Änderung. Anzeige wählen, dann **Stil kopieren** / **Stil einfügen** oder Strg/Cmd+C/V,
 um Stil und Größe zu übertragen. Unter **Styling** steht die globale Schriftwahl, am Pinsel
-die Schrift einer einzelnen Anzeige. Für Milchglas und Dackel gibt es dort außerdem
-**Bewegung** → **Empfindlichkeit** (5–500%). Das Glas startet bei 25%, der Dackel bei 100%;
-bereits eingestellte eigene Werte bleiben erhalten.
+die Schrift einer einzelnen Anzeige. Für Milchglas, Dackel und Pudding gibt es dort außerdem
+**Bewegung** → **Empfindlichkeit** (5–500%), für jede Figur eigen. Das Glas startet bei 25%, Dackel und
+Pudding bei 100%; bereits eingestellte eigene Werte bleiben erhalten. Beim Pudding kommt der Abschnitt
+**Pudding** dazu: **Durchsichtig** und **Innen diffus** (je 0–100%, Standard 25%).
 
 ## 4. PlayStation verbinden
 

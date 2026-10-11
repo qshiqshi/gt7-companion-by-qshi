@@ -102,8 +102,10 @@ confirm with a second click.
 **Undo** or Ctrl/Cmd+Z reverses the last change (up to 100); a drag is one change. Select a
 widget, then **Copy style** / **Paste style**, or Ctrl/Cmd+C/V, to transfer its style and scale.
 Choose a global font under **Styling**, or an individual font with the widget's brush.
-For the glass or dachshund, the brush also has **Movement** → **Sensitivity** (5–500%).
-The glass starts at 25%, the dachshund at 100%; an existing custom value stays as it is.
+For the glass, the dachshund and the jelly, the brush also has **Movement** → **Sensitivity**
+(5–500%), one value per figure. The glass starts at 25%, dachshund and jelly at 100%; an existing
+custom value stays as it is. The jelly adds the section **Jelly**: **See-through** and **Diffuse
+inside** (0–100% each, 25% by default).
 
 ## 4. Connect your PlayStation
 

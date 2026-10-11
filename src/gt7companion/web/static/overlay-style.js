@@ -654,23 +654,51 @@
     }));
     for (const [flag, id] of [['glow', 'panelGlow'], ['border', 'panelBorder']]) if (meta.panel.includes(flag)) sec.append(tokenRow(BY_ID[id]));
 
-    /* Verhalten der Figur: unabhängig vom Look, sofort wirksam über gt7:layout. */
+    /* Verhalten der Figur: unabhängig vom Look, sofort wirksam über gt7:layout. Jede Figur hat ihre eigene
+       Empfindlichkeit (Glas `sensitivity`, Dackel `sensitivity_dackel`, Pudding `sensitivity_pudding`) – sonst
+       gälte die fürs Glas gewählte Zahl auch für die anderen. */
     if (name === 'milk') {
-      const defaultSensitivity = () => entry().config?.figure === 'dackel' ? 1 : 0.25;
+      const figureOf = e => (e?.config?.figure === 'dackel' || e?.config?.figure === 'pudding' ? e.config.figure : 'milk');
+      const sensitivityKey = e => (figureOf(e) === 'milk' ? 'sensitivity' : 'sensitivity_' + figureOf(e));
+      const valid = value => Number.isFinite(value) && value >= 0.05 && value <= 5;
       const sensitivity = () => {
-        const value = Number(entry().config?.sensitivity);
-        return Number.isFinite(value) && value >= 0.05 && value <= 5 ? value : defaultSensitivity();
+        const e = entry();
+        const own = Number(e.config?.[sensitivityKey(e)]);
+        if (valid(own)) return own;
+        const shared = Number(e.config?.sensitivity);        /* a value from before each figure had its own: the dachshund keeps it */
+        if (figureOf(e) === 'dackel' && valid(shared)) return shared;
+        return figureOf(e) === 'milk' ? 0.25 : 1;
       };
       section('Bewegung').append(rangeRow({
         name: 'Empfindlichkeit', kind: 'sensitivity', min: 5, max: 500, step: 1, unit: ' %',
         current: () => Math.round(sensitivity() * 100),
-        custom: () => Object.prototype.hasOwnProperty.call(entry().config || {}, 'sensitivity'),
+        custom: () => Object.prototype.hasOwnProperty.call(entry().config || {}, sensitivityKey(entry())),
         set: v => {
           const e = entry();
-          if (v === null) { if (e.config) delete e.config.sensitivity; }
-          else { e.config = Object.assign({}, e.config, { sensitivity: Math.round(v) / 100 }); }
+          if (v === null) { if (e.config) delete e.config[sensitivityKey(e)]; }
+          else { e.config = Object.assign({}, e.config, { [sensitivityKey(e)]: Math.round(v) / 100 }); }
         }
       }));
+      /* Aussehen des Puddings: wie durchsichtig er ist und wie stark sein mattes Inneres durchscheint. */
+      if (figureOf(entry()) === 'pudding') {
+        const look = section('Pudding');
+        for (const [key, label] of [['pudding_clear', 'Durchsichtig'], ['pudding_inner', 'Innen diffus']]) {
+          const share = () => {
+            const value = Number(entry().config?.[key]);
+            return Object.prototype.hasOwnProperty.call(entry().config || {}, key) && Number.isFinite(value) && value >= 0 && value <= 1 ? value : 0.25;
+          };
+          look.append(rangeRow({
+            name: label, kind: 'percent', min: 0, max: 100, step: 1, unit: ' %',
+            current: () => Math.round(share() * 100),
+            custom: () => Object.prototype.hasOwnProperty.call(entry().config || {}, key),
+            set: v => {
+              const e = entry();
+              if (v === null) { if (e.config) delete e.config[key]; }
+              else { e.config = Object.assign({}, e.config, { [key]: Math.round(v) / 100 }); }
+            }
+          }));
+        }
+      }
     }
 
     /* Schrift und Linien */
@@ -741,7 +769,7 @@
     armButton(reset, 'Wirklich?', () => {
       const e = entry();
       delete e.style;
-      if (name === 'milk' && e.config) delete e.config.sensitivity;
+      if (name === 'milk' && e.config) for (const key of ['sensitivity', 'sensitivity_dackel', 'sensitivity_pudding', 'pudding_clear', 'pudding_inner']) delete e.config[key];
       commit(true); toast('Stil zurückgesetzt');
     });
     const done = el('button', 'sp-done', 'Fertig');

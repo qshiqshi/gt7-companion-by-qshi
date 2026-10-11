@@ -1,8 +1,8 @@
 # Gran Turismo 7 Companion by qshi
 
 An unofficial dashboard and stream overlay for Gran Turismo 7: speed, gear, revs, lap times,
-pedals, tyres, fuel, G-forces, a track map – and a glass of milk (or a nodding dachshund)
-that moves with the forces in the car.
+pedals, tyres, fuel, G-forces, a track map – and a glass of milk (or a nodding dachshund, or a
+wobbly jelly) that moves with the forces in the car.
 
 One small program runs on your PC or Mac. It receives the game's telemetry from your
 PlayStation in the home network and serves the dashboard as a web page: for the same
@@ -21,7 +21,9 @@ computer, for a tablet next to your rig, or as a browser source in OBS.
 ## What you get
 
 - **Dashboards** for 16:9, 16:10 and 4:3 screens and a transparent **overlay** for streams.
-  Every screen gets the layout that fits its shape; the whole layout is scaled, never cropped.
+  Every screen gets the layout that fits its shape; the whole layout is scaled, never cropped. In the field of the glass of milk the editor lets you choose
+  the figure: glass of milk, nodding dachshund or wobbly jelly (dark green, a quarter see-through –
+  the rougher the drive, the more it wobbles).
 - **An editor** in the browser: move, resize, scale, hide and style every widget – with a
   mouse or with your fingers. Make your own layouts, choose fonts, copy styles and undo
   changes. Autosave keeps your edits; **Save layout** keeps a checkpoint for **Reset**.
