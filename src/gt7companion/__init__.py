@@ -3,6 +3,6 @@
 Not affiliated with, endorsed by or connected to Sony Interactive Entertainment or Polyphony Digital.
 """
 
-__version__ = "0.3.0"
+__version__ = "0.3.1"
 
 APP_NAME = "Gran Turismo 7 Companion by qshi"
