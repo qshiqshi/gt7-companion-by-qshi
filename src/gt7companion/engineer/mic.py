@@ -5,6 +5,7 @@ records while the talk button is held; nothing is kept after the question was se
 """
 from __future__ import annotations
 
+import contextlib
 import logging
 import threading
 
@@ -27,6 +28,7 @@ class Microphone:
         self._parts: list[bytes] = []
         self._size = 0
         self._lock = threading.Lock()
+        self._open = threading.Lock()        # opening and closing the continuous stream, from any thread
 
     @property
     def available(self) -> bool:
@@ -48,42 +50,49 @@ class Microphone:
             return self._stream is not None
         with self._lock:
             self._parts, self._size = [], 0
+        self._stream = self._open_stream(callback=self._collect)
+        return self._stream is not None
+
+    def _open_stream(self, **values):
+        """An opened and started input stream (16 kHz mono, 16 bit), or ``None`` – no input device, no
+        permission. A stream that opened but could not start is closed again, not left behind: an open
+        stream must always be closed by us, never dropped (see ``stop_listening``)."""
+        stream = None
         try:
-            self._stream = self._sd.RawInputStream(samplerate=IN_RATE, channels=1, dtype="int16",
-                                                   callback=self._collect)
-            self._stream.start()
-        except Exception as problem:                 # no input device, no permission
+            stream = self._sd.RawInputStream(samplerate=IN_RATE, channels=1, dtype="int16", **values)
+            stream.start()
+        except Exception as problem:
             log.warning("The microphone cannot be used: %s", problem)
-            self._stream = None
-            return False
-        return True
+            if stream is not None:
+                with contextlib.suppress(Exception):
+                    stream.close()
+            return None
+        return stream
 
     def listen(self, deliver) -> bool:
         """Deliver the microphone continuously, 40 ms at a time, to ``deliver(pcm)``
         (called from the audio thread). ``False`` if there is no microphone."""
         if self._sd is None:
             return False
-        if self._listening is not None:
-            return True
-        try:
-            self._listening = self._sd.RawInputStream(
-                samplerate=IN_RATE, channels=1, dtype="int16", blocksize=IN_RATE // 25,
-                callback=lambda data, frames, time_info, status: deliver(bytes(data)))
-            self._listening.start()
-        except Exception as problem:
-            log.warning("The microphone cannot be used: %s", problem)
-            self._listening = None
-            return False
-        return True
+        # Callers come from threads (``WakeListener.start`` opens the microphone beside the loop) and may
+        # overlap: looking and opening happen under one lock, so there is never a second stream. A stream
+        # that was replaced would be freed by Python while PortAudio still calls it – a crash.
+        with self._open:
+            if self._listening is not None:
+                return True
+            self._listening = self._open_stream(
+                blocksize=IN_RATE // 25, callback=lambda data, frames, time_info, status: deliver(bytes(data)))
+            return self._listening is not None
 
     def stop_listening(self) -> None:
-        stream, self._listening = self._listening, None
-        if stream is not None:
-            try:
-                stream.stop()
-                stream.close()
-            except Exception:
-                log.debug("Closing the microphone failed", exc_info=True)
+        with self._open:
+            stream, self._listening = self._listening, None
+            if stream is not None:
+                try:
+                    stream.stop()
+                    stream.close()
+                except Exception:
+                    log.debug("Closing the microphone failed", exc_info=True)
 
     def stop(self) -> bytes:
         """End recording and hand over what was said (16 kHz mono, 16 bit)."""

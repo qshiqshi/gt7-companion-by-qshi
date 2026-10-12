@@ -456,6 +456,125 @@ class TheMicrophoneOpensBesideTheLoop(unittest.TestCase):
         self.assertGreaterEqual(asyncio.run(go()), 4)           # the loop kept turning while the microphone opened
 
 
+class TheMicrophoneOpensOnce(unittest.TestCase):
+    """The engine starts the wake listener from several places at once (start-up, a look at the helper,
+    new settings). Only one microphone stream may come of that: a second one, forgotten when it was
+    replaced, crashed the program in the audio thread once Python had freed its callback."""
+
+    class CountingMicrophone:
+        available = True
+
+        def __init__(self):
+            self.opened, self.listening = 0, False
+
+        def listen(self, deliver):
+            time.sleep(0.2)                            # PortAudio opens the device, macOS may ask for permission
+            self.opened += 1
+            self.listening = True
+            return True
+
+        def stop_listening(self):
+            self.listening = False
+
+    class CountingTranscriber:
+        def __init__(self):
+            self.warmed = 0
+
+        def warm_up(self, language):
+            self.warmed += 1
+
+        def transcribe(self, pcm, language):
+            return ""
+
+    def test_three_starts_at_once_open_the_microphone_once(self):
+        async def go():
+            microphone, transcriber = self.CountingMicrophone(), self.CountingTranscriber()
+            listener = wake.WakeListener(microphone, transcriber, language=lambda: "de", on_question=lambda *a: None)
+            try:
+                started = await asyncio.gather(listener.start(), listener.start(), listener.start())
+                await asyncio.sleep(0.05)              # the listening task warms the recogniser up
+                return started, microphone.opened, transcriber.warmed, listener.running
+            finally:
+                await listener.stop()
+        started, opened, warmed, running = asyncio.run(go())
+        self.assertEqual(started, [True, True, True])
+        self.assertEqual(opened, 1)
+        self.assertEqual(warmed, 1)                    # one listening task, not three
+        self.assertTrue(running)
+
+    def test_a_stop_while_the_microphone_opens_waits_for_it_and_then_stops(self):
+        async def go():
+            microphone = self.CountingMicrophone()
+            listener = wake.WakeListener(microphone, self.CountingTranscriber(), language=lambda: "de",
+                                         on_question=lambda *a: None)
+            starting = asyncio.create_task(listener.start())
+            await asyncio.sleep(0.05)                  # the start is opening the microphone right now
+            await listener.stop()
+            self.assertTrue(await starting)
+            return microphone.listening, listener.running
+        listening, running = asyncio.run(go())
+        self.assertFalse(listening)                    # the stop came last and won
+        self.assertFalse(running)
+
+    def test_two_threads_open_one_stream(self):
+        from gt7companion.engineer import mic
+
+        streams = []
+
+        class Stream:
+            def __init__(self, **values):
+                time.sleep(0.1)                        # opening the device takes a while
+                self.started = self.closed = False
+                streams.append(self)
+
+            def start(self):
+                self.started = True
+
+            def stop(self):
+                self.started = False
+
+            def close(self):
+                self.closed = True
+
+        microphone = mic.Microphone()
+        microphone._sd = SimpleNamespace(RawInputStream=Stream)
+        results = []
+        threads = [threading.Thread(target=lambda: results.append(microphone.listen(lambda pcm: None)))
+                   for _ in range(3)]
+        for thread in threads:
+            thread.start()
+        for thread in threads:
+            thread.join()
+        self.assertEqual(results, [True, True, True])
+        self.assertEqual(len(streams), 1)
+        self.assertTrue(streams[0].started)
+        microphone.stop_listening()
+        self.assertTrue(streams[0].closed)
+        self.assertIsNone(microphone._listening)
+
+    def test_a_stream_that_cannot_start_is_closed_not_dropped(self):
+        from gt7companion.engineer import mic
+
+        class Stream:
+            closed = False
+
+            def __init__(self, **values):
+                pass
+
+            def start(self):
+                raise RuntimeError("no permission")
+
+            def close(self):
+                Stream.closed = True
+
+        microphone = mic.Microphone()
+        microphone._sd = SimpleNamespace(RawInputStream=Stream)
+        with self.assertLogs("box.mic", level="WARNING"):
+            self.assertFalse(microphone.listen(lambda pcm: None))
+        self.assertTrue(Stream.closed)
+        self.assertIsNone(microphone._listening)
+
+
 class WakeWordOfTheMac(unittest.TestCase):
     def test_what_the_recogniser_of_macos_writes_counts_at_the_start_only(self):
         for text in ("Hey Box, wie viel Sprit habe ich noch?", "Hellbox, wie war meine letzte Runde?",

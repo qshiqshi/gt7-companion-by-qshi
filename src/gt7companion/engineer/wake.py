@@ -197,6 +197,7 @@ class WakeListener:
         self._on_question = on_question        # callable(pcm, text): the utterance and what was recognised
         self._blocked = blocked                # callable() -> bool: the Box speaks or the talk button is held
         self._task: asyncio.Task | None = None
+        self._lock = asyncio.Lock()            # start() and stop() overlap: the engine calls them from several places
         self.heard = 0                         # utterances that were recognised (with or without wake word)
 
     @property
@@ -204,31 +205,37 @@ class WakeListener:
         return self._task is not None
 
     async def start(self) -> bool:
-        if self._task is not None:
+        # The engine asks for this from several places at once (start-up, a look at the helper, new
+        # settings). Only one of them may open the microphone: opening it takes a while, and a second
+        # stream opened meanwhile would be forgotten when it is replaced – PortAudio would go on calling
+        # its callback after Python had freed it, and the program would crash in the audio thread.
+        async with self._lock:
+            if self._task is not None:
+                return True
+            loop = asyncio.get_running_loop()
+            chunks: asyncio.Queue[bytes] = asyncio.Queue(maxsize=500)
+
+            def deliver(pcm: bytes) -> None:           # called by the audio thread
+                def put() -> None:
+                    with contextlib.suppress(asyncio.QueueFull):
+                        chunks.put_nowait(pcm)
+                loop.call_soon_threadsafe(put)
+
+            # Opening the microphone can wait for macOS to ask the user for permission (every build that is
+            # signed anew asks again); that must not stop the loop, and with it every page, meanwhile.
+            if not await asyncio.to_thread(self._microphone.listen, deliver):
+                return False
+            self._task = asyncio.create_task(self._run(chunks))
             return True
-        loop = asyncio.get_running_loop()
-        chunks: asyncio.Queue[bytes] = asyncio.Queue(maxsize=500)
-
-        def deliver(pcm: bytes) -> None:           # called by the audio thread
-            def put() -> None:
-                with contextlib.suppress(asyncio.QueueFull):
-                    chunks.put_nowait(pcm)
-            loop.call_soon_threadsafe(put)
-
-        # Opening the microphone can wait for macOS to ask the user for permission (every build that is
-        # signed anew asks again); that must not stop the loop, and with it every page, meanwhile.
-        if not await asyncio.to_thread(self._microphone.listen, deliver):
-            return False
-        self._task = asyncio.create_task(self._run(chunks))
-        return True
 
     async def stop(self) -> None:
-        task, self._task = self._task, None
-        self._microphone.stop_listening()
-        if task is not None:
-            task.cancel()
-            with contextlib.suppress(asyncio.CancelledError):
-                await task
+        async with self._lock:                 # a start that is opening the microphone right now finishes first
+            task, self._task = self._task, None
+            self._microphone.stop_listening()
+            if task is not None:
+                task.cancel()
+                with contextlib.suppress(asyncio.CancelledError):
+                    await task
 
     async def _run(self, chunks: asyncio.Queue) -> None:
         segmenter = Segmenter()
