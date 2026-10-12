@@ -49,8 +49,9 @@ class StreamPage(Pages):
     @classmethod
     def tearDownClass(cls):
         super().tearDownClass()
-        cls.twitch_site.__exit__(None, None, None)
-        cls.youtube_site.__exit__(None, None, None)
+        for site in (getattr(cls, "twitch_site", None), getattr(cls, "youtube_site", None)):
+            if site is not None:                   # the set-up gives up before them when there is no browser
+                site.__exit__(None, None, None)
 
     def stream_page(self, **context):
         page = self.open_plain("stream", size=(900, 1600), **context)
